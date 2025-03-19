@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -8,7 +9,7 @@ namespace DotNetCqrsEventSourcing.Application.Commands;
 /// <summary>
 /// Command to create a new account in the system.
 /// </summary>
-public class CreateAccountCommand
+public sealed class CreateAccountCommand
 {
     public string AccountNumber { get; set; }
     public string AccountHolder { get; set; }

@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
-public class AccountServiceTests
+public sealed class AccountServiceTests
 {
     private readonly Mock<IRepository<Account>> _repositoryMock;
     private readonly Mock<IEventBus> _eventBusMock;

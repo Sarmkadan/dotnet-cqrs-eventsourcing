@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -92,7 +93,7 @@ Console.WriteLine($"  Snapshot balance: {snapshotAccount.Balance.CurrentAmount} 
 Console.WriteLine("5. Loading account efficiently using snapshot...\n");
 
 var snapshot = await snapshotService.GetSnapshotAsync(accountId);
-if (snapshot != null)
+if (snapshot is not null)
 {
     var accountFromSnapshot = snapshot.RestoreAggregate();
     var eventsAfterSnapshot = allEvents.Skip(midpoint).ToList();

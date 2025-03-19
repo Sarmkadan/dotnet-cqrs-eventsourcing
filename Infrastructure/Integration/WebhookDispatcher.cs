@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -239,7 +240,7 @@ public class WebhookDispatcher : IWebhookDispatcher
     }
 }
 
-public class WebhookRegistration
+public sealed class WebhookRegistration
 {
     public Guid Id { get; set; }
     public string WebhookUrl { get; set; } = string.Empty;

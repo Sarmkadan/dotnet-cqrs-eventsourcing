@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -123,7 +124,7 @@ public class JsonFormatter : IJsonFormatter
     public JsonSerializerOptions GetOptions() => DefaultOptions;
 }
 
-public record JsonFormatOptions
+public sealed record JsonFormatOptions
 {
     public bool PrettyPrint { get; init; }
     public bool IgnoreNulls { get; init; }
