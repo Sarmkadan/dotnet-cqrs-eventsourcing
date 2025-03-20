@@ -33,7 +33,7 @@ public class InMemoryEventRepository : IEventRepository
                 {
                     // Check for optimistic concurrency
                     var aggregateEvents = _events.Where(e => e.AggregateId == envelope.AggregateId).ToList();
-                    var maxVersion = aggregateEvents.Count > 0 ? aggregateEvents.Max(e => e.AggregateVersion) : 0;
+                    var maxVersion = aggregateEvents.Count > 0 ? aggregateEvents.Max(e => e.AggregateVersion) : -1;
 
                     if (envelope.AggregateVersion <= maxVersion)
                         return Task.FromResult(Result.Failure(
