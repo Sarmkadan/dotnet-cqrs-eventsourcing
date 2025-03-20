@@ -10,3 +10,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    auto-merge:
+      enabled: true
+      merge-type: auto
