@@ -13,7 +13,7 @@
     <Description>Production CQRS + Event Sourcing framework for .NET - aggregate roots, projections, snapshots, replay</Description>
     <PackageProjectUrl>https://sarmkadan.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-cqrs-eventsourcing</RepositoryUrl>
-    <License>MIT</License>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
