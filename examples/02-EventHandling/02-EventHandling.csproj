@@ -6,6 +6,9 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Vladyslav Zaiets</Authors>
+    <RepositoryUrl>https://github.com/sarmkadan/dotnet-cqrs-eventsourcing</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

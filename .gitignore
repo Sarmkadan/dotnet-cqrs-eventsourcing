@@ -39,11 +39,13 @@ bld/
 .env
 .env.local
 .env.*.local
+appsettings.Development.json
 
 # NuGet
 *.nupkg
 *.snupkg
 .nuget/
+packages/
 
 # Output folders
 artifacts/
@@ -61,6 +63,7 @@ Thumbs.db
 # IDE
 *.orig
 *.rej
+*.DotSettings.user
 
 # Test Results
 TestResults/
