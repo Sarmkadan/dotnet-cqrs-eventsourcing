@@ -17,6 +17,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="examples/**/*.cs" />
+    <Compile Remove="tests/**/*.cs" />
+    <Compile Remove="Presentation/**/*.cs" />
+    <Compile Remove="Infrastructure/Configuration/InfrastructureConfiguration.cs" />
+    <Compile Remove="Application/Extensions/CommandExtensions.cs" />
+    <Compile Remove="Infrastructure/Middleware/**/*.cs" />
+    <Compile Remove="Infrastructure/Idempotency/IdempotencyKeyHandler.cs" />
+    <Compile Remove="Infrastructure/Workers/**/*.cs" />
+    <Compile Remove="Infrastructure/Observability/PerformanceMonitor.cs" />
+    <Compile Remove="Infrastructure/Integration/HttpClientFactory.cs" />
+    <Compile Remove="Infrastructure/Integration/WebhookDispatcher.cs" />
+    <Compile Remove="Infrastructure/Events/EventDispatcher.cs" />
+    <Compile Remove="Infrastructure/Events/DomainEventPublisher.cs" />
+    <Compile Remove="Infrastructure/Decorators/ValidationDecorator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.Extensions.Logging" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
