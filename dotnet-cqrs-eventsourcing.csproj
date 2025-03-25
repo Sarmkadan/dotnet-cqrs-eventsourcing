@@ -8,13 +8,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>DotNetCqrsEventSourcing</AssemblyName>
     <RootNamespace>DotNetCqrsEventSourcing</RootNamespace>
+    <PackageId>Zaiets.dotnet.cqrs.eventsourcing</PackageId>
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
     <Description>Production CQRS + Event Sourcing framework for .NET - aggregate roots, projections, snapshots, replay</Description>
-    <PackageProjectUrl>https://sarmkadan.com</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/sarmkadan/dotnet-cqrs-eventsourcing</RepositoryUrl>
+    <PackageTags>cqrs event-sourcing ddd event-driven dotnet csharp framework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/sarmkadan/dotnet-cqrs-eventsourcing</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sarmkadan/dotnet-cqrs-eventsourcing</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="examples/**/*.cs" />
