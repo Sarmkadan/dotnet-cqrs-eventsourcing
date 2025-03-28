@@ -64,7 +64,7 @@ public sealed class EventHandlers
         );
 
         // Update projections
-        await _projectionService.UpdateProjectionAsync(@event);
+        await _projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
 
         _logger.LogInformation("AccountCreated event handled");
     }
@@ -77,7 +77,7 @@ public sealed class EventHandlers
         );
 
         // Update projections
-        await _projectionService.UpdateProjectionAsync(@event);
+        await _projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
 
         _logger.LogInformation("MoneyDeposited event handled");
     }
@@ -90,7 +90,7 @@ public sealed class EventHandlers
         );
 
         // Update projections
-        await _projectionService.UpdateProjectionAsync(@event);
+        await _projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
 
         _logger.LogInformation("MoneyWithdrawn event handled");
     }
@@ -103,11 +103,11 @@ public sealed class EventHandlers
         );
 
         // Update projections
-        await _projectionService.UpdateProjectionAsync(@event);
+        await _projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
 
         // Create final snapshot
         var snapshotData = $"{{\"status\":\"closed\",\"closingBalance\":{@event.ClosingBalance},\"closedAt\":\"{@event.OccurredAt:O}\"}}";
-        await _snapshotService.CreateSnapshotAsync(@event.AggregateId, @event.AggregateVersion, snapshotData);
+        await _snapshotService.CreateSnapshotAsync(@event.AggregateId, @event.AggregateVersion, snapshotData).ConfigureAwait(false);
 
         _logger.LogInformation("AccountClosed event handled - snapshot created");
     }
@@ -115,7 +115,7 @@ public sealed class EventHandlers
     private async Task HandleProjectionUpdate(DomainEvent @event)
     {
         // This is a catch-all for updating projections on all events
-        await _projectionService.UpdateProjectionAsync(@event);
+        await _projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
     }
 }
 

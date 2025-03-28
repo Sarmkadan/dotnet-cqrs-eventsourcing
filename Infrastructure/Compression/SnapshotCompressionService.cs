@@ -79,7 +79,7 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
 
             using var output = new MemoryStream();
             await using (var gzip = new GZipStream(output, level))
-                await gzip.WriteAsync(originalBytes, cancellationToken);
+                await gzip.WriteAsync(originalBytes, cancellationToken).ConfigureAwait(false);
 
             var compressed = output.ToArray();
 
@@ -128,7 +128,7 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
             using var input = new MemoryStream(compressedBytes);
             using var output = new MemoryStream();
             await using (var gzip = new GZipStream(input, CompressionMode.Decompress))
-                await gzip.CopyToAsync(output, cancellationToken);
+                await gzip.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
 
             var decompressed = Encoding.UTF8.GetString(output.ToArray());
 

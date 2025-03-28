@@ -35,7 +35,7 @@ public class AccountService : IAccountService
             var account = new Account();
             account.CreateAccount(accountNumber, accountHolder, currency, initialBalance);
 
-            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
+            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken).ConfigureAwait(false);
             if (!saveResult.IsSuccess)
                 return Result<Account>.Failure(saveResult.ErrorCode!, saveResult.ErrorMessage!);
 
@@ -59,7 +59,7 @@ public class AccountService : IAccountService
     {
         try
         {
-            return await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+            return await _accountRepository.GetByIdAsync(accountId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -72,14 +72,14 @@ public class AccountService : IAccountService
     {
         try
         {
-            var accountResult = await GetAccountAsync(accountId, cancellationToken);
+            var accountResult = await GetAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
 
             var account = accountResult.Data!;
             account.Deposit(amount, reference);
 
-            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
+            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken).ConfigureAwait(false);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
@@ -103,14 +103,14 @@ public class AccountService : IAccountService
     {
         try
         {
-            var accountResult = await GetAccountAsync(accountId, cancellationToken);
+            var accountResult = await GetAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
 
             var account = accountResult.Data!;
             account.Withdraw(amount, reference);
 
-            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
+            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken).ConfigureAwait(false);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
@@ -134,14 +134,14 @@ public class AccountService : IAccountService
     {
         try
         {
-            var accountResult = await GetAccountAsync(accountId, cancellationToken);
+            var accountResult = await GetAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
 
             var account = accountResult.Data!;
             account.CloseAccount(reason);
 
-            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
+            var saveResult = await _accountRepository.SaveAsync(account, cancellationToken).ConfigureAwait(false);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
@@ -165,7 +165,7 @@ public class AccountService : IAccountService
     {
         try
         {
-            return await _accountRepository.GetAllAsync(cancellationToken);
+            return await _accountRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -178,7 +178,7 @@ public class AccountService : IAccountService
     {
         try
         {
-            var accountResult = await GetAccountAsync(accountId, cancellationToken);
+            var accountResult = await GetAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
             if (!accountResult.IsSuccess)
                 return Result<int>.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
 

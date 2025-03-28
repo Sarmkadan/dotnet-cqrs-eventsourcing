@@ -118,7 +118,7 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     {
         GuardClauses.NotNullOrEmpty(accountId, nameof(accountId));
 
-        var result = await _store.GetAsync(accountId, cancellationToken);
+        var result = await _store.GetAsync(accountId, cancellationToken).ConfigureAwait(false);
 
         if (!result.IsSuccess)
             _logger.LogDebug("Account read model not found for id '{AccountId}'.", accountId);
@@ -197,7 +197,7 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     public async Task<Result<AccountPortfolioStatistics>> GetPortfolioStatisticsAsync(
         CancellationToken cancellationToken = default)
     {
-        var all = await _store.GetAllAsync(cancellationToken);
+        var all = await _store.GetAllAsync(cancellationToken).ConfigureAwait(false);
 
         if (!all.IsSuccess)
             return Result<AccountPortfolioStatistics>.Failure(all.ErrorCode!, all.ErrorMessage!);

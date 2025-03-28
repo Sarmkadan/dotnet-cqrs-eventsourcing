@@ -58,7 +58,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
         {
             try
             {
-                await ProcessSnapshotsAsync(stoppingToken);
+                await ProcessSnapshotsAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -68,7 +68,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
             // Wait for the next interval before processing again
             try
             {
-                await Task.Delay(_snapshotInterval, stoppingToken);
+                await Task.Delay(_snapshotInterval, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -87,7 +87,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
 
         try
         {
-            var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken);
+            var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken).ConfigureAwait(false);
 
             if (events.Count == 0)
             {
@@ -108,7 +108,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _snapshotService.SaveSnapshotAsync(snapshot, cancellationToken);
+            await _snapshotService.SaveSnapshotAsync(snapshot, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Snapshot created for aggregate {AggregateId} at event version {Version}",

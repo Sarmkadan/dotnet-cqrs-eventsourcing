@@ -61,11 +61,11 @@ public class EventDispatcher : IEventDispatcher
         {
             // Persist first - if this fails, handlers are not invoked
             // This maintains the event stream as the source of truth
-            await _eventStore.AppendEventAsync(aggregateId, @event, cancellationToken);
+            await _eventStore.AppendEventAsync(aggregateId, @event, cancellationToken).ConfigureAwait(false);
 
             // Then publish to subscribers - handler failures don't affect persistence
             // This provides eventually-consistent read models
-            await _publisher.PublishAsync(@event, cancellationToken);
+            await _publisher.PublishAsync(@event, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Event dispatched successfully: {EventType} [AggregateId: {AggregateId}]",
@@ -103,7 +103,7 @@ public class EventDispatcher : IEventDispatcher
         {
             try
             {
-                await _eventStore.AppendEventAsync(aggregateId, @event, cancellationToken);
+                await _eventStore.AppendEventAsync(aggregateId, @event, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -114,7 +114,7 @@ public class EventDispatcher : IEventDispatcher
 
             try
             {
-                await _publisher.PublishAsync(@event, cancellationToken);
+                await _publisher.PublishAsync(@event, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -25,7 +25,7 @@ public static class CommandExtensions
     {
         try
         {
-            var result = await handler(cancellationToken);
+            var result = await handler(cancellationToken).ConfigureAwait(false);
             return result;
         }
         catch (ArgumentException ex)
@@ -224,7 +224,7 @@ public static class ResultExtensions
             return Result<TOut>.Failure(result.Errors);
         }
 
-        return await binder(result.Value);
+        return await binder(result.Value).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -238,7 +238,7 @@ public static class ResultExtensions
 
         if (result.IsSuccess)
         {
-            await sideEffect(result.Value);
+            await sideEffect(result.Value).ConfigureAwait(false);
         }
 
         return result;

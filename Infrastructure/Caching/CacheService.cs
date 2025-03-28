@@ -141,16 +141,16 @@ public class InMemoryCacheService : ICacheService
         GuardClauses.NotNullOrEmpty(key, nameof(key));
         GuardClauses.NotNull(factory, nameof(factory));
 
-        var cached = await GetAsync<T>(key, cancellationToken);
+        var cached = await GetAsync<T>(key, cancellationToken).ConfigureAwait(false);
         if (cached is not null)
         {
             return cached;
         }
 
-        var value = await factory(cancellationToken);
+        var value = await factory(cancellationToken).ConfigureAwait(false);
         if (value is not null)
         {
-            await SetAsync(key, value, expiration, cancellationToken);
+            await SetAsync(key, value, expiration, cancellationToken).ConfigureAwait(false);
         }
 
         return value;
