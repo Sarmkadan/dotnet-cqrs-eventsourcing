@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -97,7 +98,7 @@ public class EventAuditLog
 /// <summary>
 /// Exception details for structured error logging.
 /// </summary>
-public class ErrorLog
+public sealed class ErrorLog
 {
     public string ErrorId { get; set; } = Guid.NewGuid().ToString("N");
     public string ErrorType { get; set; } = string.Empty;

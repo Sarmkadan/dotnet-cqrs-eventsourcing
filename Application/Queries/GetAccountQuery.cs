@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -63,7 +64,7 @@ public class GetAllAccountsQuery
 /// <summary>
 /// Query to get account transaction count.
 /// </summary>
-public class GetTransactionCountQuery
+public sealed class GetTransactionCountQuery
 {
     public string AccountId { get; set; }
     public string CorrelationId { get; set; }
@@ -89,7 +90,7 @@ public class GetTransactionCountQuery
 /// <summary>
 /// Query to get account projection (read model).
 /// </summary>
-public class GetAccountProjectionQuery
+public sealed class GetAccountProjectionQuery
 {
     public string AccountId { get; set; }
     public string CorrelationId { get; set; }

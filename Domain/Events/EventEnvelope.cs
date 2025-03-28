@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -8,7 +9,7 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 /// <summary>
 /// Wrapper for domain events with infrastructure metadata for event store persistence.
 /// </summary>
-public class EventEnvelope
+public sealed class EventEnvelope
 {
     public string Id { get; set; }
     public string AggregateId { get; set; }
