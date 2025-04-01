@@ -115,7 +115,11 @@ public class InMemoryEventRepository : IEventRepository
         {
             lock (_lockObject)
             {
-                var events = _events.Where(e => e.EventType == eventType).OrderBy(e => e.CreatedAt).ToList();
+                var events = _events
+                    .Where(e => e.EventType == eventType)
+                    .OrderBy(e => e.CreatedAt)
+                    .ThenBy(e => e.AggregateVersion)
+                    .ToList();
                 return Task.FromResult(Result<List<EventEnvelope>>.Success(events));
             }
         }
@@ -153,6 +157,7 @@ public class InMemoryEventRepository : IEventRepository
             {
                 var events = _events
                     .OrderBy(e => e.CreatedAt)
+                    .ThenBy(e => e.AggregateVersion)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToList();
