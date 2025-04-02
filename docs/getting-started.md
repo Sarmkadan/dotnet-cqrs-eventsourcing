@@ -314,4 +314,33 @@ dotnet run --project 02-EventHandling/
 dotnet run --project 03-Projections/
 ```
 
+## Event Sourcing Patterns
+
+### Choosing Aggregate Boundaries
+
+An aggregate is the unit of consistency in event sourcing. Choose boundaries so that:
+- All invariants within an aggregate are enforced atomically.
+- Cross-aggregate interactions happen through eventual consistency (events, sagas).
+- Aggregates are small enough to be reconstructed cheaply from their event stream.
+
+See [ADR-001: Aggregate Design](adr/001-aggregate-design.md) for the full rationale.
+
+### Tuning Snapshot Frequency
+
+Taking a snapshot every N events trades storage for faster rehydration. A good starting point:
+- 50–100 events per snapshot for aggregates with cheap state computation.
+- 10–25 events for aggregates with expensive state computation or very frequent reads.
+
+See [ADR-002: Snapshotting Strategy](adr/002-snapshotting-strategy.md) for details.
+
+### Eventual-Consistency vs Synchronous Read Model Updates
+
+- **Synchronous** (same transaction): strong consistency, higher coupling, harder to scale.
+- **Eventual** (via event bus): decoupled, scalable, requires idempotent projectors.
+
+Prefer eventual-consistency projections for public read models; use synchronous updates only when the
+calling code *must* see its own write immediately (e.g., a confirmation page).
+
+See [ADR-003: Projection Consistency Model](adr/003-projection-consistency-model.md) for guidance.
+
 Happy coding! 🎉
