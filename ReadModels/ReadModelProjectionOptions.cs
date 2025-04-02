@@ -68,6 +68,14 @@ public sealed class ReadModelProjectionOptions
     /// Defaults to <see langword="false"/>.
     /// </summary>
     public bool ClearCheckpointsBeforeRebuild { get; set; } = false;
+
+    /// <summary>
+    /// When <see langword="true"/>, events that exhaust all retry attempts are written to
+    /// the <see cref="IDeadLetterStore"/> instead of being silently dropped.
+    /// Requires an <see cref="IDeadLetterStore"/> to be registered in the DI container.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    public bool EnableDeadLetterStore { get; set; } = true;
 }
 
 /// <summary>
