@@ -193,4 +193,26 @@ public class InMemoryEventRepository : IEventRepository
             return Task.FromResult(Result<List<EventEnvelope>>.Failure("RETRIEVE_FAILED", ex.Message));
         }
     }
+
+    public Task<Result<int>> DeleteEventsBeforeVersionAsync(string aggregateId, long beforeVersion, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            lock (_lockObject)
+            {
+                var toRemove = _events
+                    .Where(e => e.AggregateId == aggregateId && e.AggregateVersion < beforeVersion)
+                    .ToList();
+
+                foreach (var e in toRemove)
+                    _events.Remove(e);
+
+                return Task.FromResult(Result<int>.Success(toRemove.Count));
+            }
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(Result<int>.Failure("DELETE_FAILED", ex.Message));
+        }
+    }
 }
