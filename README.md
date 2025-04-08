@@ -996,3 +996,4 @@ This project is licensed under the [MIT License](LICENSE).
 **Built by [Vladyslav Zaiets](https://sarmkadan.com) - CTO & Software Architect**
 
 [Portfolio](https://sarmkadan.com) | [GitHub](https://github.com/Sarmkadan) | [Telegram](https://t.me/sarmkadan)
+
