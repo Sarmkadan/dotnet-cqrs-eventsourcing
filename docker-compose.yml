@@ -1,0 +1,90 @@
+# =============================================================================
+# Author: Vladyslav Zaiets | https://sarmkadan.com
+# CTO & Software Architect
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # Main API application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dotnet-cqrs-api
+    ports:
+      - "8080:8080"
+    environment:
+      - EventStoreConnection=Server=sqlserver:1433;Database=CqrsEventStore;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true
+      - RedisConnection=redis:6379
+      - Logging__LogLevel__Default=Information
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cqrs-network
+    restart: unless-stopped
+
+  # SQL Server for event store
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dotnet-cqrs-sqlserver
+    environment:
+      - SA_PASSWORD=YourPassword123!
+      - ACCEPT_EULA=Y
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - cqrs-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourPassword123!", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: dotnet-cqrs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - cqrs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Adminer for database inspection
+  adminer:
+    image: adminer:latest
+    container_name: dotnet-cqrs-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=sqlserver
+    depends_on:
+      - sqlserver
+    networks:
+      - cqrs-network
+    restart: unless-stopped
+
+volumes:
+  sqldata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  cqrs-network:
+    driver: bridge
