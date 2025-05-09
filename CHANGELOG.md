@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-28
+
+### Added
+- Multi-stage Docker build configuration with optimized runtime image
+- Comprehensive docker-compose orchestration with SQL Server, Redis, and Adminer
+- HEALTHCHECK directive for container liveness monitoring
+- Structured migration guide for v1.0.0 to v2.0.0 upgrade
+- Port 8080 as standard service port with configurable ASPNETCORE_URLS
+
+### Changed
+- Docker image built with net10.0 runtime (lightweight optimization)
+- Dockerfile refactored with builder, publish, and runtime stages
+- Docker Compose network isolation using `cqrs-network` bridge driver
+- Service dependency ordering with health checks in compose
+
+### Infrastructure
+- SQL Server 2022 support with automated health checks
+- Redis 7-alpine for distributed caching
+- Adminer included for database UI inspection
+- Structured logging with correlation ID support
+
 ## [1.0.0] - 2025-09-12
 
 ### Added
