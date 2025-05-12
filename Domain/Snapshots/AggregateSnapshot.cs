@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -8,7 +9,7 @@ namespace DotNetCqrsEventSourcing.Domain.Snapshots;
 /// <summary>
 /// Represents a snapshot of an aggregate's state at a specific version.
 /// </summary>
-public class AggregateSnapshot
+public sealed class AggregateSnapshot
 {
     public string Id { get; set; }
     public string AggregateId { get; set; }

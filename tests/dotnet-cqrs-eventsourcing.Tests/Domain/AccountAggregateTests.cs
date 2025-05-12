@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -12,7 +13,7 @@ using DotNetCqrsEventSourcing.Shared.Exceptions;
 using FluentAssertions;
 using Xunit;
 
-public class AccountAggregateTests
+public sealed class AccountAggregateTests
 {
     private static Account CreateFreshAccount(string accountNumber = "ACC-001",
         string holder = "Jane Doe", string currency = "USD", decimal initialBalance = 500m)

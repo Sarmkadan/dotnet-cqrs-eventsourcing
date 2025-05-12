@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +18,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware;
 /// - General Exception -> 500 InternalServerError (unexpected errors)
 /// This ensures API clients receive predictable error structures regardless of exception type.
 /// </summary>
-public class ErrorHandlingMiddleware
+public sealed class ErrorHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
@@ -116,7 +117,7 @@ public class ErrorHandlingMiddleware
     {
         public string ErrorId { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
-        public string[] Details { get; set; } = Array.Empty<string>();
+public string[] Details { get; set; } = [];
         public DateTime Timestamp { get; set; }
     }
 }
