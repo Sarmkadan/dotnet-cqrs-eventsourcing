@@ -30,6 +30,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
     private readonly IReadOnlyList<IReadModelProjectionRunner> _runners;
     private readonly ReadModelProjectionOptions _options;
     private readonly ILogger<ReadModelProjectionEngine> _logger;
+    private readonly IDeadLetterStore? _deadLetterStore;
 
     // Stored to allow clean unsubscription on Dispose.
     private readonly Func<DomainEvent, Task> _eventHandler;
@@ -48,13 +49,15 @@ public sealed class ReadModelProjectionEngine : IDisposable
         IEventStore eventStore,
         IEnumerable<IReadModelProjectionRunner> runners,
         IOptions<ReadModelProjectionOptions> options,
-        ILogger<ReadModelProjectionEngine> logger)
+        ILogger<ReadModelProjectionEngine> logger,
+        IDeadLetterStore? deadLetterStore = null)
     {
         _eventBus = GuardClauses.NotNull(eventBus, nameof(eventBus));
         _eventStore = GuardClauses.NotNull(eventStore, nameof(eventStore));
         _runners = GuardClauses.NotNull(runners, nameof(runners)).ToList();
         _options = options?.Value ?? new ReadModelProjectionOptions();
         _logger = GuardClauses.NotNull(logger, nameof(logger));
+        _deadLetterStore = deadLetterStore;
 
         _eventHandler = @event => HandleEventAsync(@event);
         _eventBus.Subscribe<DomainEvent>(_eventHandler);
@@ -226,6 +229,20 @@ public sealed class ReadModelProjectionEngine : IDisposable
                     _logger.LogError(ex,
                         "Projector '{Name}' failed permanently after {Attempts} attempt(s) for event {EventId}.",
                         runner.ProjectionName, attempt + 1, @event.EventId);
+
+                    if (_options.EnableDeadLetterStore && _deadLetterStore is not null)
+                    {
+                        var entry = new DeadLetterEntry
+                        {
+                            Event = @event,
+                            ProjectionName = runner.ProjectionName,
+                            ErrorMessage = ex.Message,
+                            AttemptCount = attempt + 1
+                        };
+
+                        await _deadLetterStore.WriteAsync(entry, cancellationToken);
+                    }
+
                     return Result.Failure("PROJECTOR_FAILED", ex.Message);
                 }
 
