@@ -87,7 +87,7 @@ public class EventAuditLog
     public string EventId { get; set; } = Guid.NewGuid().ToString("N");
     public string EventType { get; set; } = string.Empty;
     public string AggregateId { get; set; } = string.Empty;
-    public int AggregateVersion { get; set; }
+    public long AggregateVersion { get; set; }
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
     public string? UserId { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
