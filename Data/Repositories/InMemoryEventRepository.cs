@@ -170,4 +170,27 @@ public class InMemoryEventRepository : IEventRepository
             return Task.FromResult(Result<List<EventEnvelope>>.Failure("RETRIEVE_FAILED", ex.Message));
         }
     }
+
+    public Task<Result<List<EventEnvelope>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            lock (_lockObject)
+            {
+                var events = _events
+                    .Where(e => e.PartitionKey == partitionKey)
+                    .OrderBy(e => e.CreatedAt)
+                    .ThenBy(e => e.AggregateVersion)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                return Task.FromResult(Result<List<EventEnvelope>>.Success(events));
+            }
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(Result<List<EventEnvelope>>.Failure("RETRIEVE_FAILED", ex.Message));
+        }
+    }
 }

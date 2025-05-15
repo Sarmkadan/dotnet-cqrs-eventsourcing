@@ -22,4 +22,11 @@ public interface IEventStore
     Task<Result> ReplayEventsAsync(string aggregateId, CancellationToken cancellationToken = default);
     Task<Result<List<DomainEvent>>> GetEventsByTypeAsync(string eventType, CancellationToken cancellationToken = default);
     Task<Result<int>> GetEventCountAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all domain events associated with the specified partition key (e.g. tenant ID),
+    /// ordered by timestamp then aggregate version.  Supports paginated retrieval for large
+    /// per-tenant streams.  Returns an empty list when no events exist for the partition.
+    /// </summary>
+    Task<Result<List<DomainEvent>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default);
 }

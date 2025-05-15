@@ -22,4 +22,12 @@ public interface IEventRepository
     Task<Result<List<EventEnvelope>>> GetEventsByTypeAsync(string eventType, CancellationToken cancellationToken = default);
     Task<Result<long>> GetAggregateVersionAsync(string aggregateId, CancellationToken cancellationToken = default);
     Task<Result<List<EventEnvelope>>> GetAllEventsAsync(int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all events associated with the given partition key (e.g. tenant ID).
+    /// This enables per-tenant replay, snapshot, and archival operations without
+    /// scanning the full event stream. Returns an empty list when no events exist
+    /// for the partition.
+    /// </summary>
+    Task<Result<List<EventEnvelope>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default);
 }
