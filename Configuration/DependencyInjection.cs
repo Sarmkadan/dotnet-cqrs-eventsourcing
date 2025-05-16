@@ -10,6 +10,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Services;
 using Data.Repositories;
+using Application.Sagas;
 using Domain.AggregateRoots;
 using Infrastructure.Events;
 
@@ -46,6 +47,9 @@ public static class DependencyInjection
 
         // Event store compaction
         services.AddSingleton<IEventStoreCompactionService, EventStoreCompactionService>();
+
+        // Saga orchestration
+        services.AddSingleton<SagaOrchestrator>();
 
         // Application services
         services.AddSingleton<IAccountService, AccountService>();
