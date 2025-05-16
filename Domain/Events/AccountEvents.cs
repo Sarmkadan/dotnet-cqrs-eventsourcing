@@ -9,6 +9,7 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 /// <summary>
 /// Event raised when an account is created in the system.
 /// </summary>
+[EventName("AccountCreated")]
 public class AccountCreatedEvent : DomainEvent
 {
     public string AccountNumber { get; set; } = string.Empty;
@@ -34,6 +35,7 @@ public class AccountCreatedEvent : DomainEvent
 /// <summary>
 /// Event raised when money is deposited into an account.
 /// </summary>
+[EventName("MoneyDeposited")]
 public class MoneyDepositedEvent : DomainEvent
 {
     public decimal Amount { get; set; }
@@ -56,6 +58,7 @@ public class MoneyDepositedEvent : DomainEvent
 /// <summary>
 /// Event raised when money is withdrawn from an account.
 /// </summary>
+[EventName("MoneyWithdrawn")]
 public class MoneyWithdrawnEvent : DomainEvent
 {
     public decimal Amount { get; set; }
@@ -78,6 +81,7 @@ public class MoneyWithdrawnEvent : DomainEvent
 /// <summary>
 /// Event raised when account balance is updated.
 /// </summary>
+[EventName("BalanceUpdated")]
 public class BalanceUpdatedEvent : DomainEvent
 {
     public decimal PreviousBalance { get; set; }
@@ -101,6 +105,7 @@ public class BalanceUpdatedEvent : DomainEvent
 /// <summary>
 /// Event raised when an account is closed.
 /// </summary>
+[EventName("AccountClosed")]
 public class AccountClosedEvent : DomainEvent
 {
     public string Reason { get; set; } = string.Empty;
