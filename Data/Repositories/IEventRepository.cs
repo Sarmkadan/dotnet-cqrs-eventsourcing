@@ -30,4 +30,12 @@ public interface IEventRepository
     /// for the partition.
     /// </summary>
     Task<Result<List<EventEnvelope>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all events for the specified aggregate whose version is strictly less than
+    /// <paramref name="beforeVersion"/>.  Used by the compaction service to prune
+    /// superseded events once a snapshot has been captured at that version.
+    /// Returns the number of events that were removed.
+    /// </summary>
+    Task<Result<int>> DeleteEventsBeforeVersionAsync(string aggregateId, long beforeVersion, CancellationToken cancellationToken = default);
 }
