@@ -393,6 +393,14 @@ foreach (var envelope in events)
 
 ## Usage Examples
 
+For a collection of practical, runnable examples, check the `examples/` directory:
+
+- `examples/UsageExamples/BasicUsage.cs` - Minimal setup and first call.
+- `examples/UsageExamples/AdvancedUsage.cs` - Configuration, custom options, and error handling.
+- `examples/UsageExamples/IntegrationExample.cs` - Wiring into .NET Dependency Injection (DI).
+
+See the existing `examples/README.md` for details on specific scenario-based examples.
+
 ### Example 1: Complete Account Lifecycle
 
 ```csharp
