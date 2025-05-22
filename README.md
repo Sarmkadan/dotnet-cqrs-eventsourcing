@@ -772,50 +772,180 @@ public interface ISnapshotService
 
 ## Configuration
 
-### DI Setup
+The framework uses the standard .NET `IOptions` pattern with comprehensive validation. Configure settings via `appsettings.json` or other IConfiguration sources.
 
-```csharp
-var services = new ServiceCollection();
+### Example Configuration (`appsettings.json`)
 
-// Register CQRS framework
-services.AddCqrsFramework();
-
-// Optional: Configure logging
-services.AddLogging(config => config.AddConsole());
-
-// Optional: Configure event handlers
-serviceProvider.ConfigureEventHandlers();
-
-var serviceProvider = services.BuildServiceProvider();
-```
-
-### In-Memory Event Store
-
-```csharp
-services.AddSingleton<IEventRepository>(
-    new InMemoryEventRepository()
-);
-```
-
-### Custom Logger
-
-```csharp
-services.AddLogging(config =>
+```json
 {
-    config.AddConsole();
-    config.SetMinimumLevel(LogLevel.Debug);
-    config.AddFilter("DotNetCqrsEventSourcing", LogLevel.Information);
-});
+  "DotnetCqrsEventsourcing": {
+    "EventStoreConnectionString": "Server=localhost;Database=EventStore;User Id=user;Password=password;",
+    "ProjectionStoreConnectionString": "Server=localhost;Database=ProjectionStore;User Id=user;Password=password;",
+    "SnapshotStoreConnectionString": "Server=localhost;Database=SnapshotStore;User Id=user;Password=password;",
+    "MaxEventsCached": 10000,
+    "CacheExpirationSeconds": 3600,
+    "EnableEventCompression": false,
+    "BatchWriteSize": 100,
+    "ParallelReaderCount": 4,
+    "AutoCreateSnapshots": true,
+    "SnapshotFrequency": 50,
+    "MinVersionForSnapshot": 10,
+    "VerifyEventChecksums": true,
+    "RetentionPolicy": 0,
+    "RetentionDays": 365
+  }
+}
 ```
 
-### Snapshot Configuration
+### Settings Reference
+
+| Setting | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `EventStoreConnectionString` | string | - | **Required**. Connection string for the event store database. This is where all domain events are persisted. |
+| `ProjectionStoreConnectionString` | string | - | **Required**. Connection string for the projection store database. This is where read models are stored for query optimization. |
+| `SnapshotStoreConnectionString` | string | - | **Required**. Connection string for the snapshot store database. This is where aggregate snapshots are persisted to optimize replay performance. |
+| `MaxEventsCached` | int | 10000 | Maximum number of events to keep in memory cache. Higher values improve performance for frequently accessed aggregates but increase memory usage. |
+| `CacheExpirationSeconds` | int | 3600 | Maximum age of cached events in seconds. Events older than this will be evicted from cache. Set to 0 to disable caching. |
+| `EnableEventCompression` | bool | false | Enable event compression for large events. When enabled, events are compressed before storage to reduce database size. |
+| `BatchWriteSize` | int | 100 | Batch size for bulk event writes. Larger batches improve write performance but increase memory usage during writes. |
+| `ParallelReaderCount` | int | ProcessorCount | Number of parallel event reader threads. Controls how many events can be read concurrently for better throughput. |
+| `AutoCreateSnapshots` | bool | true | Automatically create snapshots when `SnapshotFrequency` threshold is reached. When false, snapshots must be created manually. |
+| `SnapshotFrequency` | int | 50 | Frequency of automatic snapshots (number of events). After this many events, a snapshot will be automatically created if `AutoCreateSnapshots` is true. |
+| `MinVersionForSnapshot` | long | 10 | Minimum version before creating snapshots. Snapshots will only be created for aggregates that have reached this version. |
+| `VerifyEventChecksums` | bool | true | Verify event checksums on read. When enabled, validates event integrity to detect data corruption. Disable only for performance testing. |
+| `RetentionPolicy` | enum | 0 (Infinite) | Retention policy for old events. Options: `0` (Infinite - keep all events), `1` (Limited - keep for specified days), `2` (Snapshots - keep only snapshots and recent events), `3` (Archive - move old events to cold storage). |
+| `RetentionDays` | int | 365 | Days to retain events when `RetentionPolicy` is set to `Limited`. Events older than this will be automatically removed. |
+
+### Environment Variables
+
+All settings can also be configured via environment variables:
+
+```bash
+# Example environment variables
+export DotnetCqrsEventsourcing__EventStoreConnectionString="Server=localhost;Database=EventStore;..."
+export DotnetCqrsEventsourcing__MaxEventsCached=5000
+export DotnetCqrsEventsourcing__SnapshotFrequency=100
+```
+
+### Validation
+
+The framework automatically validates all configuration settings on startup:
+
+- **Required fields** (`EventStoreConnectionString`, `ProjectionStoreConnectionString`, `SnapshotStoreConnectionString`) must be provided
+- **Range validations** ensure numeric values are within acceptable ranges
+- **MinLength validations** ensure connection strings are not empty
+- **Validation errors** throw exceptions immediately at application startup, preventing runtime failures
+
+### Registration
+
+To register and validate options in your DI container:
 
 ```csharp
-// Create snapshot every 50 events
-var snapshotService = serviceProvider.GetRequiredService<ISnapshotService>();
-const int snapshotInterval = 50;
-await snapshotService.CreateSnapshotAsync(account, accountId, snapshotInterval);
+// In your Startup or Program.cs
+services.AddCqrsFramework(configuration);
 ```
+
+The framework automatically:
+- Binds configuration to `DotnetCqrsEventsourcingOptions`
+- Validates all settings using DataAnnotations
+- Throws exceptions for invalid configuration on startup
+- Makes options available via `IOptions<DotnetCqrsEventsourcingOptions>`
+
+### Accessing Options
+
+```csharp
+// Constructor injection
+public class MyService
+{
+    private readonly DotnetCqrsEventsourcingOptions _options;
+    
+    public MyService(IOptions<DotnetCqrsEventsourcingOptions> options)
+    {
+        _options = options.Value;
+        
+        // Access configuration values
+        var maxEvents = _options.MaxEventsCached;
+        var connectionString = _options.EventStoreConnectionString;
+    }
+}
+
+// Or directly from DI
+var options = serviceProvider.GetRequiredService<IOptions<DotnetCqrsEventsourcingOptions>>();
+var snapshotFrequency = options.Value.SnapshotFrequency;
+```
+
+### Production Configuration Examples
+
+#### Development Configuration
+
+```json
+{
+  "DotnetCqrsEventsourcing": {
+    "EventStoreConnectionString": "Server=localhost;Database=EventStoreDev;User Id=sa;Password=YourStrong!Passw0rd;",
+    "ProjectionStoreConnectionString": "Server=localhost;Database=ProjectionStoreDev;User Id=sa;Password=YourStrong!Passw0rd;",
+    "SnapshotStoreConnectionString": "Server=localhost;Database=SnapshotStoreDev;User Id=sa;Password=YourStrong!Passw0rd;",
+    "MaxEventsCached": 5000,
+    "CacheExpirationSeconds": 1800,
+    "BatchWriteSize": 50,
+    "ParallelReaderCount": 2,
+    "AutoCreateSnapshots": true,
+    "SnapshotFrequency": 100,
+    "MinVersionForSnapshot": 20,
+    "VerifyEventChecksums": true,
+    "RetentionPolicy": 0
+  }
+}
+```
+
+#### Production Configuration
+
+```json
+{
+  "DotnetCqrsEventsourcing": {
+    "EventStoreConnectionString": "Server=sql-prod.database.windows.net;Database=EventStore;User Id=app-user;Password=ComplexPassword123!;",
+    "ProjectionStoreConnectionString": "Server=sql-prod.database.windows.net;Database=ProjectionStore;User Id=app-user;Password=ComplexPassword123!;",
+    "SnapshotStoreConnectionString": "Server=sql-prod.database.windows.net;Database=SnapshotStore;User Id=app-user;Password=ComplexPassword123!;",
+    "MaxEventsCached": 20000,
+    "CacheExpirationSeconds": 7200,
+    "EnableEventCompression": true,
+    "BatchWriteSize": 200,
+    "ParallelReaderCount": 8,
+    "AutoCreateSnapshots": true,
+    "SnapshotFrequency": 25,
+    "MinVersionForSnapshot": 50,
+    "VerifyEventChecksums": true,
+    "RetentionPolicy": 2,
+    "RetentionDays": 90
+  }
+}
+```
+
+### Configuration Best Practices
+
+1. **Connection Strings**: Use managed identities or secret management for production credentials
+2. **Caching**: Adjust `MaxEventsCached` based on your aggregate size and access patterns
+3. **Snapshots**: Configure `SnapshotFrequency` based on your aggregate complexity (more complex = more frequent snapshots)
+4. **Retention**: Set appropriate retention policies for compliance and cost management
+5. **Validation**: Always validate configuration in your CI/CD pipeline before deployment
+
+
+### Troubleshooting Configuration Issues
+
+
+**Error: Required configuration is missing**
+- Ensure all three connection strings are provided in your configuration
+- Verify the configuration section name is correct: `DotnetCqrsEventsourcing`
+
+
+**Error: Validation failed**
+- Check that numeric values are within valid ranges
+- Ensure connection strings are not empty strings
+- For `RetentionDays`, ensure it's >= 0
+
+**Error: Configuration not applied**
+- Verify you're calling `services.AddCqrsFramework(configuration)`
+- Ensure your configuration source (appsettings.json, environment variables, etc.) is properly loaded
+- Check that the configuration section name matches exactly
 
 ## Deployment
 

@@ -8,6 +8,8 @@ namespace DotNetCqrsEventSourcing.Configuration;
 
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Application.Services;
 using Data.Repositories;
 using Application.Sagas;
@@ -22,8 +24,14 @@ public static class DependencyInjection
     /// <summary>
     /// Register all services, repositories, and event handlers.
     /// </summary>
-    public static IServiceCollection AddCqrsFramework(this IServiceCollection services)
+    public static IServiceCollection AddCqrsFramework(this IServiceCollection services, IConfiguration configuration)
     {
+        // Options registration with validation
+        services.AddOptions<DotnetCqrsEventsourcingOptions>()
+            .Bind(configuration.GetSection(DotnetCqrsEventsourcingOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         // Event type registry – scan the domain assembly so every [EventName(...)]-decorated
         // event is discoverable by the EventStore deserializer without relying on Type.GetType().
         services.AddSingleton(sp =>
