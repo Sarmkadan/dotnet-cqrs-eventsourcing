@@ -10,6 +10,13 @@ using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Infrastructure.Cli;
 
+// Build configuration
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .Build();
+
 // Build service provider
 var services = new ServiceCollection();
 
@@ -21,7 +28,7 @@ services.AddLogging(builder =>
 });
 
 // Register CQRS framework
-services.AddCqrsFramework();
+services.AddCqrsFramework(configuration);
 
 // Register CLI commands
 services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
