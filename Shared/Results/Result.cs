@@ -16,6 +16,17 @@ public sealed class Result
     public string? ErrorMessage { get; }
     public List<string> Errors { get; }
 
+    /// <summary>
+    /// Convenience alias for <see cref="ErrorMessage"/>.
+    /// </summary>
+    public string? Error => ErrorMessage;
+
+    /// <summary>
+    /// Payload placeholder for API parity with <see cref="Result{T}"/>.
+    /// Non-generic results carry no payload, so this is always <see langword="null"/>.
+    /// </summary>
+    public object? Data => null;
+
     private Result(bool isSuccess, string? errorCode = null, string? errorMessage = null)
     {
         IsSuccess = isSuccess;

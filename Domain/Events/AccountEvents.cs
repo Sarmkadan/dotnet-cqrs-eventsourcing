@@ -29,6 +29,20 @@ public class AccountCreatedEvent : DomainEvent
         InitialBalance = initialBalance;
     }
 
+    public AccountCreatedEvent(string aggregateId, string accountNumber, string accountHolder,
+        string currency, decimal initialBalance, DateTime occurredAt)
+        : this(aggregateId, accountNumber, accountHolder, currency, initialBalance)
+    {
+        OccurredAt = occurredAt;
+    }
+
+    /// <summary>
+    /// Convenience alias for <see cref="AccountHolder"/>.
+    /// Excluded from serialization so stored event payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string AccountHolderName => AccountHolder;
+
     public override string GetEventType() => "AccountCreated";
 }
 

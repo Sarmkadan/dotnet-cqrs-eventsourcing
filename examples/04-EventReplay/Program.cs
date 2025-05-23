@@ -72,8 +72,8 @@ for (int i = 0; i < allEvents.Count; i++)
     // Show state transitions
     if (i > 0)
     {
-        var previousBalance = new Account().ReplayEvents(allEvents.Take(i).ToList()).Balance.CurrentAmount;
-        var change = reconstructed.Balance.CurrentAmount - previousBalance;
+        var previousBalance = new Account().ReplayEvents(allEvents.Take(i).ToList()).Balance.CurrentAmount.Amount;
+        var change = reconstructed.Balance.CurrentAmount.Amount - previousBalance;
         Console.WriteLine($"  Change: {(change > 0 ? "+" : "")}{change} USD");
     }
     Console.WriteLine();

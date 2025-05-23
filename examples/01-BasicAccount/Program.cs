@@ -20,8 +20,8 @@ var accountService = serviceProvider.GetRequiredService<IAccountService>();
 // Example 1: Create an account
 Console.WriteLine("1. Creating account...");
 var createResult = await accountService.CreateAccountAsync(
-    accountId: "ACC-2024-001",
-    accountHolderName: "Alice Johnson",
+    accountNumber: "ACC-2024-001",
+    accountHolder: "Alice Johnson",
     currency: "USD",
     initialBalance: 5000m
 );
@@ -41,7 +41,7 @@ Console.WriteLine("2. Depositing funds...");
 var depositResult = await accountService.DepositAsync(
     accountId: account.Id,
     amount: 2500m,
-    referenceNumber: "DEP-2024-001"
+    reference: "DEP-2024-001"
 );
 
 if (depositResult.IsSuccess)
@@ -55,7 +55,7 @@ Console.WriteLine("3. Withdrawing funds...");
 var withdrawResult = await accountService.WithdrawAsync(
     accountId: account.Id,
     amount: 1000m,
-    referenceNumber: "WTH-2024-001"
+    reference: "WTH-2024-001"
 );
 
 if (withdrawResult.IsSuccess)

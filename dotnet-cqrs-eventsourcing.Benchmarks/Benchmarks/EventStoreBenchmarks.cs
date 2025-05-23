@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Data.Repositories;
 using DotNetCqrsEventSourcing.Domain.AggregateRoots;
 using DotNetCqrsEventSourcing.Domain.Events;

@@ -22,8 +22,8 @@ var projectionService = serviceProvider.GetRequiredService<IProjectionService>()
 // Example 1: Create an account with v2 features
 Console.WriteLine("1. Creating account with v2 features...");
 var createResult = await accountService.CreateAccountAsync(
-    accountId: "ACC-V2-001",
-    accountHolderName: "Bob Smith",
+    accountNumber: "ACC-V2-001",
+    accountHolder: "Bob Smith",
     currency: "EUR",
     initialBalance: 10000m
 );
@@ -43,7 +43,7 @@ Console.WriteLine("2. Depositing funds...");
 var depositResult = await accountService.DepositAsync(
     accountId: account.Id,
     amount: 5000m,
-    referenceNumber: "DEP-V2-001"
+    reference: "DEP-V2-001"
 );
 
 if (depositResult.IsSuccess)
@@ -54,7 +54,7 @@ if (depositResult.IsSuccess)
 
 // Example 3: Use projections (v2 feature - eventually consistent materialized views)
 Console.WriteLine("3. Using projections for optimized reads...");
-var readModelQueryService = serviceProvider.GetRequiredService<AccountReadModelQueryService>();
+var readModelQueryService = serviceProvider.GetRequiredService<IAccountReadModelQueryService>();
 
 // Wait for projections to catch up (eventual consistency)
 Console.WriteLine("Waiting for projections to update...");

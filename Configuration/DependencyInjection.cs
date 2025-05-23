@@ -22,6 +22,20 @@ using Infrastructure.Events;
 public static class DependencyInjection
 {
     /// <summary>
+    /// Register all services, repositories, and event handlers using configuration
+    /// loaded from <c>appsettings.json</c> (when present) and environment variables.
+    /// </summary>
+    public static IServiceCollection AddCqrsFramework(this IServiceCollection services)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables()
+            .Build();
+
+        return services.AddCqrsFramework(configuration);
+    }
+
+    /// <summary>
     /// Register all services, repositories, and event handlers.
     /// </summary>
     public static IServiceCollection AddCqrsFramework(this IServiceCollection services, IConfiguration configuration)

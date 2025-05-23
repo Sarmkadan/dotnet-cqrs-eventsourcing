@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
 
 Console.WriteLine("=== Complete CQRS + Event Sourcing Scenario ===\n");
 
@@ -25,19 +26,19 @@ var snapshotService = serviceProvider.GetRequiredService<ISnapshotService>();
 // Setup event handlers for audit trail
 Console.WriteLine("Setting up event handlers...\n");
 
-await eventBus.SubscribeAsync<AccountCreated>(async (@event) =>
+await eventBus.SubscribeAsync<AccountCreatedEvent>(async (@event) =>
 {
     Console.WriteLine($"[AUDIT] Account created: {@event.AggregateId}");
     await Task.CompletedTask;
 });
 
-await eventBus.SubscribeAsync<MoneyDeposited>(async (@event) =>
+await eventBus.SubscribeAsync<MoneyDepositedEvent>(async (@event) =>
 {
     Console.WriteLine($"[AUDIT] Deposit: {@event.Amount} to {@event.AggregateId}");
     await Task.CompletedTask;
 });
 
-await eventBus.SubscribeAsync<MoneyWithdrawn>(async (@event) =>
+await eventBus.SubscribeAsync<MoneyWithdrawnEvent>(async (@event) =>
 {
     Console.WriteLine($"[AUDIT] Withdrawal: {@event.Amount} from {@event.AggregateId}");
     await Task.CompletedTask;
@@ -65,7 +66,7 @@ Console.WriteLine($"✓ Account created\n");
 // Phase 2: Business operations (CQRS Commands)
 Console.WriteLine("=== PHASE 2: Business Operations ===\n");
 
-var operations = new[] {
+var operations = new (string, Func<Task<Result>>)[] {
     ("Salary Deposit", () => accountService.DepositAsync(accountId, 2000m, "SALARY-001")),
     ("Rent Payment", () => accountService.WithdrawAsync(accountId, 1500m, "RENT-001")),
     ("Utilities", () => accountService.WithdrawAsync(accountId, 200m, "UTIL-001")),

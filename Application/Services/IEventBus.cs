@@ -57,4 +57,17 @@ public interface IEventBus
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A <see cref="Result"/> indicating success or failure.</returns>
     Task<Result> PublishAndPersistAsync(DomainEvent @event, IEventStore eventStore, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Awaitable convenience wrapper over <see cref="Subscribe{TEvent}"/> for callers
+    /// that prefer an asynchronous registration style. Registration itself is synchronous.
+    /// </summary>
+    /// <typeparam name="TEvent">The specific domain event type to subscribe to.</typeparam>
+    /// <param name="handler">The async handler delegate invoked on event publication.</param>
+    /// <returns>A completed task once the handler has been registered.</returns>
+    Task SubscribeAsync<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
+    {
+        Subscribe(handler);
+        return Task.CompletedTask;
+    }
 }
