@@ -772,49 +772,66 @@ public interface ISnapshotService
 
 ## Configuration
 
-The framework uses the standard .NET `IOptions` pattern with comprehensive validation. Configure settings via `appsettings.json` or other IConfiguration sources.
+The framework uses the standard .NET `IOptions` pattern with comprehensive validation. Configure settings via `appsettings.json` or other IConfiguration sources (environment variables, command-line arguments, etc.).
 
-### Example Configuration (`appsettings.json`)
+### Quick Start
+
+Create an `appsettings.json` file in your application's root directory:
 
 ```json
 {
   "DotnetCqrsEventsourcing": {
-    "EventStoreConnectionString": "Server=localhost;Database=EventStore;User Id=user;Password=password;",
-    "ProjectionStoreConnectionString": "Server=localhost;Database=ProjectionStore;User Id=user;Password=password;",
-    "SnapshotStoreConnectionString": "Server=localhost;Database=SnapshotStore;User Id=user;Password=password;",
-    "MaxEventsCached": 10000,
-    "CacheExpirationSeconds": 3600,
-    "EnableEventCompression": false,
-    "BatchWriteSize": 100,
-    "ParallelReaderCount": 4,
+    "EventStoreConnectionString": "Server=localhost;Database=EventStore;User Id=sa;Password=YourStrong!Passw0rd;",
+    "ProjectionStoreConnectionString": "Server=localhost;Database=ProjectionStore;User Id=sa;Password=YourStrong!Passw0rd;",
+    "SnapshotStoreConnectionString": "Server=localhost;Database=SnapshotStore;User Id=sa;Password=YourStrong!Passw0rd;"
+  }
+}
+```
+
+### Complete Configuration Example
+
+```json
+{
+  "DotnetCqrsEventsourcing": {
+    "EventStoreConnectionString": "Server=sql-prod.database.windows.net;Database=EventStore;User Id=app-user;Password=ComplexPassword123!;",
+    "ProjectionStoreConnectionString": "Server=sql-prod.database.windows.net;Database=ProjectionStore;User Id=app-user;Password=ComplexPassword123!;",
+    "SnapshotStoreConnectionString": "Server=sql-prod.database.windows.net;Database=SnapshotStore;User Id=app-user;Password=ComplexPassword123!;",
+    "MaxEventsCached": 20000,
+    "CacheExpirationSeconds": 7200,
+    "EnableEventCompression": true,
+    "BatchWriteSize": 200,
+    "ParallelReaderCount": 8,
     "AutoCreateSnapshots": true,
-    "SnapshotFrequency": 50,
-    "MinVersionForSnapshot": 10,
+    "SnapshotFrequency": 25,
+    "MinVersionForSnapshot": 50,
     "VerifyEventChecksums": true,
-    "RetentionPolicy": 0,
-    "RetentionDays": 365
+    "RetentionPolicy": 2,
+    "RetentionDays": 90
   }
 }
 ```
 
 ### Settings Reference
 
-| Setting | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `EventStoreConnectionString` | string | - | **Required**. Connection string for the event store database. This is where all domain events are persisted. |
-| `ProjectionStoreConnectionString` | string | - | **Required**. Connection string for the projection store database. This is where read models are stored for query optimization. |
-| `SnapshotStoreConnectionString` | string | - | **Required**. Connection string for the snapshot store database. This is where aggregate snapshots are persisted to optimize replay performance. |
-| `MaxEventsCached` | int | 10000 | Maximum number of events to keep in memory cache. Higher values improve performance for frequently accessed aggregates but increase memory usage. |
-| `CacheExpirationSeconds` | int | 3600 | Maximum age of cached events in seconds. Events older than this will be evicted from cache. Set to 0 to disable caching. |
-| `EnableEventCompression` | bool | false | Enable event compression for large events. When enabled, events are compressed before storage to reduce database size. |
-| `BatchWriteSize` | int | 100 | Batch size for bulk event writes. Larger batches improve write performance but increase memory usage during writes. |
-| `ParallelReaderCount` | int | ProcessorCount | Number of parallel event reader threads. Controls how many events can be read concurrently for better throughput. |
-| `AutoCreateSnapshots` | bool | true | Automatically create snapshots when `SnapshotFrequency` threshold is reached. When false, snapshots must be created manually. |
-| `SnapshotFrequency` | int | 50 | Frequency of automatic snapshots (number of events). After this many events, a snapshot will be automatically created if `AutoCreateSnapshots` is true. |
-| `MinVersionForSnapshot` | long | 10 | Minimum version before creating snapshots. Snapshots will only be created for aggregates that have reached this version. |
-| `VerifyEventChecksums` | bool | true | Verify event checksums on read. When enabled, validates event integrity to detect data corruption. Disable only for performance testing. |
-| `RetentionPolicy` | enum | 0 (Infinite) | Retention policy for old events. Options: `0` (Infinite - keep all events), `1` (Limited - keep for specified days), `2` (Snapshots - keep only snapshots and recent events), `3` (Archive - move old events to cold storage). |
-| `RetentionDays` | int | 365 | Days to retain events when `RetentionPolicy` is set to `Limited`. Events older than this will be automatically removed. |
+All settings support environment variable overrides using the format:
+`DotnetCqrsEventsourcing__<SettingName>` (double underscore separator).
+
+| Setting | Type | Default | Environment Variable | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `EventStoreConnectionString` | string | - | `DotnetCqrsEventsourcing__EventStoreConnectionString` | **Required**. Connection string for the event store database. This is where all domain events are persisted. Minimum length: 10 characters. |
+| `ProjectionStoreConnectionString` | string | - | `DotnetCqrsEventsourcing__ProjectionStoreConnectionString` | **Required**. Connection string for the projection store database. This is where read models are stored for query optimization. Minimum length: 10 characters. |
+| `SnapshotStoreConnectionString` | string | - | `DotnetCqrsEventsourcing__SnapshotStoreConnectionString` | **Required**. Connection string for the snapshot store database. This is where aggregate snapshots are persisted to optimize replay performance. Minimum length: 10 characters. |
+| `MaxEventsCached` | int | 10,000 | `DotnetCqrsEventsourcing__MaxEventsCached` | Maximum number of events to keep in memory cache. Higher values improve performance for frequently accessed aggregates but increase memory usage. Range: 1-1,000,000. |
+| `CacheExpirationSeconds` | int | 3,600 | `DotnetCqrsEventsourcing__CacheExpirationSeconds` | Maximum age of cached events in seconds. Events older than this will be evicted from cache. Set to 0 to disable caching. Range: 0-86,400 (24 hours). |
+| `EnableEventCompression` | bool | false | `DotnetCqrsEventsourcing__EnableEventCompression` | Enable event compression for large events. When enabled, events are compressed before storage to reduce database size. |
+| `BatchWriteSize` | int | 100 | `DotnetCqrsEventsourcing__BatchWriteSize` | Batch size for bulk event writes. Larger batches improve write performance but increase memory usage during writes. Range: 1-10,000. |
+| `ParallelReaderCount` | int | ProcessorCount | `DotnetCqrsEventsourcing__ParallelReaderCount` | Number of parallel event reader threads. Controls how many events can be read concurrently for better throughput. Range: 1-64. |
+| `AutoCreateSnapshots` | bool | true | `DotnetCqrsEventsourcing__AutoCreateSnapshots` | Automatically create snapshots when `SnapshotFrequency` threshold is reached. When false, snapshots must be created manually. |
+| `SnapshotFrequency` | int | 50 | `DotnetCqrsEventsourcing__SnapshotFrequency` | Frequency of automatic snapshots (number of events). After this many events, a snapshot will be automatically created if `AutoCreateSnapshots` is true. Range: 1-1,000. |
+| `MinVersionForSnapshot` | long | 10 | `DotnetCqrsEventsourcing__MinVersionForSnapshot` | Minimum version before creating snapshots. Snapshots will only be created for aggregates that have reached this version. Range: 0-1,000,000. |
+| `VerifyEventChecksums` | bool | true | `DotnetCqrsEventsourcing__VerifyEventChecksums` | Verify event checksums on read. When enabled, validates event integrity to detect data corruption. Disable only for performance testing. |
+| `RetentionPolicy` | enum | 0 (Infinite) | `DotnetCqrsEventsourcing__RetentionPolicy` | Retention policy for old events. Options: `0` (Infinite - keep all events), `1` (Limited - keep for specified days), `2` (Snapshots - keep only snapshots and recent events), `3` (Archive - move old events to cold storage). |
+| `RetentionDays` | int | 365 | `DotnetCqrsEventsourcing__RetentionDays` | Days to retain events when `RetentionPolicy` is set to `Limited`. Events older than this will be automatically removed. Range: 1-3,650 (10 years). |
 
 ### Environment Variables
 
