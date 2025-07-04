@@ -2,7 +2,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Cli;
 
@@ -29,12 +29,10 @@ public static class CliCommandRegistryJsonExtensions
     /// <param name="value">The registry to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the registry.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this CliCommandRegistry value, bool indented = false)
     {
-        if (value is null)
-        {
-            return "{}";
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
             ? new JsonSerializerOptions(_jsonOptions)
@@ -51,8 +49,11 @@ public static class CliCommandRegistryJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized registry, or <see langword="null"/> if deserialization fails.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/>, empty, or whitespace.</exception>
     public static CliCommandRegistry? FromJson(string json)
     {
+        ArgumentException.ThrowIfNullOrEmpty(json);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -74,8 +75,11 @@ public static class CliCommandRegistryJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized registry, or <see langword="null"/> on failure.</param>
     /// <returns><see langword="true"/> if deserialization succeeds; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/> or empty.</exception>
     public static bool TryFromJson(string json, out CliCommandRegistry? value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(json);
+
         value = null;
 
         if (string.IsNullOrWhiteSpace(json))
