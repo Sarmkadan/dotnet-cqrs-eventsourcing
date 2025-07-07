@@ -5,7 +5,9 @@
 // =============================================================================
 
 using System.IO.Compression;
+using DotNetCqrsEventSourcing.Domain.Snapshots;
 using DotNetCqrsEventSourcing.Infrastructure.Compression;
+using DotNetCqrsEventSourcing.Shared.Results;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Extensions;
@@ -82,5 +84,66 @@ public static class SnapshotCompressionExtensions
         services.AddSingleton<ISnapshotCompressionService, SnapshotCompressionService>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Compresses the snapshot's aggregate data in-place using GZip and
+    /// updates the size metadata on the snapshot.
+    /// </summary>
+    /// <param name="compressionService">The compression service instance.</param>
+    /// <param name="snapshot">The snapshot to compress.</param>
+    /// <param name="level">The compression level to use.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A <see cref="Result{AggregateSnapshot}"/> indicating success or failure.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="compressionService"/> or <paramref name="snapshot"/> is <see langword="null"/>.
+    /// </exception>
+    public static async Task<Result<AggregateSnapshot>> CompressAsync(
+        this ISnapshotCompressionService compressionService,
+        AggregateSnapshot snapshot,
+        CompressionLevel level = CompressionLevel.Optimal,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(compressionService);
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        return await compressionService.CompressAsync(snapshot, level, cancellationToken);
+    }
+
+    /// <summary>
+    /// Decompresses the snapshot's aggregate data and returns the original JSON string.
+    /// Returns the raw data unchanged if the snapshot is not compressed.
+    /// </summary>
+    /// <param name="compressionService">The compression service instance.</param>
+    /// <param name="snapshot">The snapshot to decompress.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A <see cref="Result{T}" where T=string/> containing the decompressed data or an error.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="compressionService"/> or <paramref name="snapshot"/> is <see langword="null"/>.
+    /// </exception>
+    public static async Task<Result<string>> DecompressAsync(
+        this ISnapshotCompressionService compressionService,
+        AggregateSnapshot snapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(compressionService);
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        return await compressionService.DecompressAsync(snapshot, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets cumulative compression statistics across all snapshots processed by the service.
+    /// </summary>
+    /// <param name="compressionService">The compression service instance.</param>
+    /// <returns>A <see cref="SnapshotCompressionStats"/> object containing compression metrics.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="compressionService"/> is <see langword="null"/>.
+    /// </exception>
+    public static SnapshotCompressionStats GetStats(this ISnapshotCompressionService compressionService)
+    {
+        ArgumentNullException.ThrowIfNull(compressionService);
+
+        return compressionService.GetStats();
     }
 }
