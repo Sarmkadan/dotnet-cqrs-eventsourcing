@@ -27,18 +27,13 @@ public static class PagedResultJsonExtensions
     /// <param name="value">The PagedResult to serialize</param>
     /// <param name="indented">Whether to format the JSON with indentation</param>
     /// <returns>JSON string representation of the PagedResult</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null</exception>
     public static string ToJson<T>(this PagedResult<T> value, bool indented = false)
     {
-        if (value is null)
-        {
-            return "{}";
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -46,21 +41,18 @@ public static class PagedResultJsonExtensions
 
     /// <summary>
     /// Deserializes a JSON string to a PagedResult.
-    /// Returns null if the JSON is invalid.
     /// </summary>
     /// <typeparam name="T">The type of items in the PagedResult</typeparam>
     /// <param name="json">JSON string to deserialize</param>
-    /// <returns>Deserialized PagedResult or null if parsing fails</returns>
-    public static PagedResult<T>? FromJson<T>(string json)
+    /// <returns>Deserialized PagedResult</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="json"/> is null</exception>
+    /// <exception cref="JsonException">Thrown if the JSON is invalid or cannot be deserialized</exception>
+    public static PagedResult<T> FromJson<T>(string json)
     {
-        try
-        {
-            return JsonSerializer.Deserialize<PagedResult<T>>(json, _jsonOptions);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(json);
+
+        return JsonSerializer.Deserialize<PagedResult<T>>(json, _jsonOptions)
+            ?? throw new JsonException("Deserialization returned null");
     }
 
     /// <summary>
@@ -68,10 +60,13 @@ public static class PagedResultJsonExtensions
     /// </summary>
     /// <typeparam name="T">The type of items in the PagedResult</typeparam>
     /// <param name="json">JSON string to deserialize</param>
-    /// <param name="value">Output parameter containing the deserialized PagedResult or null</param>
+    /// <param name="value">Output parameter containing the deserialized PagedResult or null if deserialization fails</param>
     /// <returns>True if deserialization succeeded, false otherwise</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="json"/> is null</exception>
     public static bool TryFromJson<T>(string json, out PagedResult<T>? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         try
         {
             value = JsonSerializer.Deserialize<PagedResult<T>>(json, _jsonOptions);
@@ -79,7 +74,7 @@ public static class PagedResultJsonExtensions
         }
         catch (JsonException)
         {
-            value = null;
+            value = default;
             return false;
         }
     }
