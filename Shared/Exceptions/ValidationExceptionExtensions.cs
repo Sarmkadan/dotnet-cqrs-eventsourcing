@@ -4,34 +4,28 @@ using System.Linq;
 
 namespace DotNetCqrsEventSourcing.Shared.Exceptions
 {
+    /// <summary>
+    /// Provides extension methods for working with <see cref="ValidationException"/> instances.
+    /// </summary>
     public static class ValidationExceptionExtensions
     {
         /// <summary>
         /// Adds a validation error to the exception's ValidationErrors dictionary.
         /// </summary>
-        /// <param name="exception">The validation exception to extend</param>
-        /// <param name="propertyName">The name of the property being validated</param>
-        /// <param name="errorMessage">The validation error message</param>
-        /// <returns>A new ValidationException with the additional error added</returns>
+        /// <param name="exception">The validation exception to extend.</param>
+        /// <param name="propertyName">The name of the property being validated.</param>
+        /// <param name="errorMessage">The validation error message.</param>
+        /// <returns>A new ValidationException with the additional error added.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="exception"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="propertyName"/> or <paramref name="errorMessage"/> is null or whitespace.</exception>
         public static ValidationException WithError(
             this ValidationException exception,
             string propertyName,
             string errorMessage)
         {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
-
-            if (string.IsNullOrWhiteSpace(propertyName))
-            {
-                throw new ArgumentException("Property name cannot be null or whitespace", nameof(propertyName));
-            }
-
-            if (string.IsNullOrWhiteSpace(errorMessage))
-            {
-                throw new ArgumentException("Error message cannot be null or whitespace", nameof(errorMessage));
-            }
+            ArgumentNullException.ThrowIfNull(exception);
+            ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
 
             var newErrors = new Dictionary<string, string>(exception.ValidationErrors);
             newErrors[propertyName] = errorMessage;
@@ -48,14 +42,13 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
         /// <summary>
         /// Combines multiple validation exceptions into a single aggregated exception.
         /// </summary>
-        /// <param name="exceptions">Collection of validation exceptions to aggregate</param>
-        /// <returns>A new ValidationException containing all validation errors from all exceptions</returns>
+        /// <param name="exceptions">Collection of validation exceptions to aggregate.</param>
+        /// <returns>A new ValidationException containing all validation errors from all exceptions.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="exceptions"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when no valid validation exceptions are provided.</exception>
         public static ValidationException AggregateAll(this IEnumerable<ValidationException> exceptions)
         {
-            if (exceptions == null)
-            {
-                throw new ArgumentNullException(nameof(exceptions));
-            }
+            ArgumentNullException.ThrowIfNull(exceptions);
 
             var allErrors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -87,15 +80,13 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
         /// <summary>
         /// Checks if the validation exception contains an error for the specified property.
         /// </summary>
-        /// <param name="exception">The validation exception to check</param>
-        /// <param name="propertyName">The property name to check for</param>
-        /// <returns>True if the property has a validation error; otherwise false</returns>
+        /// <param name="exception">The validation exception to check.</param>
+        /// <param name="propertyName">The property name to check for.</param>
+        /// <returns>True if the property has a validation error; otherwise false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="exception"/> is null.</exception>
         public static bool HasErrorFor(this ValidationException exception, string propertyName)
         {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
+            ArgumentNullException.ThrowIfNull(exception);
 
             return exception.ValidationErrors.ContainsKey(propertyName);
         }
@@ -103,22 +94,18 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
         /// <summary>
         /// Gets the error message for the specified property, or null if no error exists.
         /// </summary>
-        /// <param name="exception">The validation exception to query</param>
-        /// <param name="propertyName">The property name to get the error for</param>
-        /// <returns>The error message if found; otherwise null</returns>
+        /// <param name="exception">The validation exception to query.</param>
+        /// <param name="propertyName">The property name to get the error for.</param>
+        /// <returns>The error message if found; otherwise null.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="exception"/> is null.</exception>
         public static string GetErrorMessage(this ValidationException exception, string propertyName)
         {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
+            ArgumentNullException.ThrowIfNull(exception);
+            ArgumentNullException.ThrowIfNull(propertyName);
 
-            if (exception.ValidationErrors.TryGetValue(propertyName ?? string.Empty, out var errorMessage))
-            {
-                return errorMessage;
-            }
-
-            return null;
+            return exception.ValidationErrors.TryGetValue(propertyName, out var errorMessage)
+                ? errorMessage
+                : null;
         }
     }
 }
