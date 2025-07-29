@@ -41,9 +41,7 @@ public static class InMemoryReadModelStoreJsonExtensions
 
         var options = indented
             ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -54,11 +52,16 @@ public static class InMemoryReadModelStoreJsonExtensions
     /// </summary>
     /// <typeparam name="TReadModel">The read model type stored in the store.</typeparam>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>An instance of <see cref="InMemoryReadModelStore{TReadModel}"/> populated with the deserialized data.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
+    /// <returns>An instance of <see cref="InMemoryReadModelStore{TReadModel}"/> populated with the deserialized data, or <see langword="null"/> if the JSON is empty.</returns>
     public static InMemoryReadModelStore<TReadModel>? FromJson<TReadModel>(string json)
         where TReadModel : class
     {
-        return JsonSerializer.Deserialize<InMemoryReadModelStore<TReadModel>>(json, _jsonOptions);
+        ArgumentNullException.ThrowIfNull(json);
+
+        return json.Length == 0
+            ? null
+            : JsonSerializer.Deserialize<InMemoryReadModelStore<TReadModel>>(json, _jsonOptions);
     }
 
     /// <summary>
@@ -67,10 +70,13 @@ public static class InMemoryReadModelStoreJsonExtensions
     /// <typeparam name="TReadModel">The read model type stored in the store.</typeparam>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">The resulting read model store, or null if deserialization failed.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
     public static bool TryFromJson<TReadModel>(string json, out InMemoryReadModelStore<TReadModel>? value)
         where TReadModel : class
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         try
         {
             value = JsonSerializer.Deserialize<InMemoryReadModelStore<TReadModel>>(json, _jsonOptions);
