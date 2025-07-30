@@ -102,7 +102,7 @@ public static class PaginationHelper
 }
 
 /// <summary>
-/// Extension methods for IQueryable<T> to simplify pagination.
+/// Extension methods for <see cref="IQueryable{T}"/> to simplify pagination.
 /// </summary>
 public static class PaginationExtensions
 {
