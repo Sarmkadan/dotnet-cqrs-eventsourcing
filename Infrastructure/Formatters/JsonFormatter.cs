@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -40,11 +41,16 @@ public interface IJsonFormatter
 
 public class JsonFormatter : IJsonFormatter
 {
-    private static readonly JsonSerializerOptions DefaultOptions = new()
+    private static readonly JsonSerializerOptions DefaultOptions = CreateOptions(writeIndented: false, ignoreNulls: true);
+    private static readonly JsonSerializerOptions PrettyOptions = CreateOptions(writeIndented: true, ignoreNulls: true);
+    private static readonly JsonSerializerOptions DefaultWithNullsOptions = CreateOptions(writeIndented: false, ignoreNulls: false);
+    private static readonly JsonSerializerOptions PrettyWithNullsOptions = CreateOptions(writeIndented: true, ignoreNulls: false);
+
+    private static JsonSerializerOptions CreateOptions(bool writeIndented, bool ignoreNulls) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = writeIndented,
+        DefaultIgnoreCondition = ignoreNulls ? JsonIgnoreCondition.WhenWritingNull : JsonIgnoreCondition.Never,
         Converters =
         {
             new JsonStringEnumConverter(),
@@ -53,17 +59,13 @@ public class JsonFormatter : IJsonFormatter
         }
     };
 
-    private static readonly JsonSerializerOptions PrettyOptions = new()
+    private static JsonSerializerOptions ResolveOptions(JsonFormatOptions? options) => options switch
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters =
-        {
-            new JsonStringEnumConverter(),
-            new JsonDateTimeConverter(),
-            new JsonDecimalConverter()
-        }
+        null => DefaultOptions,
+        { PrettyPrint: true, IgnoreNulls: false } => PrettyWithNullsOptions,
+        { PrettyPrint: true } => PrettyOptions,
+        { IgnoreNulls: false } => DefaultWithNullsOptions,
+        _ => DefaultOptions
     };
 
     public string Format<T>(T obj, JsonFormatOptions? options = null)
@@ -73,7 +75,7 @@ public class JsonFormatter : IJsonFormatter
             return "null";
         }
 
-        var opts = options?.PrettyPrint ?? false ? PrettyOptions : DefaultOptions;
+        var opts = ResolveOptions(options);
 
         try
         {
@@ -92,7 +94,7 @@ public class JsonFormatter : IJsonFormatter
             return "[]";
         }
 
-        var opts = options?.PrettyPrint ?? false ? PrettyOptions : DefaultOptions;
+        var opts = ResolveOptions(options);
 
         try
         {
@@ -127,7 +129,7 @@ public class JsonFormatter : IJsonFormatter
 public sealed record JsonFormatOptions
 {
     public bool PrettyPrint { get; init; }
-    public bool IgnoreNulls { get; init; }
+    public bool IgnoreNulls { get; init; } = true;
 }
 
 /// <summary>
@@ -137,12 +139,19 @@ public class JsonDateTimeConverter : JsonConverter<DateTime>
 {
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (DateTime.TryParse(reader.GetString(), out var date))
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            throw new JsonException($"Failed to parse DateTime: unexpected token {reader.TokenType}");
+        }
+
+        var raw = reader.GetString();
+
+        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date))
         {
             return date;
         }
 
-        throw new JsonException($"Failed to parse DateTime: {reader.GetString()}");
+        throw new JsonException($"Failed to parse DateTime: {raw}");
     }
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
@@ -165,10 +174,17 @@ public class JsonDecimalConverter : JsonConverter<decimal>
 
         if (reader.TokenType == JsonTokenType.String)
         {
-            return decimal.Parse(reader.GetString() ?? "0");
+            var raw = reader.GetString();
+
+            if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
+            {
+                return value;
+            }
+
+            throw new JsonException($"Failed to parse decimal: {raw}");
         }
 
-        throw new JsonException($"Failed to parse decimal: {reader.GetString()}");
+        throw new JsonException($"Failed to parse decimal: unexpected token {reader.TokenType}");
     }
 
     public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options)

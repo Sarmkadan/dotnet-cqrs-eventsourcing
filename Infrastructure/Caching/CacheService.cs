@@ -45,11 +45,13 @@ public interface ICacheService
     Task<T?> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T?>> factory, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class;
 }
 
-public class InMemoryCacheService : ICacheService
+public class InMemoryCacheService : ICacheService, IDisposable
 {
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _keyLocks = new();
     private readonly ILogger<InMemoryCacheService> _logger;
     private readonly Timer _evictionTimer;
+    private bool _disposed;
 
     public InMemoryCacheService(ILogger<InMemoryCacheService> logger)
     {
@@ -147,13 +149,31 @@ public class InMemoryCacheService : ICacheService
             return cached;
         }
 
-        var value = await factory(cancellationToken);
-        if (value is not null)
-        {
-            await SetAsync(key, value, expiration, cancellationToken);
-        }
+        // Serialize factory execution per key so concurrent misses for the same key
+        // run the factory only once (cache-aside without a thundering herd).
+        var keyLock = _keyLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await keyLock.WaitAsync(cancellationToken);
 
-        return value;
+        try
+        {
+            cached = await GetAsync<T>(key, cancellationToken);
+            if (cached is not null)
+            {
+                return cached;
+            }
+
+            var value = await factory(cancellationToken);
+            if (value is not null)
+            {
+                await SetAsync(key, value, expiration, cancellationToken);
+            }
+
+            return value;
+        }
+        finally
+        {
+            keyLock.Release();
+        }
     }
 
     /// <summary>
@@ -206,16 +226,41 @@ public class InMemoryCacheService : ICacheService
         var patternParts = pattern.Split('*');
         if (patternParts.Length == 1) return key == pattern;
 
-        if (!key.StartsWith(patternParts[0])) return false;
+        if (!key.StartsWith(patternParts[0], StringComparison.Ordinal)) return false;
+
+        // Consume the prefix so the remaining segments cannot overlap with it.
+        key = key[patternParts[0].Length..];
 
         for (int i = 1; i < patternParts.Length - 1; i++)
         {
-            var index = key.IndexOf(patternParts[i]);
+            var index = key.IndexOf(patternParts[i], StringComparison.Ordinal);
             if (index < 0) return false;
             key = key[(index + patternParts[i].Length)..];
         }
 
-        return key.EndsWith(patternParts[^1]);
+        return key.EndsWith(patternParts[^1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Releases the eviction timer and per-key locks used by this cache instance.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _evictionTimer.Dispose();
+
+        foreach (var keyLock in _keyLocks.Values)
+        {
+            keyLock.Dispose();
+        }
+
+        _keyLocks.Clear();
+        GC.SuppressFinalize(this);
     }
 
     private class CacheEntry

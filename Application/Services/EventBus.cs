@@ -22,6 +22,7 @@ using Exceptions;
 public class EventBus : IEventBus
 {
     private readonly Dictionary<Type, List<Delegate>> _subscribers = new();
+    private readonly object _subscribersLock = new();
     private readonly ILogger<EventBus> _logger;
 
     public EventBus(ILogger<EventBus> logger)
@@ -69,12 +70,17 @@ public class EventBus : IEventBus
 
         var eventType = typeof(TEvent);
 
-        if (!_subscribers.ContainsKey(eventType))
+        lock (_subscribersLock)
         {
-            _subscribers[eventType] = new List<Delegate>();
+            if (!_subscribers.TryGetValue(eventType, out var handlers))
+            {
+                handlers = new List<Delegate>();
+                _subscribers[eventType] = handlers;
+            }
+
+            handlers.Add(handler);
         }
 
-        _subscribers[eventType].Add(handler);
         _logger.LogInformation("Subscribed handler for event type {EventType}", eventType.Name);
     }
 
@@ -84,10 +90,15 @@ public class EventBus : IEventBus
             throw new ArgumentNullException(nameof(handler));
 
         var eventType = typeof(TEvent);
+        bool removed;
 
-        if (_subscribers.TryGetValue(eventType, out var handlers))
+        lock (_subscribersLock)
         {
-            handlers.Remove(handler);
+            removed = _subscribers.TryGetValue(eventType, out var handlers) && handlers.Remove(handler);
+        }
+
+        if (removed)
+        {
             _logger.LogInformation("Unsubscribed handler for event type {EventType}", eventType.Name);
         }
     }
@@ -119,10 +130,21 @@ public class EventBus : IEventBus
     private async Task PublishSingleEventAsync(DomainEvent @event, CancellationToken cancellationToken)
     {
         var eventType = @event.GetType();
+        List<Delegate>? snapshot = null;
 
-        if (_subscribers.TryGetValue(eventType, out var handlers))
+        lock (_subscribersLock)
         {
-            var tasks = handlers.Select(async handler =>
+            if (_subscribers.TryGetValue(eventType, out var handlers) && handlers.Count > 0)
+            {
+                // Copy the handler list so concurrent Subscribe/Unsubscribe calls
+                // cannot mutate it while the handlers are being invoked.
+                snapshot = new List<Delegate>(handlers);
+            }
+        }
+
+        if (snapshot is not null)
+        {
+            var tasks = snapshot.Select(async handler =>
             {
                 try
                 {

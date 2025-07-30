@@ -37,18 +37,14 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
         {
             ArgumentNullException.ThrowIfNull(exception);
 
-            var result = new CqrsException(
+            return new CqrsException(
                 exception.Message,
                 exception.ErrorCode,
                 exception.InnerException,
-                exception.CorrelationId);
-
-            // Set the read-only OccurredAt property via reflection
-            typeof(CqrsException)
-                .GetProperty(nameof(CqrsException.OccurredAt))!
-                .SetValue(result, occurredAt);
-
-            return result;
+                exception.CorrelationId)
+            {
+                OccurredAt = occurredAt
+            };
         }
 
         /// <summary>
@@ -96,16 +92,12 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
             // Preserve the correlation ID and occurred timestamp from the original exception
             if (exception.CorrelationId is not null)
             {
-                typeof(CqrsException)
-                    .GetProperty(nameof(CqrsException.CorrelationId))!
-                    .SetValue(result, exception.CorrelationId);
+                result.CorrelationId = exception.CorrelationId;
             }
 
             if (exception.OccurredAt != default)
             {
-                typeof(CqrsException)
-                    .GetProperty(nameof(CqrsException.OccurredAt))!
-                    .SetValue(result, exception.OccurredAt);
+                result.OccurredAt = exception.OccurredAt;
             }
 
             return result;

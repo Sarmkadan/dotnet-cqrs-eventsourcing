@@ -40,6 +40,11 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddCqrsFramework(this IServiceCollection services, IConfiguration configuration)
     {
+        // Logging infrastructure - every framework service depends on ILogger<T>,
+        // so registration must not require the host to call AddLogging() itself.
+        // AddLogging is idempotent and preserves any providers the host configures.
+        services.AddLogging();
+
         // Options registration with validation
         services.AddOptions<DotnetCqrsEventsourcingOptions>()
             .Bind(configuration.GetSection(DotnetCqrsEventsourcingOptions.SectionName))
