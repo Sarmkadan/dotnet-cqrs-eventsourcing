@@ -17,10 +17,11 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 /// </summary>
 public static class ReflectionUtilities
 {
-    private static readonly ConcurrentDictionary<Type, Type[]> InterfaceCache = new();
-    private static readonly ConcurrentDictionary<(Type, Type), MethodInfo?> MethodCache = new();
+    private static readonly ConcurrentDictionary<(Assembly Assembly, Type Interface), Type[]> InterfaceCache = new();
+    private static readonly ConcurrentDictionary<(Type Type, string Name, int ParameterCount), MethodInfo?> MethodCache = new();
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = new();
     private static readonly ConcurrentDictionary<Type, Type[]> GenericArgsCache = new();
+    private static readonly ConcurrentDictionary<(Type Type, Type Attribute), Attribute[]> AttributeCache = new();
 
     /// <summary>
     /// Finds all types in an assembly that implement a specific interface.
@@ -35,12 +36,14 @@ public static class ReflectionUtilities
 
     public static IEnumerable<Type> GetTypesImplementing(Assembly assembly, Type interfaceType)
     {
-        var key = assembly.FullName! + "_" + interfaceType.FullName!;
-        var cacheKey = assembly.GetHashCode() ^ interfaceType.GetHashCode();
+        ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentNullException.ThrowIfNull(interfaceType);
 
-        return assembly.GetTypes()
-            .Where(type => type.IsClass && !type.IsAbstract && interfaceType.IsAssignableFrom(type))
-            .ToArray();
+        return InterfaceCache.GetOrAdd(
+            (assembly, interfaceType),
+            static key => key.Assembly.GetTypes()
+                .Where(type => type.IsClass && !type.IsAbstract && key.Interface.IsAssignableFrom(type))
+                .ToArray());
     }
 
     /// <summary>
@@ -53,14 +56,18 @@ public static class ReflectionUtilities
     }
 
     /// <summary>
-    /// Finds a method on a type by name, with parameter count matching.
+    /// Finds a method on a type by name, with parameter count matching, with caching.
     /// Returns null if method not found. Useful for dynamic invocation without Type.GetMethod.
     /// </summary>
     public static MethodInfo? FindMethod(Type type, string methodName, int parameterCount)
     {
-        var key = (type, methodName, parameterCount);
-        return type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .FirstOrDefault(m => m.Name == methodName && m.GetParameters().Length == parameterCount);
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
+
+        return MethodCache.GetOrAdd(
+            (type, methodName, parameterCount),
+            static key => key.Type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == key.Name && m.GetParameters().Length == key.ParameterCount));
     }
 
     /// <summary>
@@ -89,7 +96,12 @@ public static class ReflectionUtilities
     /// </summary>
     public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(Type type) where TAttribute : Attribute
     {
-        return type.GetCustomAttributes(typeof(TAttribute), inherit: true).Cast<TAttribute>();
+        ArgumentNullException.ThrowIfNull(type);
+
+        return AttributeCache.GetOrAdd(
+            (type, typeof(TAttribute)),
+            static key => key.Type.GetCustomAttributes(key.Attribute, inherit: true).Cast<Attribute>().ToArray())
+            .Cast<TAttribute>();
     }
 
     /// <summary>
@@ -108,8 +120,8 @@ public static class ReflectionUtilities
     }
 
     /// <summary>
-    /// Gets the base type of a generic type, preserving generic parameters.
-    /// Example: GetBaseGenericType(typeof(MyHandler), typeof(IHandler<>)) returns IHandler{MyEventType}
+    /// Finds the closed generic interface a type implements for a given open generic definition.
+    /// Example: GetGenericBaseType(typeof(MyHandler), typeof(IHandler{})) returns IHandler{MyEventType}
     /// </summary>
     public static Type? GetGenericBaseType(Type type, Type genericBaseDefinition)
     {
@@ -126,5 +138,6 @@ public static class ReflectionUtilities
         MethodCache.Clear();
         PropertyCache.Clear();
         GenericArgsCache.Clear();
+        AttributeCache.Clear();
     }
 }

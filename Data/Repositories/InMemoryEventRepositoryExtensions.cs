@@ -30,7 +30,7 @@ public static class InMemoryEventRepositoryExtensions
         }
 
         var events = result.Data;
-        return events.Count > 0
+        return events is { Count: > 0 }
             ? Result<EventEnvelope>.Success(events[0])
             : Result<EventEnvelope>.Failure("NOT_FOUND", $"No events found for aggregate {aggregateId}");
     }
@@ -55,7 +55,7 @@ public static class InMemoryEventRepositoryExtensions
         }
 
         var events = result.Data;
-        return events.Count > 0
+        return events is { Count: > 0 }
             ? Result<EventEnvelope>.Success(events[^1])
             : Result<EventEnvelope>.Failure("NOT_FOUND", $"No events found for aggregate {aggregateId}");
     }
@@ -101,6 +101,6 @@ public static class InMemoryEventRepositoryExtensions
             return Result<int>.Failure(result.ErrorCode!, result.ErrorMessage!);
         }
 
-        return Result<int>.Success(result.Data.Count);
+        return Result<int>.Success(result.Data?.Count ?? 0);
     }
 }

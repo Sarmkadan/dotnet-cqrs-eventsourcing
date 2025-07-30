@@ -25,11 +25,8 @@ public static class DateTimeExtensionsJsonExtensions
     /// <param name="value">The <see cref="DateTime"/> value to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation.</param>
     /// <returns>A JSON string representation of the <see cref="DateTime"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this DateTime value, bool indented = false)
     {
-        ArgumentNullException.ThrowIfNull(value);
-
         var options = indented
             ? new JsonSerializerOptions(_jsonSerializerOptions)
             { WriteIndented = true }
@@ -42,7 +39,9 @@ public static class DateTimeExtensionsJsonExtensions
     /// Deserializes a <see cref="DateTime"/> from a JSON string.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized <see cref="DateTime"/> value, or <see langword="null"/> if the JSON is <see langword="null"/>, empty, or whitespace.</returns>
+    /// <returns>The deserialized <see cref="DateTime"/> value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is empty or consists only of whitespace.</exception>
     /// <exception cref="JsonException">The JSON is invalid or cannot be deserialized to <see cref="DateTime"/>.</exception>
     public static DateTime? FromJson(string? json)
     {
