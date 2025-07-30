@@ -15,14 +15,14 @@ namespace DotNetCqrsEventSourcing.ReadModels;
 /// <example>
 /// <code>
 /// services
-///     .AddCqrsFramework()
-///     .AddReadModelProjections(opts =>
-///     {
-///         opts.MaxRetryAttempts        = 5;
-///         opts.MaxConcurrentProjectors = 8;
-///         opts.EnableCheckpointing     = true;
-///     })
-///     .AddAccountProjections();
+///   .AddCqrsFramework()
+///   .AddReadModelProjections(opts =>
+///   {
+///     opts.MaxRetryAttempts = 5;
+///     opts.MaxConcurrentProjectors = 8;
+///     opts.EnableCheckpointing = true;
+///   })
+///   .AddAccountProjections();
 ///
 /// // After building the provider, activate the engine so it subscribes to the event bus:
 /// var provider = services.BuildServiceProvider();
@@ -45,11 +45,14 @@ public static class ReadModelExtensions
     /// Optional delegate for overriding <see cref="ReadModelProjectionOptions"/> defaults.
     /// When omitted, the default values defined on the options class are used.
     /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/></exception>
     /// <returns>The same <paramref name="services"/> instance for further chaining.</returns>
     public static IServiceCollection AddReadModelProjections(
         this IServiceCollection services,
         Action<ReadModelProjectionOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         var options = new ReadModelProjectionOptions();
         configure?.Invoke(options);
 
@@ -67,9 +70,12 @@ public static class ReadModelExtensions
     /// façade, and the <see cref="ProjectionDiagnosticsService"/>.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/></exception>
     /// <returns>The same <paramref name="services"/> instance for further chaining.</returns>
     public static IServiceCollection AddAccountProjections(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         // Store — swap InMemoryReadModelStore for a database implementation in production.
         services.AddSingleton<IReadModelStore<AccountReadModel>,
             InMemoryReadModelStore<AccountReadModel>>();
@@ -103,6 +109,7 @@ public static class ReadModelExtensions
     /// is subscribed before the first command is processed and no events are missed.
     /// </remarks>
     /// <param name="serviceProvider">The built service provider.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceProvider"/> is <see langword="null"/></exception>
     /// <returns>
     /// The activated <see cref="ReadModelProjectionEngine"/> instance,
     /// already subscribed to the event bus.
