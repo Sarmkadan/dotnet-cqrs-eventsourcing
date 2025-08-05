@@ -29,17 +29,14 @@ public static class EventStoreJsonExtensions
     /// </summary>
     /// <param name="value">The EventStore instance to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/></exception>
     /// <returns>A JSON string representation of the EventStore.</returns>
     public static string ToJson(this EventStore value, bool indented = false)
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            { WriteIndented = true }
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -49,15 +46,16 @@ public static class EventStoreJsonExtensions
     /// Deserializes a JSON string to an EventStore instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>An EventStore instance, or null if the JSON is null or empty.</returns>
-    public static EventStore? FromJson(string json)
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is empty or whitespace</exception>
+    /// <exception cref="JsonException">Thrown when JSON deserialization fails</exception>
+    /// <returns>An EventStore instance.</returns>
+    public static EventStore FromJson(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
 
-        return JsonSerializer.Deserialize<EventStore>(json, _jsonSerializerOptions);
+        return JsonSerializer.Deserialize<EventStore>(json, _jsonSerializerOptions)
+            ?? throw new JsonException("Deserialization returned null");
     }
 
     /// <summary>
@@ -65,6 +63,8 @@ public static class EventStoreJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">The resulting EventStore instance, or null if deserialization fails.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is empty or whitespace</exception>
     /// <returns>True if deserialization succeeds; otherwise, false.</returns>
     public static bool TryFromJson(string json, out EventStore? value)
     {
