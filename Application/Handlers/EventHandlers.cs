@@ -9,15 +9,23 @@ namespace DotNetCqrsEventSourcing.Application.Handlers;
 using Domain.Events;
 using Services;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Event handlers for domain events - extensible handler pattern.
 /// </summary>
 public sealed class EventHandlers
 {
+    [JsonIgnore]
     private readonly IEventBus _eventBus;
+
+    [JsonIgnore]
     private readonly IProjectionService _projectionService;
+
+    [JsonIgnore]
     private readonly ISnapshotService _snapshotService;
+
+    [JsonIgnore]
     private readonly ILogger<EventHandlers> _logger;
 
     public EventHandlers(
