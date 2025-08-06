@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =====================================================================
+// ===================================================================
 
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +28,8 @@ public static class EventsControllerExtensions
     /// <param name="take">Maximum number of events to return</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Filtered and paginated event results</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is null or whitespace</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="eventTypeName"/> is null or whitespace</exception>
     public static async Task<IActionResult> GetEventsByType(
         this EventsController controller,
         string aggregateId,
@@ -38,20 +40,21 @@ public static class EventsControllerExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
         ArgumentException.ThrowIfNullOrWhiteSpace(eventTypeName);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
 
         controller.Log?.LogInformation(
             "Fetching events of type {EventTypeName} for aggregate {AggregateId} (skip: {Skip}, take: {Take})",
             eventTypeName,
             aggregateId,
             skip,
-            take
-        );
+            take);
 
         try
         {
             var allEvents = await controller.GetEvents(aggregateId, 0, int.MaxValue, cancellationToken);
 
-            if (allEvents is not OkObjectResult okResult || okResult.Value is not dynamic result)
+            if (allEvents is not OkObjectResult okResult)
             {
                 return new ObjectResult(new { success = false, message = "Failed to retrieve events" })
                 {
@@ -59,7 +62,16 @@ public static class EventsControllerExtensions
                 };
             }
 
-            var events = ((IEnumerable<dynamic>)result.events).ToList();
+            var resultValue = okResult.Value;
+            if (resultValue is null)
+            {
+                return new ObjectResult(new { success = false, message = "Failed to retrieve events - null result" })
+                {
+                    StatusCode = 500
+                };
+            }
+
+            var events = ((IEnumerable<dynamic>)resultValue.events).ToList();
             var filteredEvents = events
                 .Where(e => e.GetType().Name.Equals(eventTypeName, StringComparison.OrdinalIgnoreCase))
                 .Skip(skip)
@@ -69,11 +81,11 @@ public static class EventsControllerExtensions
             return new OkObjectResult(new
             {
                 success = true,
-                aggregateId = aggregateId,
+                aggregateId,
                 eventType = eventTypeName,
                 totalCount = events.Count(e => e.GetType().Name.Equals(eventTypeName, StringComparison.OrdinalIgnoreCase)),
                 pageSize = filteredEvents.Count,
-                skip = skip,
+                skip,
                 events = filteredEvents
             });
         }
@@ -99,6 +111,8 @@ public static class EventsControllerExtensions
     /// <param name="take">Maximum number of events to return</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Events within the specified time range</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is null or whitespace</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="startTime"/> is after <paramref name="endTime"/></exception>
     public static async Task<IActionResult> GetEventsByTimeRange(
         this EventsController controller,
         string aggregateId,
@@ -109,6 +123,9 @@ public static class EventsControllerExtensions
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
+        ArgumentOutOfRangeException.ThrowIfLessThan(endTime, startTime, nameof(endTime));
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
 
         controller.Log?.LogInformation(
             "Fetching events for aggregate {AggregateId} in time range {StartTime} to {EndTime} (skip: {Skip}, take: {Take})",
@@ -116,14 +133,13 @@ public static class EventsControllerExtensions
             startTime.ToString("o", CultureInfo.InvariantCulture),
             endTime.ToString("o", CultureInfo.InvariantCulture),
             skip,
-            take
-        );
+            take);
 
         try
         {
             var allEvents = await controller.GetEvents(aggregateId, 0, int.MaxValue, cancellationToken);
 
-            if (allEvents is not OkObjectResult okResult || okResult.Value is not dynamic result)
+            if (allEvents is not OkObjectResult okResult)
             {
                 return new ObjectResult(new { success = false, message = "Failed to retrieve events" })
                 {
@@ -131,7 +147,16 @@ public static class EventsControllerExtensions
                 };
             }
 
-            var events = ((IEnumerable<dynamic>)result.events).ToList();
+            var resultValue = okResult.Value;
+            if (resultValue is null)
+            {
+                return new ObjectResult(new { success = false, message = "Failed to retrieve events - null result" })
+                {
+                    StatusCode = 500
+                };
+            }
+
+            var events = ((IEnumerable<dynamic>)resultValue.events).ToList();
             var filteredEvents = events
                 .Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime)
                 .OrderBy(e => e.Timestamp)
@@ -142,12 +167,12 @@ public static class EventsControllerExtensions
             return new OkObjectResult(new
             {
                 success = true,
-                aggregateId = aggregateId,
+                aggregateId,
                 timeRangeStart = startTime.ToString("o"),
                 timeRangeEnd = endTime.ToString("o"),
                 totalCount = events.Count(e => e.Timestamp >= startTime && e.Timestamp <= endTime),
                 pageSize = filteredEvents.Count,
-                skip = skip,
+                skip,
                 events = filteredEvents
             });
         }
@@ -171,6 +196,7 @@ public static class EventsControllerExtensions
     /// <param name="take">Maximum number of events to return</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Simplified paginated event results</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is null or whitespace</exception>
     public static async Task<IActionResult> GetEventsSimple(
         this EventsController controller,
         string aggregateId,
@@ -178,6 +204,10 @@ public static class EventsControllerExtensions
         int take = 100,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+
         var result = await controller.GetEvents(aggregateId, skip, take, cancellationToken);
 
         if (result is OkObjectResult okResult && okResult.Value is dynamic originalValue)
@@ -210,6 +240,7 @@ public static class EventsControllerExtensions
     /// <param name="aggregateId">The aggregate identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Event statistics including growth metrics</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is null or whitespace</exception>
     public static async Task<IActionResult> GetEventStatistics(
         this EventsController controller,
         string aggregateId,
@@ -223,9 +254,18 @@ public static class EventsControllerExtensions
         {
             var countResult = await controller.GetEventCount(aggregateId, cancellationToken);
 
-            if (countResult is not OkObjectResult countOkResult || countOkResult.Value is not dynamic countValue)
+            if (countResult is not OkObjectResult countOkResult)
             {
                 return new ObjectResult(new { success = false, message = "Failed to retrieve event count" })
+                {
+                    StatusCode = 500
+                };
+            }
+
+            var countValue = countOkResult.Value;
+            if (countValue is null)
+            {
+                return new ObjectResult(new { success = false, message = "Failed to retrieve event count - null result" })
                 {
                     StatusCode = 500
                 };
@@ -238,7 +278,7 @@ public static class EventsControllerExtensions
                 return new OkObjectResult(new
                 {
                     success = true,
-                    aggregateId = aggregateId,
+                    aggregateId,
                     eventCount = 0,
                     growthRate = 0.0,
                     averageTimeBetweenEvents = TimeSpan.Zero,
@@ -249,9 +289,18 @@ public static class EventsControllerExtensions
 
             var eventsResult = await controller.GetEvents(aggregateId, 0, int.MaxValue, cancellationToken);
 
-            if (eventsResult is not OkObjectResult eventsOkResult || eventsOkResult.Value is not dynamic eventsValue)
+            if (eventsResult is not OkObjectResult eventsOkResult)
             {
                 return new ObjectResult(new { success = false, message = "Failed to retrieve events for statistics" })
+                {
+                    StatusCode = 500
+                };
+            }
+
+            var eventsValue = eventsOkResult.Value;
+            if (eventsValue is null)
+            {
+                return new ObjectResult(new { success = false, message = "Failed to retrieve events for statistics - null result" })
                 {
                     StatusCode = 500
                 };
@@ -268,14 +317,14 @@ public static class EventsControllerExtensions
             return new OkObjectResult(new
             {
                 success = true,
-                aggregateId = aggregateId,
-                eventCount = eventCount,
+                aggregateId,
+                eventCount,
                 growthRate = eventCount > 0 && timeSpan.TotalDays > 0
                     ? Math.Round(eventCount / timeSpan.TotalDays, 2)
                     : 0.0,
-                averageTimeBetweenEvents = averageTimeBetweenEvents,
-                firstEventTime = firstEventTime,
-                lastEventTime = lastEventTime,
+                averageTimeBetweenEvents,
+                firstEventTime,
+                lastEventTime,
                 timeRangeDays = Math.Round(timeSpan.TotalDays, 2)
             });
         }
