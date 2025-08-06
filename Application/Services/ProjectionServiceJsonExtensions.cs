@@ -29,6 +29,7 @@ public static class ProjectionServiceJsonExtensions
     /// <param name="value">The ProjectionService instance to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation.</param>
     /// <returns>A JSON string representation of the ProjectionService.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static string ToJson(this ProjectionService value, bool indented = false)
     {
         if (value is null)
@@ -51,6 +52,7 @@ public static class ProjectionServiceJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>A ProjectionService instance, or null if the JSON is null or empty.</returns>
+    /// <exception cref="JsonException">Thrown when the JSON is invalid and cannot be deserialized.</exception>
     public static ProjectionService? FromJson(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -67,6 +69,7 @@ public static class ProjectionServiceJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized ProjectionService instance, or null on failure.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out ProjectionService? value)
     {
         value = null;
