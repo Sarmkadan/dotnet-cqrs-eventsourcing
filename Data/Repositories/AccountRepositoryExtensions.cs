@@ -13,7 +13,7 @@ using Shared.Results;
 using System.Threading;
 
 /// <summary>
-/// Extension methods for AccountRepository providing additional functionality
+/// Extension methods for <see cref="AccountRepository"/> providing additional functionality
 /// for account management operations.
 /// </summary>
 public static class AccountRepositoryExtensions
@@ -21,17 +21,18 @@ public static class AccountRepositoryExtensions
     /// <summary>
     /// Gets an account by its ID or creates a new one if it doesn't exist.
     /// </summary>
-    /// <param name="repository">The account repository instance</param>
-    /// <param name="id">The account ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The existing or newly created account wrapped in a Result</returns>
+    /// <param name="repository">The account repository instance.</param>
+    /// <param name="id">The account ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="repository"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="id"/> is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <returns>The existing or newly created account wrapped in a <see cref="Result{T}"/>.</returns>
     public static async Task<Result<Account>> GetOrCreateAsync(
         this AccountRepository repository,
         string id,
         CancellationToken cancellationToken = default)
     {
-        if (repository is null)
-            throw new ArgumentNullException(nameof(repository));
+        ArgumentNullException.ThrowIfNull(repository);
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
         var existingAccountResult = await repository.GetByIdAsync(id, cancellationToken);
@@ -52,17 +53,17 @@ public static class AccountRepositoryExtensions
     /// <summary>
     /// Gets all accounts with optional filtering by account status.
     /// </summary>
-    /// <param name="repository">The account repository instance</param>
-    /// <param name="accountStatus">Optional account status to filter by (null for all)</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of accounts matching the filter</returns>
+    /// <param name="repository">The account repository instance.</param>
+    /// <param name="accountStatus">Optional account status to filter by (null for all).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="repository"/> is <see langword="null"/>.</exception>
+    /// <returns>List of accounts matching the filter wrapped in a <see cref="Result{T}"/>.</returns>
     public static async Task<Result<List<Account>>> GetAllByStatusAsync(
         this AccountRepository repository,
         AggregateStatus? accountStatus = null,
         CancellationToken cancellationToken = default)
     {
-        if (repository is null)
-            throw new ArgumentNullException(nameof(repository));
+        ArgumentNullException.ThrowIfNull(repository);
 
         var allAccountsResult = await repository.GetAllAsync(cancellationToken);
 
@@ -82,17 +83,18 @@ public static class AccountRepositoryExtensions
     /// <summary>
     /// Checks if an account exists and returns the account if it does.
     /// </summary>
-    /// <param name="repository">The account repository instance</param>
-    /// <param name="id">The account ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Result containing the account if it exists, or failure if not found</returns>
+    /// <param name="repository">The account repository instance.</param>
+    /// <param name="id">The account ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="repository"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="id"/> is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <returns>Result containing the account if it exists, or failure if not found.</returns>
     public static async Task<Result<Account>> GetIfExistsAsync(
         this AccountRepository repository,
         string id,
         CancellationToken cancellationToken = default)
     {
-        if (repository is null)
-            throw new ArgumentNullException(nameof(repository));
+        ArgumentNullException.ThrowIfNull(repository);
 
         var exists = await repository.ExistsAsync(id, cancellationToken);
 
@@ -105,12 +107,14 @@ public static class AccountRepositoryExtensions
     /// <summary>
     /// Transfers balance between two accounts atomically.
     /// </summary>
-    /// <param name="repository">The account repository instance</param>
-    /// <param name="fromAccountId">Source account ID</param>
-    /// <param name="toAccountId">Destination account ID</param>
-    /// <param name="amount">Amount to transfer</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Result indicating success or failure of the transfer</returns>
+    /// <param name="repository">The account repository instance.</param>
+    /// <param name="fromAccountId">Source account ID.</param>
+    /// <param name="toAccountId">Destination account ID.</param>
+    /// <param name="amount">Amount to transfer.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="repository"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="fromAccountId"/> or <paramref name="toAccountId"/> is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <returns>Result indicating success or failure of the transfer.</returns>
     public static async Task<Result> TransferBalanceAsync(
         this AccountRepository repository,
         string fromAccountId,
@@ -118,14 +122,9 @@ public static class AccountRepositoryExtensions
         decimal amount,
         CancellationToken cancellationToken = default)
     {
-        if (repository is null)
-            throw new ArgumentNullException(nameof(repository));
-
-        if (string.IsNullOrWhiteSpace(fromAccountId))
-            return Result.Failure("INVALID_SOURCE_ACCOUNT", "Source account ID cannot be empty");
-
-        if (string.IsNullOrWhiteSpace(toAccountId))
-            return Result.Failure("INVALID_DESTINATION_ACCOUNT", "Destination account ID cannot be empty");
+        ArgumentNullException.ThrowIfNull(repository);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fromAccountId, nameof(fromAccountId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(toAccountId, nameof(toAccountId));
 
         if (amount <= 0)
             return Result.Failure("INVALID_AMOUNT", "Transfer amount must be positive");
