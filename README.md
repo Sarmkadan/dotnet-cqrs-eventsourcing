@@ -68,4 +68,13 @@ catch (ConfigurationException ex)
 {
     Console.WriteLine(ex.Message);
 }
+
+## EventStoreBenchmarksExtensions
+The `EventStoreBenchmarksExtensions` class provides a set of extension methods for running benchmarks related to event stores. It allows you to run benchmarks for event stores, aggregate roots, and account services with custom parameters. Here's an example of how to use it:
+```csharp
+var benchmarks = EventStoreBenchmarksExtensions.WithCustomParameters();
+var eventStoreResults = await EventStoreBenchmarksExtensions.RunEventStoreBenchmarksAsync();
+var aggregateRootResults = await EventStoreBenchmarksExtensions.RunAggregateRootBenchmarksAsync();
+var accountServiceResults = await EventStoreBenchmarksExtensions.RunAccountServiceBenchmarksAsync();
+EventStoreBenchmarksExtensions.DisposeServiceProvider();
 ```
