@@ -1,48 +1,31 @@
 // existing content ...
 
-## ReadModelProjectionEngineExtensions
+## EventTypeRegistry
 
-`ReadModelProjectionEngineExtensions` provides a set of extension methods for managing read model projections. It allows you to check the status of projections, retrieve checkpoints, and get information about the last processed events.
+The `EventTypeRegistry` is a utility class that helps manage event types in your application. It allows you to register event types, scan assemblies for event types, and resolve event types by name.
 
-### Usage Examples
+### Usage Example
 
 ```csharp
-var projectionEngine = new ReadModelProjectionEngine();
+var registry = new EventTypeRegistry();
 
-// Get the checkpoint for a specific projection
-var checkpoint = ReadModelProjectionEngineExtensions.GetOrCreateCheckpoint(projectionEngine, "MyProjection");
+// Register an event type
+registry.Register<MyEvent>();
 
-// Check if all projections are at the latest version
-if (ReadModelProjectionEngineExtensions.AllProjectionsAtVersionOrHigher(projectionEngine))
+// Scan an assembly for event types
+registry.ScanAssembly(typeof(MyAssembly).Assembly);
+
+// Resolve an event type by name
+var eventType = registry.Resolve("MyEvent");
+if (eventType != null)
 {
-    Console.WriteLine("All projections are up to date.");
+    Console.WriteLine("Event type found.");
 }
 
-// Get the names of projections with checkpoints
-var projectionNames = ReadModelProjectionEngineExtensions.GetProjectionNamesWithCheckpoints(projectionEngine);
-
-// Get the total number of events processed
-var totalEventsProcessed = ReadModelProjectionEngineExtensions.GetTotalEventsProcessed(projectionEngine);
-
-// Check if any projections have errors
-if (ReadModelProjectionEngineExtensions.HasAnyProjectionErrors(projectionEngine))
+// Get all registered event types
+var registrations = registry.GetAllRegistrations();
+foreach (var registration in registrations)
 {
-    Console.WriteLine("One or more projections have errors.");
+    Console.WriteLine($"Event type: {registration.Key}");
 }
-
-// Get the last processed event ID
-var lastProcessedEventId = ReadModelProjectionEngineExtensions.GetLastProcessedEventId(projectionEngine);
-
-// Get the last updated timestamp
-var lastUpdatedTimestamp = ReadModelProjectionEngineExtensions.GetLastUpdatedTimestamp(projectionEngine);
-
-// Check if a projection is active
-if (ReadModelProjectionEngineExtensions.IsProjectionActive(projectionEngine, "MyProjection"))
-{
-    Console.WriteLine("The projection is active.");
-}
-
-// Get the projection metadata
-var projectionMetadata = ReadModelProjectionEngineExtensions.GetProjectionMetadata(projectionEngine, "MyProjection");
-```
 ```
