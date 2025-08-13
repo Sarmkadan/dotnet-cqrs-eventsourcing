@@ -1,80 +1,48 @@
 // existing content ...
 
-## ConfigurationExceptionExtensions
+## ReadModelProjectionEngineExtensions
 
-`ConfigurationExceptionExtensions` provides a set of extension methods for `ConfigurationException` to enhance error handling and provide more context to configuration-related errors. These extensions facilitate better error messages and suggestions for common configuration mistakes.
+`ReadModelProjectionEngineExtensions` provides a set of extension methods for managing read model projections. It allows you to check the status of projections, retrieve checkpoints, and get information about the last processed events.
 
 ### Usage Examples
 
 ```csharp
-try
-{
-    // Attempt to load configuration
-    var config = configurationBuilder.Build();
-}
-catch (ConfigurationException ex)
-{
-    // Add context to the exception
-    var detailedException = ex.WithContext("Failed to load application configuration");
+var projectionEngine = new ReadModelProjectionEngine();
 
-    // Handle the exception or rethrow with more details
-    Console.WriteLine(detailedException.Message);
+// Get the checkpoint for a specific projection
+var checkpoint = ReadModelProjectionEngineExtensions.GetOrCreateCheckpoint(projectionEngine, "MyProjection");
+
+// Check if all projections are at the latest version
+if (ReadModelProjectionEngineExtensions.AllProjectionsAtVersionOrHigher(projectionEngine))
+{
+    Console.WriteLine("All projections are up to date.");
 }
 
-// Attempt to get a missing setting
-try
+// Get the names of projections with checkpoints
+var projectionNames = ReadModelProjectionEngineExtensions.GetProjectionNamesWithCheckpoints(projectionEngine);
+
+// Get the total number of events processed
+var totalEventsProcessed = ReadModelProjectionEngineExtensions.GetTotalEventsProcessed(projectionEngine);
+
+// Check if any projections have errors
+if (ReadModelProjectionEngineExtensions.HasAnyProjectionErrors(projectionEngine))
 {
-    var value = configuration["MissingSetting"];
-    if (string.IsNullOrEmpty(value))
-    {
-        throw ConfigurationException.MissingWithSuggestion("MissingSetting", "Check appsettings.json for the setting.");
-    }
-}
-catch (ConfigurationException ex)
-{
-    Console.WriteLine(ex.Message);
+    Console.WriteLine("One or more projections have errors.");
 }
 
-// Invalid configuration
-try
+// Get the last processed event ID
+var lastProcessedEventId = ReadModelProjectionEngineExtensions.GetLastProcessedEventId(projectionEngine);
+
+// Get the last updated timestamp
+var lastUpdatedTimestamp = ReadModelProjectionEngineExtensions.GetLastUpdatedTimestamp(projectionEngine);
+
+// Check if a projection is active
+if (ReadModelProjectionEngineExtensions.IsProjectionActive(projectionEngine, "MyProjection"))
 {
-    // Simulate an invalid configuration operation
-    throw ConfigurationException.InvalidWithDetails("Invalid configuration", "The configuration is not valid.");
-}
-catch (ConfigurationException ex)
-{
-    Console.WriteLine(ex.Message);
+    Console.WriteLine("The projection is active.");
 }
 
-// From validation errors
-try
-{
-    // Simulate validation errors
-    var validationErrors = new[] { "Error1", "Error2" };
-    throw ConfigurationException.FromValidationErrors(validationErrors);
-}
-catch (ConfigurationException ex)
-{
-    Console.WriteLine(ex.Message);
-}
-
-// Missing multiple settings
-try
-{
-    // Simulate missing multiple settings
-    throw ConfigurationException.MissingMultiple(new[] { "Setting1", "Setting2" });
-}
-catch (ConfigurationException ex)
-{
-    Console.WriteLine(ex.Message);
-}
-
-## EventStoreBenchmarksExtensions
-The `EventStoreBenchmarksExtensions` class provides a set of extension methods for running benchmarks related to event stores. It allows you to run benchmarks for event stores, aggregate roots, and account services with custom parameters. Here's an example of how to use it:
-```csharp
-var benchmarks = EventStoreBenchmarksExtensions.WithCustomParameters();
-var eventStoreResults = await EventStoreBenchmarksExtensions.RunEventStoreBenchmarksAsync();
-var aggregateRootResults = await EventStoreBenchmarksExtensions.RunAggregateRootBenchmarksAsync();
-var accountServiceResults = await EventStoreBenchmarksExtensions.RunAccountServiceBenchmarksAsync();
-EventStoreBenchmarksExtensions.DisposeServiceProvider();
+// Get the projection metadata
+var projectionMetadata = ReadModelProjectionEngineExtensions.GetProjectionMetadata(projectionEngine, "MyProjection");
+```
 ```
