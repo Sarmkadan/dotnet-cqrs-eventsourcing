@@ -29,3 +29,29 @@ foreach (var registration in registrations)
     Console.WriteLine($"Event type: {registration.Key}");
 }
 ```
+
+## IDomainEventPublisher
+
+The `IDomainEventPublisher` interface defines a contract for publishing domain events in your application. It provides methods for publishing individual events, publishing multiple events, subscribing to events, and clearing event subscriptions.
+
+### Usage Example
+
+```csharp
+var publisher = new DomainEventPublisher();
+
+// Subscribe to a specific event type
+publisher.Subscribe<MyEvent>();
+
+// Publish an event
+await publisher.PublishAsync(new MyEvent());
+
+// Publish multiple events
+await publisher.PublishManyAsync(new[] { new MyEvent1(), new MyEvent2() });
+
+// Get the number of subscribers for a specific event type
+var subscriberCount = publisher.GetSubscriberCount<MyEvent>();
+
+// Clear all event subscriptions
+publisher.Clear();
+```
+```
