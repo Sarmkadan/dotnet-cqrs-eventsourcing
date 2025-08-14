@@ -54,4 +54,52 @@ var subscriberCount = publisher.GetSubscriberCount<MyEvent>();
 // Clear all event subscriptions
 publisher.Clear();
 ```
+
+## IWebhookDispatcher
+
+The `IWebhookDispatcher` is responsible for managing webhook registrations and dispatching events to registered webhook URLs. It allows you to register and unregister webhooks, dispatch events to all active registrations, and query the current registrations.
+
+### Usage Example
+
+```csharp
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+// Create a dispatcher instance
+var dispatcher = new WebhookDispatcher();
+
+// Register a webhook for a specific event type
+await dispatcher.RegisterWebhookAsync(
+    "https://example.com/webhook",
+    typeof(MyEvent));
+
+// Dispatch an event to all active webhooks
+await dispatcher.DispatchAsync(new MyEvent());
+
+// Retrieve all current registrations
+var registrations = await dispatcher.GetRegistrationsAsync();
+
+foreach (var reg in registrations)
+{
+    Console.WriteLine(
+        $"Webhook {reg.Id} ({reg.WebhookUrl}) for event {reg.EventType.Name} " +
+        $"registered at {reg.RegisteredAt}, active: {reg.Active}");
+}
+
+// Unregister a webhook by its Id
+if (registrations.Any())
+{
+    await dispatcher.UnregisterWebhookAsync(registrations.First().Id);
+}
 ```
+
+The dispatcher exposes the following public members:
+
+- `RegisterWebhookAsync(string webhookUrl, Type eventType)` – Registers a new webhook.
+- `UnregisterWebhookAsync(Guid registrationId)` – Removes an existing webhook.
+- `DispatchAsync(object @event)` – Sends the event to all active webhooks.
+- `GetRegistrationsAsync()` – Returns all webhook registrations.
+- `WebhookRegistration` properties: `Id`, `WebhookUrl`, `EventType`, `RegisteredAt`, `Active`.
+
+These members provide a straightforward API for integrating webhook-based event notifications into your CQRS and event‑sourcing architecture.
