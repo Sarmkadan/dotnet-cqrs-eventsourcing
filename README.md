@@ -1,5 +1,39 @@
 // existing content ...
 
+## IPerformanceMonitor
+
+The `IPerformanceMonitor` interface provides a way to track and analyze the performance of operations in your application. It allows you to record the duration of operations, retrieve statistics about the performance, and clear the performance data.
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var monitor = new PerformanceMonitor();
+        monitor.RecordOperation("MyOperation");
+
+        var stats = monitor.GetStatistics();
+        if (stats != null)
+        {
+            Console.WriteLine($"Average duration: {stats.AverageDurationMs}ms");
+            Console.WriteLine($"Success rate: {stats.SuccessRate:P}");
+            Console.WriteLine($"Min duration: {stats.MinDurationMs}ms");
+            Console.WriteLine($"Max duration: {stats.MaxDurationMs}ms");
+        }
+
+        var allStats = monitor.GetAllStatistics();
+        foreach (var stat in allStats)
+        {
+            Console.WriteLine($"Operation: {stat.Name}, Average duration: {stat.Stats.AverageDurationMs}ms");
+        }
+
+        monitor.Clear();
+    }
+}
+```
+
 ## ISnapshotCompressionService
 
 The `ISnapshotCompressionService` interface provides a way to compress and decompress aggregate snapshots. It allows for compressing a snapshot into a compressed format, decompressing a compressed snapshot back into its original format, and retrieving statistics about the compression process.
