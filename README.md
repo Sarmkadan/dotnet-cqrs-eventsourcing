@@ -1,5 +1,33 @@
 // existing content ...
 
+## ISnapshotCompressionService
+
+The `ISnapshotCompressionService` interface provides a way to compress and decompress aggregate snapshots. It allows for compressing a snapshot into a compressed format, decompressing a compressed snapshot back into its original format, and retrieving statistics about the compression process.
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var service = new SnapshotCompressionService();
+        var originalSnapshot = new AggregateSnapshot(); // Assume this is a valid aggregate snapshot
+        var compressedSnapshot = await service.CompressAsync(originalSnapshot);
+        Console.WriteLine($"Compressed snapshot: {compressedSnapshot}");
+
+        var decompressedSnapshot = await service.DecompressAsync(compressedSnapshot);
+        Console.WriteLine($"Decompressed snapshot: {decompressedSnapshot}");
+
+        var stats = service.GetStats();
+        Console.WriteLine($"Snapshots processed: {stats.SnapshotsProcessed}");
+        Console.WriteLine($"Total original bytes: {stats.TotalOriginalBytes}");
+        Console.WriteLine($"Total compressed bytes: {stats.TotalCompressedBytes}");
+        Console.WriteLine($"Overall compression ratio: {stats.OverallCompressionRatio}");
+    }
+}
+```
+
 ## IHttpClientFactory
 
 The `IHttpClientFactory` interface provides a way to create instances of `HttpClient` with various configurations. It allows for the creation of clients with base addresses, authentication, and other settings.
