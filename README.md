@@ -78,3 +78,82 @@ if (result.IsFailure)
     Console.WriteLine($"Failed to create order: {string.Join(", ", result.Errors)}");
 }
 ```
+
+## RequestLog
+
+The `RequestLog` class captures detailed information about HTTP requests for audit trail, debugging, and compliance purposes. It records the complete request context including headers, body content, user information, and timing details. This model is typically used in middleware to log incoming API requests before processing and correlate them with corresponding responses.
+
+### Usage Example
+
+```csharp
+public class Startup
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        // Register request logging middleware
+        services.AddTransient<RequestResponseLoggingMiddleware>();
+    }
+}
+
+// Example usage in a controller or middleware
+public class OrdersController : ControllerBase
+{
+    private readonly ILogger<OrdersController> _logger;
+
+    public OrdersController(ILogger<OrdersController> logger)
+    {
+        _logger = logger;
+    }
+
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
+    {
+        var requestId = Guid.NewGuid().ToString();
+        var correlationId = HttpContext.TraceIdentifier;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        // Create request log
+        var requestLog = new RequestLog
+        {
+            RequestId = requestId,
+            CorrelationId = correlationId,
+            Timestamp = DateTime.UtcNow,
+            Method = HttpContext.Request.Method,
+            Path = HttpContext.Request.Path.ToString(),
+            QueryString = HttpContext.Request.QueryString.ToString(),
+            Headers = HttpContext.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()),
+            Body = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync(),
+            UserId = userId,
+            ClientIp = clientIp
+        };
+
+        _logger.LogInformation("Incoming request: {RequestId} {Method} {Path}", 
+            requestLog.RequestId, requestLog.Method, requestLog.Path);
+
+        // Process request...
+        return Ok(new { Message = "Order created" });
+    }
+}
+
+// Example of creating a request log manually
+var requestLog = new RequestLog
+{
+    RequestId = Guid.NewGuid().ToString(),
+    CorrelationId = "corr-12345",
+    Timestamp = DateTime.UtcNow,
+    Method = "POST",
+    Path = "/api/v1/orders",
+    QueryString = "?priority=true",
+    Headers = new Dictionary<string, string>
+    {
+        { "Content-Type", "application/json" },
+        { "Authorization", "Bearer token123" },
+        { "X-Request-Id", "req-123" }
+    },
+    Body = "{\"customerId\": \"cust-123\", \"productId\": \"prod-456\", \"quantity\": 2}",
+    UserId = "user-789",
+    ClientIp = "192.168.1.100"
+};
+
+```
