@@ -1,8 +1,8 @@
 // existing content ...
 
-## IIdempotencyKeyHandler
+## ErrorHandlingMiddleware
 
-The `IIdempotencyKeyHandler` interface ensures idempotency for operations by storing and retrieving results associated with unique keys. It prevents duplicate processing of identical requests using in-memory storage (via `InMemoryIdempotencyKeyHandler`), with configurable retention periods and automatic cleanup. It provides methods to check for existing results, record new ones, and clear stored keys.
+The `ErrorHandlingMiddleware` provides global exception handling by converting unhandled exceptions into consistent HTTP responses. It maps domain-specific exceptions to appropriate HTTP status codes (e.g., `DomainException` → 400, unexpected errors → 500) and returns structured error details including `ErrorId`, `Message`, `Details`, and `Timestamp`.
 
 ### Usage Example
 
@@ -11,39 +11,26 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddIdempotency(); // Registers IIdempotencyKeyHandler
+        // No direct registration needed for ErrorHandlingMiddleware
+        // It's configured via UseGlobalErrorHandling in Configure
     }
 
-    public async Task ExampleUsage()
+    public void Configure(IApplicationBuilder app)
     {
-        var handler = new InMemoryIdempotencyKeyHandler(logger, TimeSpan.FromHours(24));
-        
-        // Record a result for a key
-        var result = new IdempotencyResult
-        {
-            StatusCode = 200,
-            ResponseBody = "{\"message\": \"success\"}",
-            RecordedAt = DateTime.UtcNow
-        };
-        await handler.RecordResultAsync("unique-key-123", result);
-
-        // Retrieve the result later
-        var previousResult = await handler.GetPreviousResultAsync("unique-key-123");
-        if (previousResult is not null)
-        {
-            Console.WriteLine($"Cached response: {previousResult.Value.ResponseBody}");
-        }
-
-        // Clear all stored keys (e.g., for testing)
-        await handler.ClearAsync();
+        app.UseGlobalErrorHandling(); // Registers the error handling middleware
+        // Other middleware registrations...
     }
 }
 ```
 
-This example demonstrates:
-1. Registering the idempotency service via `AddIdempotency()`
-2. Using `InMemoryIdempotencyKeyHandler` to store and retrieve results
-3. The structure of `IdempotencyResult` with its required properties
-4. Configuring retention periods and cleanup
+Example error response structure:
+```json
+{
+  "errorId": "a1b2c3d4",
+  "message": "Domain rule violation",
+  "details": ["Invalid account state"],
+  "timestamp": "2024-03-20T12:34:56Z"
+}
+```
 
-The middleware is automatically enabled via `UseIdempotency()` in the request pipeline to enforce idempotency for POST/PUT/DELETE/PATCH requests with `Idempotency-Key` headers.
+This middleware ensures all exceptions are logged with appropriate severity and returns predictable JSON errors to clients.
