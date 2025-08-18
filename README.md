@@ -1,5 +1,42 @@
 // existing content ...
 
+## ICacheService
+
+The `ICacheService` interface defines a cache abstraction for storing and retrieving values with optional expiration. It provides methods for getting, setting, removing, and getting statistics about cache entries.
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var cacheService = new InMemoryCacheService();
+
+        // Set a value in cache with expiration
+        await cacheService.SetAsync<string>("key", "value", TimeSpan.FromMinutes(5));
+
+        // Get a value from cache
+        var cachedValue = await cacheService.GetAsync<string>("key");
+        Console.WriteLine(cachedValue); // Output: "value"
+
+        // Get statistics about cache
+        var statistics = cacheService.GetStatistics();
+        Console.WriteLine($"Total Entries: {statistics.TotalEntries}");
+        Console.WriteLine($"Total Hits: {statistics.TotalHits}");
+        Console.WriteLine($"Expired Entries: {statistics.ExpiredEntries}");
+        Console.WriteLine($"Average Entry Age: {statistics.AverageEntryAge}");
+
+        // Remove a value from cache
+        await cacheService.RemoveAsync("key");
+
+        // Get a value from cache after removal
+        cachedValue = await cacheService.GetAsync<string>("key");
+        Console.WriteLine(cachedValue); // Output: null
+    }
+}
+```
+
 ## ErrorHandlingMiddleware
 
 The `ErrorHandlingMiddleware` provides global exception handling by converting unhandled exceptions into consistent HTTP responses. It maps domain-specific exceptions to appropriate HTTP status codes (e.g., `DomainException` → 400, unexpected errors → 500) and returns structured error details including `ErrorId`, `Message`, `Details`, and `Timestamp`.
