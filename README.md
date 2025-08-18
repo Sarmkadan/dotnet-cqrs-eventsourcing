@@ -34,3 +34,23 @@ Example error response structure:
 ```
 
 This middleware ensures all exceptions are logged with appropriate severity and returns predictable JSON errors to clients.
+
+## RateLimitingMiddleware
+
+The `RateLimitingMiddleware` enforces per-IP request quotas using the token bucket algorithm. It allows burst traffic while maintaining average throughput limits and returns 429 Too Many Requests with Retry-After header when the rate limit is exceeded.
+
+### Usage Example
+
+```csharp
+public class Startup
+{
+    public void Configure(IApplicationBuilder app)
+    {
+        app.UseRateLimiting(options => options.TokensPerMinute = 60); // Configure rate limiting with 60 tokens per minute
+        // Other middleware registrations...
+    }
+}
+```
+
+This middleware ensures that clients do not exceed the specified rate limit, preventing abuse and denial-of-service attacks.
+
