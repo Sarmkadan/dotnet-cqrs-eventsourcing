@@ -70,6 +70,61 @@ public void ProcessOrder(Order order, string customerName, int quantity, decimal
 }
 ```
 
+## PagedResult
+
+The `PagedResult<T>` class represents a paginated result set that includes the items for the current page along with pagination metadata. It's designed to efficiently handle large datasets by splitting results into manageable pages, preventing full dataset loads into memory.
+
+### Members
+- `List<T> Items` - The items for the current page
+- `int PageNumber` - The current page number (1-based)
+- `int PageSize` - The number of items per page
+- `long TotalCount` - The total number of items across all pages
+- `int TotalPages` - The total number of pages
+- `bool HasPreviousPage` - Whether there's a previous page
+- `bool HasNextPage` - Whether there's a next page
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Sample data
+        var products = Enumerable.Range(1, 100)
+            .Select(i => new Product { Id = i, Name = $"Product {i}" })
+            .ToList();
+
+        // Paginate using IEnumerable
+        var pagedResult = products.ToPagedResult(pageNumber: 2, pageSize: 10);
+
+        Console.WriteLine($"Page {pagedResult.PageNumber} of {pagedResult.TotalPages}");
+        Console.WriteLine($"Items on page: {pagedResult.Items.Count}");
+        Console.WriteLine($"Total items: {pagedResult.TotalCount}");
+        Console.WriteLine($"Has previous page: {pagedResult.HasPreviousPage}");
+        Console.WriteLine($"Has next page: {pagedResult.HasNextPage}");
+
+        // Paginate using IQueryable (database-level pagination)
+        var dbContext = new AppDbContext();
+        var query = dbContext.Products
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name);
+
+        var queryResult = query.ToPagedResult(pageNumber: 1, pageSize: 20);
+
+        // Convert to API-friendly format
+        var apiResponse = queryResult.ToApiResponse();
+    }
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public bool IsActive { get; set; }
+}
+```
+
 ### Usage Example
 
 ```csharp
