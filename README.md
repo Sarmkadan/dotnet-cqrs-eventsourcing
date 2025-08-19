@@ -52,7 +52,23 @@ public class Program
 }
 ```
 
-The `ReflectionUtilities` class provides a set of static methods for working with reflection, including finding types that implement a specific interface, getting public properties of a type, finding methods by name and parameter count, and more. It uses caching to improve performance.
+## GuardClauses
+
+The `GuardClauses` class provides static methods for validating method arguments and enforcing preconditions. It helps prevent invalid inputs by throwing descriptive exceptions early, ensuring robust and maintainable code. Methods include null checks, range validation, format validation, and more.
+
+Example usage:
+```csharp
+public void ProcessOrder(Order order, string customerName, int quantity, decimal price, Guid orderId, string email)
+{
+    GuardClauses.NotNull(order, nameof(order));
+    GuardClauses.NotNullOrEmpty(customerName, nameof(customerName));
+    GuardClauses.InRange(quantity, 1, 100, nameof(quantity));
+    GuardClauses.NotNegative(price, nameof(price));
+    GuardClauses.NotZero(orderId, nameof(orderId));
+    GuardClauses.Condition(email.Contains("@"), "Email must contain '@'");
+    GuardClauses.Matches(email, @"^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$", nameof(email));
+}
+```
 
 ### Usage Example
 
