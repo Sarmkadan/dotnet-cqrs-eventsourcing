@@ -70,6 +70,89 @@ public void ProcessOrder(Order order, string customerName, int quantity, decimal
 }
 ```
 
+## CqrsHelpers
+
+The `CqrsHelpers` class provides static utilities for CQRS command/event routing, handler discovery, and type mapping. It enables dynamic discovery of command and event handlers, validates commands, extracts aggregate IDs, and maintains type mappings for event deserialization. The class uses thread-safe caching for performance and supports clearing caches when assemblies change.
+
+Example usage:
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Discover all command handlers in the current assembly
+        var commandHandlers = CqrsHelpers.GetCommandHandlers(typeof(Program).Assembly);
+        Console.WriteLine($"Found {commandHandlers.Count()} command handlers");
+        
+        // Discover all event handlers in the current assembly
+        var eventHandlers = CqrsHelpers.GetEventHandlers(typeof(Program).Assembly);
+        Console.WriteLine($"Found {eventHandlers.Count()} event handlers");
+        
+        // Get metadata about a command type
+        var commandType = typeof(CreateProductCommand);
+        var metadata = CqrsHelpers.GetHandlerMetadata(commandType);
+        Console.WriteLine($"Command: {metadata.DisplayName}");
+        Console.WriteLine($"Properties: {string.Join(", ", metadata.Properties.Select(p => p.Name))}");
+        
+        // Register an event type for later deserialization
+        CqrsHelpers.RegisterEventType(typeof(ProductCreatedEvent));
+        
+        // Resolve an event type by name
+        var resolvedType = CqrsHelpers.ResolveEventType("ProductCreatedEvent");
+        Console.WriteLine($"Resolved event type: {resolvedType?.Name}");
+        
+        // Extract aggregate ID from a command
+        var command = new CreateProductCommand
+        {
+            AggregateId = Guid.NewGuid().ToString(),
+            Name = "New Product",
+            Price = 99.99m
+        };
+        
+        var aggregateId = CqrsHelpers.ExtractAggregateId(command);
+        Console.WriteLine($"Aggregate ID: {aggregateId}");
+        
+        // Get the target aggregate type from a command
+        var targetType = CqrsHelpers.GetTargetAggregateType(commandType);
+        Console.WriteLine($"Target aggregate type: {targetType?.Name}");
+        
+        // Validate a command
+        var validationErrors = CqrsHelpers.ValidateCommand(command);
+        if (validationErrors.Any())
+        {
+            Console.WriteLine("Validation errors:");
+            foreach (var error in validationErrors)
+            {
+                Console.WriteLine($"- {error}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Command is valid!");
+        }
+        
+        // Clear caches (useful in tests)
+        CqrsHelpers.ClearCaches();
+    }
+}
+
+// Example command and event types
+public class CreateProductCommand
+{
+    public string AggregateId { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class ProductCreatedEvent
+{
+    public string AggregateId { get; set; }
+    public string Name { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+```
+
 ## PagedResult
 
 The `PagedResult<T>` class represents a paginated result set that includes the items for the current page along with pagination metadata. It's designed to efficiently handle large datasets by splitting results into manageable pages, preventing full dataset loads into memory.
