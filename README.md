@@ -157,6 +157,77 @@ public class ProductCreatedEvent
 
 The `ICsvFormatter` interface provides functionality for formatting objects to CSV format with configurable options. It supports custom delimiters, header inclusion, date formatting, and column customization through attributes. The formatter can generate CSV strings or collections of lines, and includes options for controlling the output format.
 
+## IJsonFormatter
+
+The `IJsonFormatter` interface provides a standardized way to serialize and deserialize objects to/from JSON strings with consistent formatting across the application. It supports both compact and pretty-printed output, null value handling, and camelCase property naming. The formatter uses `System.Text.Json` internally with custom converters for `DateTime` and `decimal` types to ensure proper formatting and parsing.
+
+
+### Members
+- `string Format<T>(T obj, JsonFormatOptions? options = null)` - Formats an object to JSON string
+- `string FormatCollection<T>(IEnumerable<T> items, JsonFormatOptions? options = null)` - Formats a collection to JSON array
+- `T? Parse<T>(string json)` - Parses JSON string to object
+- `JsonSerializerOptions GetOptions()` - Gets default JSON serializer options used by formatter
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Register the formatter with dependency injection
+        var services = new ServiceCollection();
+        services.AddJsonFormatter();
+        var serviceProvider = services.BuildServiceProvider();
+        var formatter = serviceProvider.GetRequiredService<IJsonFormatter>();
+
+        // Create sample data
+        var person = new Person
+        {
+            Id = Guid.NewGuid(),
+            Name = "Alice Johnson",
+            Age = 30,
+            JoinDate = new DateTime(2023, 1, 15),
+            Balance = 1250.75m,
+            IsActive = true
+        };
+
+        // Format to compact JSON (default)
+        var compactJson = formatter.Format(person);
+        Console.WriteLine(compactJson);
+        // Output: {"id":"...","name":"Alice Johnson","age":30,"joinDate":"2023-01-15T00:00:00.0000000","balance":1250.75,"isActive":true}
+
+        // Format to pretty-printed JSON
+        var prettyJson = formatter.Format(person, new JsonFormatOptions { PrettyPrint = true });
+        Console.WriteLine(prettyJson);
+
+        // Format collection
+        var people = new List<Person> { person, new Person { Id = Guid.NewGuid(), Name = "Bob Smith", Age = 25 } };
+        var collectionJson = formatter.FormatCollection(people);
+        Console.WriteLine(collectionJson);
+
+        // Parse JSON back to object
+        var json = formatter.Format(person);
+        var parsedPerson = formatter.Parse<Person>(json);
+        Console.WriteLine($"Parsed: {parsedPerson?.Name}");
+
+        // Get default serializer options
+        var options = formatter.GetOptions();
+        Console.WriteLine($"Default options configured with camelCase naming");
+    }
+}
+
+public class Person
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public DateTime JoinDate { get; set; }
+    public decimal Balance { get; set; }
+    public bool IsActive { get; set; }
+}
+```
+
 
 
 
