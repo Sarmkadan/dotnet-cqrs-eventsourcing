@@ -153,6 +153,74 @@ public class ProductCreatedEvent
 }
 ```
 
+## ICsvFormatter
+
+The `ICsvFormatter` interface provides functionality for formatting objects to CSV format with configurable options. It supports custom delimiters, header inclusion, date formatting, and column customization through attributes. The formatter can generate CSV strings or collections of lines, and includes options for controlling the output format.
+
+
+
+
+
+
+
+
+Example usage:
+
+```csharp
+public class Program
+{
+public static void Main(string[] args)
+{
+// Sample data
+var products = new List<Product>
+{
+new Product { Id = 1, Name = "Laptop", Price = 999.99m, CreatedDate = DateTime.Now },
+new Product { Id = 2, Name = "Mouse", Price = 29.99m, CreatedDate = DateTime.Now.AddDays(-1) },
+new Product { Id = 3, Name = "Keyboard", Price = 79.99m, CreatedDate = DateTime.Now.AddDays(-2) }
+};
+
+// Format with default options (comma delimiter, headers included)
+var csv = products.ToCsv();
+Console.WriteLine(csv);
+
+// Format without headers
+var csvWithoutHeaders = products.ToCsvWithoutHeaders();
+Console.WriteLine(csvWithoutHeaders);
+
+// Format with semicolon delimiter
+var csvSemicolon = products.ToCsv(options => options.WithSemicolonDelimiter());
+Console.WriteLine(csvSemicolon);
+
+// Format with tab delimiter
+var csvTab = products.ToCsv(options => options.WithTabDelimiter());
+Console.WriteLine(csvTab);
+
+// Format with custom date format
+var csvCustomDate = products.ToCsv(options => options.WithDateFormat("yyyy-MM-dd"));
+Console.WriteLine(csvCustomDate);
+
+// Get column names
+var columns = products.GetCsvColumns();
+Console.WriteLine(string.Join(", ", columns));
+}
+}
+
+public class Product
+{
+[CsvColumn(Order = 1, Name = "Product ID")]
+public int Id { get; set; }
+
+[CsvColumn(Order = 2)]
+public string Name { get; set; }
+
+[CsvColumn(Order = 3, Name = "Unit Price")]
+public decimal Price { get; set; }
+
+[CsvColumn(Order = 4, Name = "Created Date", DateFormat = "yyyy-MM-dd HH:mm:ss")]
+public DateTime CreatedDate { get; set; }
+}
+```
+
 ## PagedResult
 
 The `PagedResult<T>` class represents a paginated result set that includes the items for the current page along with pagination metadata. It's designed to efficiently handle large datasets by splitting results into manageable pages, preventing full dataset loads into memory.
