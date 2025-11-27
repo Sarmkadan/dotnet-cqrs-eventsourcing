@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/01-BasicAccount/01-BasicAccount.csproj" />
+    <Project Path="examples/02-EventHandling/02-EventHandling.csproj" />
+    <Project Path="examples/03-Projections/03-Projections.csproj" />
+    <Project Path="examples/04-EventReplay/04-EventReplay.csproj" />
+    <Project Path="examples/05-ErrorHandling/05-ErrorHandling.csproj" />
+    <Project Path="examples/06-Concurrency/06-Concurrency.csproj" />
+    <Project Path="examples/07-CompleteScenario/07-CompleteScenario.csproj" />
+  </Folder>
+  <Project Path="dotnet-cqrs-eventsourcing.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/dotnet-cqrs-eventsourcing.Tests/dotnet-cqrs-eventsourcing.Tests.csproj" />
+  </Folder>
+</Solution>
