@@ -1,30 +1,35 @@
 # =============================================================================
 # Author: Vladyslav Zaiets | https://sarmkadan.com
 # CTO & Software Architect
-# Docker Compose for .NET CQRS + Event Sourcing Framework
-# Production and development configurations
+# Docker Compose for Development Environment
+# Hot reload, debug ports, and development-specific configurations
 # =============================================================================
 
 version: '3.9'
 
 
 services:
-  # Main API application
+  # Main API application with hot reload
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dotnet-cqrs-api
+    container_name: dotnet-cqrs-api-dev
     ports:
       - "8080:8080"
+      - "5678:5678"  # Debug port
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
       - EventStoreConnection=Server=sqlserver;Database=CqrsEventStore;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true;Connect Timeout=30
       - RedisConnection=redis:6379
-      - Logging__LogLevel__Default=Information
-      - Logging__LogLevel__Microsoft=Warning
-      - Logging__LogLevel__System=Warning
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft=Information
+      - Logging__LogLevel__System=Information
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+      - DOTNET_WATCH=1
     volumes:
+      - ./:/src:ro
       - sqldata:/var/opt/mssql
       - redisdata:/data
       - api-data:/app/data
@@ -46,7 +51,7 @@ services:
   # SQL Server for event store
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: dotnet-cqrs-sqlserver
+    container_name: dotnet-cqrs-sqlserver-dev
     environment:
       - SA_PASSWORD=YourPassword123!
       - ACCEPT_EULA=Y
@@ -69,7 +74,7 @@ services:
   # Redis for caching
   redis:
     image: redis:7-alpine
-    container_name: dotnet-cqrs-redis
+    container_name: dotnet-cqrs-redis-dev
     ports:
       - "6379:6379"
     volumes:
@@ -86,7 +91,7 @@ services:
   # Adminer for database inspection
   adminer:
     image: adminer:latest
-    container_name: dotnet-cqrs-adminer
+    container_name: dotnet-cqrs-adminer-dev
     ports:
       - "8081:8080"
     environment:
