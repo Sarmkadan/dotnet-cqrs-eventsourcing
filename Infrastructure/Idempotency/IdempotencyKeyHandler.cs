@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -155,7 +156,7 @@ public class IdempotencyResult
 /// <summary>
 /// Middleware to handle idempotency key checking and response caching.
 /// </summary>
-public class IdempotencyMiddleware
+public sealed class IdempotencyMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly IIdempotencyKeyHandler _idempotencyHandler;

@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -111,7 +112,7 @@ public class RequestContextMiddleware
 /// Request context stored in AsyncLocal for access throughout async call stack.
 /// Makes context available to domain logic, handlers, and services without passing through parameters.
 /// </summary>
-public class RequestContextInfo
+public sealed class RequestContextInfo
 {
     public string CorrelationId { get; set; } = string.Empty;
     public string RequestId { get; set; } = string.Empty;

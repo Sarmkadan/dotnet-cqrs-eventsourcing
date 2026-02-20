@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -8,7 +9,7 @@ namespace DotNetCqrsEventSourcing.Shared.Results;
 /// <summary>
 /// Represents the result of an operation that can succeed or fail.
 /// </summary>
-public class Result
+public sealed class Result
 {
     public bool IsSuccess { get; }
     public string? ErrorCode { get; }

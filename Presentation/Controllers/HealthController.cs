@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -186,7 +187,7 @@ public class HealthController : ControllerBase
         return DateTime.Now - startTime;
     }
 
-    public class DependencyCheck
+    public sealed class DependencyCheck
     {
         public string Name { get; set; } = string.Empty;
         public bool Healthy { get; set; }

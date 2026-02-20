@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -11,7 +12,7 @@ using Domain.Events;
 /// <summary>
 /// Logging decorator for event processing with correlation IDs and performance metrics.
 /// </summary>
-public class LoggingDecorator
+public sealed class LoggingDecorator
 {
     private readonly ILogger<LoggingDecorator> _logger;
 
@@ -119,7 +120,7 @@ public class LoggingDecorator
 /// <summary>
 /// Performance tracking decorator for measuring operation duration.
 /// </summary>
-public class PerformanceDecorator
+public sealed class PerformanceDecorator
 {
     private readonly ILogger<PerformanceDecorator> _logger;
     private const long ThresholdMilliseconds = 1000;

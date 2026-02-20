@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,7 +15,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware;
 /// Useful for debugging, performance monitoring, and audit trails.
 /// Skips logging for health check endpoints and static files to reduce noise.
 /// </summary>
-public class LoggingMiddleware
+public sealed class LoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<LoggingMiddleware> _logger;
