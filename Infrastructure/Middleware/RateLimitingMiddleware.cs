@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -137,7 +138,7 @@ public class RateLimitingMiddleware
     }
 }
 
-public class RateLimitOptions
+public sealed class RateLimitOptions
 {
     public double TokensPerMinute { get; set; }
     public bool Enabled { get; set; }

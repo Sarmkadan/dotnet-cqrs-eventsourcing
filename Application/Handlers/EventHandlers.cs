@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// Event handlers for domain events - extensible handler pattern.
 /// </summary>
-public class EventHandlers
+public sealed class EventHandlers
 {
     private readonly IEventBus _eventBus;
     private readonly IProjectionService _projectionService;
