@@ -55,6 +55,7 @@ public static class ReadModelExtensions
 
         services.AddSingleton(Options.Create(options));
         services.AddSingleton<ReadModelProjectionEngine>();
+        services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
 
         return services;
     }
