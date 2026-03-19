@@ -165,6 +165,28 @@ public class EventStore : IEventStore
         }
     }
 
+    public async Task<Result<List<DomainEvent>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _eventRepository.GetEventsByPartitionKeyAsync(partitionKey, pageNumber, pageSize, cancellationToken);
+            if (!result.IsSuccess)
+                return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
+
+            var domainEvents = DeserializeEvents(result.Data!);
+            _logger.LogInformation(
+                "Retrieved {EventCount} event(s) for partition key '{PartitionKey}' (page {Page})",
+                domainEvents.Count, partitionKey, pageNumber);
+
+            return Result<List<DomainEvent>>.Success(domainEvents);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving events for partition key '{PartitionKey}'", partitionKey);
+            return Result<List<DomainEvent>>.Failure("RETRIEVE_FAILED", ex.Message);
+        }
+    }
+
     private List<DomainEvent> DeserializeEvents(List<EventEnvelope> envelopes)
     {
         var events = new List<DomainEvent>();

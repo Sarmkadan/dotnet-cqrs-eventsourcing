@@ -34,6 +34,14 @@ public abstract class AggregateRoot
         Id = id;
     }
 
+    /// <summary>
+    /// Optional tenant identifier.  When set, every event raised by this aggregate
+    /// will carry this value as its <c>TenantId</c>, which is propagated to
+    /// <see cref="EventEnvelope.PartitionKey"/> for per-tenant stream isolation.
+    /// Leave <see langword="null"/> (the default) for single-tenant deployments.
+    /// </summary>
+    public string? TenantId { get; protected set; }
+
     // Retrieve all uncommitted events since last commit
     public IReadOnlyList<DomainEvent> GetUncommittedEvents() => _uncommittedEvents.AsReadOnly();
 
@@ -57,6 +65,7 @@ public abstract class AggregateRoot
         @event.AggregateType = GetType().Name;
         @event.AggregateVersion = Version + 1;
         @event.OccurredAt = DateTime.UtcNow;
+        @event.TenantId = TenantId;
 
         ApplyEvent(@event, isFromHistory: false);
 
