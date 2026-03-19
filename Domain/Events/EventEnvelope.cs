@@ -21,6 +21,14 @@ public sealed class EventEnvelope
     public DateTime CreatedAt { get; set; }
     public string? ChecksumHash { get; set; }
 
+    /// <summary>
+    /// Optional partition key for multi-tenant event stream isolation.
+    /// When set, this value (e.g. a tenant ID) logically or physically separates
+    /// events so that per-tenant replay, snapshot, and archival operations can be
+    /// performed without cross-tenant data access.
+    /// </summary>
+    public string? PartitionKey { get; set; }
+
     public EventEnvelope()
     {
         Id = Guid.NewGuid().ToString();
@@ -40,6 +48,7 @@ public sealed class EventEnvelope
         AggregateVersion = domainEvent.AggregateVersion;
         EventType = domainEvent.GetEventType();
         EventData = serializedData;
+        PartitionKey = domainEvent.TenantId;
 
         domainEvent.PopulateMetadata();
         foreach (var kvp in domainEvent.Metadata)

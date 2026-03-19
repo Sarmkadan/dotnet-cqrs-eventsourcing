@@ -18,6 +18,15 @@ public abstract class DomainEvent
     public DateTime OccurredAt { get; set; }
     public string? UserId { get; set; }
     public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Optional tenant identifier used for multi-tenant event stream partitioning.
+    /// When set, this value is propagated to <see cref="EventEnvelope.PartitionKey"/>
+    /// so that per-tenant replay, snapshot, and archival can be performed in isolation.
+    /// Leave <see langword="null"/> for single-tenant deployments (backward-compatible).
+    /// </summary>
+    public string? TenantId { get; set; }
+
     public Dictionary<string, object> Metadata { get; set; }
 
     protected DomainEvent()
@@ -52,6 +61,9 @@ public abstract class DomainEvent
 
         if (!string.IsNullOrEmpty(CorrelationId))
             Metadata[nameof(CorrelationId)] = CorrelationId;
+
+        if (!string.IsNullOrEmpty(TenantId))
+            Metadata[nameof(TenantId)] = TenantId;
     }
 
     public override string ToString()
