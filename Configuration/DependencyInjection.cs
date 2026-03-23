@@ -6,10 +6,12 @@
 
 namespace DotNetCqrsEventSourcing.Configuration;
 
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Services;
 using Data.Repositories;
 using Domain.AggregateRoots;
+using Infrastructure.Events;
 
 /// <summary>
 /// Dependency injection configuration for the CQRS framework.
@@ -21,6 +23,15 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddCqrsFramework(this IServiceCollection services)
     {
+        // Event type registry – scan the domain assembly so every [EventName(...)]-decorated
+        // event is discoverable by the EventStore deserializer without relying on Type.GetType().
+        services.AddSingleton(sp =>
+        {
+            var registry = new EventTypeRegistry(null);
+            registry.ScanAssembly(typeof(Domain.Events.DomainEvent).Assembly);
+            return registry;
+        });
+
         // Repositories
         services.AddSingleton<IEventRepository, InMemoryEventRepository>();
         services.AddSingleton<IRepository<Account>, AccountRepository>();
