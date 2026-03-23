@@ -11,6 +11,7 @@ using Data.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Results;
+using Infrastructure.Events;
 
 /// <summary>
 /// Event store implementation handling persistence, retrieval, and replay of domain events.
@@ -19,11 +20,13 @@ public class EventStore : IEventStore
 {
     private readonly IEventRepository _eventRepository;
     private readonly ILogger<EventStore> _logger;
+    private readonly EventTypeRegistry? _eventTypeRegistry;
 
-    public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger)
+    public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger, EventTypeRegistry? eventTypeRegistry = null)
     {
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _eventTypeRegistry = eventTypeRegistry;
     }
 
     public async Task<Result> AppendEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
@@ -203,6 +206,15 @@ public class EventStore : IEventStore
     {
         try
         {
+            // Prefer registry-based resolution (assembly-rename safe) over the
+            // hard-coded switch which requires manual maintenance.
+            if (_eventTypeRegistry is not null && _eventTypeRegistry.TryResolve(envelope.EventType, out var resolvedType) && resolvedType is not null)
+            {
+                return (DomainEvent?)System.Text.Json.JsonSerializer.Deserialize(envelope.EventData, resolvedType);
+            }
+
+            // Fallback: hard-coded switch retained for backward compatibility when
+            // no registry is injected (e.g. legacy tests or external hosts).
             return envelope.EventType switch
             {
                 "AccountCreated" => System.Text.Json.JsonSerializer.Deserialize<AccountCreatedEvent>(envelope.EventData),
