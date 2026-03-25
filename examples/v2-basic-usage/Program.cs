@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -61,7 +62,7 @@ await Task.Delay(500); // Small delay for projection updates
 
 // Query using projection (much faster than reading event stream)
 var accountProjection = await readModelQueryService.GetAccountByIdAsync(account.Id);
-if (accountProjection != null)
+if (accountProjection is not null)
 {
     Console.WriteLine($"✓ Projection retrieved");
     Console.WriteLine($" ID: {accountProjection.Id}");

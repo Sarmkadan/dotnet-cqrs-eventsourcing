@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -160,9 +161,9 @@ public static class CqrsHelpers
 /// Metadata about a command/query extracted through reflection.
 /// Used for validation, routing, and introspection.
 /// </summary>
-public class HandlerMetadata
+public sealed class HandlerMetadata
 {
     public required Type CommandType { get; init; }
     public required string DisplayName { get; init; }
-    public PropertyInfo[] Properties { get; init; } = Array.Empty<PropertyInfo>();
+    public PropertyInfo[] Properties { get; init; } = [];
 }
