@@ -44,6 +44,9 @@ public static class DependencyInjection
         services.AddSingleton<IProjectionService, ProjectionService>();
         services.AddSingleton<ISnapshotService, SnapshotService>();
 
+        // Event store compaction
+        services.AddSingleton<IEventStoreCompactionService, EventStoreCompactionService>();
+
         // Application services
         services.AddSingleton<IAccountService, AccountService>();
 
