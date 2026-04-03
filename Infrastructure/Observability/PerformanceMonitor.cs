@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -132,7 +133,7 @@ public class PerformanceMonitor : IPerformanceMonitor
     }
 }
 
-public class OperationStatistics
+public sealed class OperationStatistics
 {
     public string OperationName { get; set; } = string.Empty;
     public long InvocationCount { get; set; }

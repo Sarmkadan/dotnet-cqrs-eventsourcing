@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -126,7 +127,7 @@ public class CsvFormatter : ICsvFormatter
     }
 }
 
-public class CsvFormatOptions
+public sealed class CsvFormatOptions
 {
     public char Delimiter { get; set; } = ',';
     public bool IncludeHeaders { get; set; } = true;

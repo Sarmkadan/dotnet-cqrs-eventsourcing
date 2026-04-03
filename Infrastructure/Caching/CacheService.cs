@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -229,7 +230,7 @@ public class InMemoryCacheService : ICacheService
     }
 }
 
-public class CacheStatistics
+public sealed class CacheStatistics
 {
     public int TotalEntries { get; set; }
     public long TotalHits { get; set; }

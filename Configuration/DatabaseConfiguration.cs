@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -8,7 +9,7 @@ namespace DotNetCqrsEventSourcing.Configuration;
 /// <summary>
 /// Database and persistence configuration for the CQRS framework.
 /// </summary>
-public class DatabaseConfiguration
+public sealed class DatabaseConfiguration
 {
     /// <summary>
     /// Gets or sets the event store connection string.
