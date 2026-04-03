@@ -95,9 +95,16 @@ Application/
 │   └── GetAccountQuery.cs
 ├── Handlers/             # Command & Event Handlers
 │   └── EventHandlers.cs
+├── Sagas/                # Saga orchestration
+│   ├── ISagaHandler.cs
+│   ├── ISagaRepository.cs
+│   ├── InMemorySagaRepository.cs
+│   └── SagaOrchestrator.cs
 ├── Services/             # Business Services
 │   ├── IEventStore.cs
 │   ├── EventStore.cs
+│   ├── IEventStoreCompactionService.cs
+│   ├── EventStoreCompactionService.cs
 │   ├── IEventBus.cs
 │   ├── EventBus.cs
 │   ├── IAccountService.cs
@@ -119,6 +126,10 @@ Domain/
 │   ├── DomainEvent.cs
 │   ├── EventEnvelope.cs
 │   └── AccountEvents.cs
+├── Sagas/                # Saga base types
+│   ├── ISaga.cs
+│   ├── SagaBase.cs
+│   └── SagaState.cs
 └── ValueObjects/         # Domain Value Objects
     ├── Money.cs
     ├── Balance.cs
@@ -133,6 +144,10 @@ Data/
 
 Infrastructure/
 ├── Caching/              # Caching Services
+├── Cli/                  # CLI command framework
+│   ├── ICliCommand.cs
+│   ├── CliCommandRegistry.cs
+│   └── ReadModelRebuilderCommand.cs
 ├── Configuration/        # Infrastructure Setup
 ├── Decorators/           # Infrastructure Decorators
 ├── Events/               # Event Publishing
@@ -175,9 +190,15 @@ Configuration/
 | **DomainEvent** | Base class for all domain events |
 | **EventEnvelope** | Event wrapper with metadata (timestamp, version, etc.) |
 | **EventStore** | Persists and retrieves event streams |
+| **EventStoreCompactionService** | Prunes superseded events after snapshotting |
 | **EventBus** | Publishes events to handlers |
 | **ProjectionService** | Builds read models from event streams |
 | **SnapshotService** | Optimizes replay performance with snapshots |
+| **SagaBase** | Base class for long-running process coordination |
+| **SagaOrchestrator** | Routes domain events to registered saga handlers |
+| **InMemorySagaRepository** | In-memory saga state persistence |
+| **CliCommandRegistry** | Dispatches CLI arguments to registered commands |
+| **ReadModelRebuilderCommand** | CLI command for rebuilding read-model projections |
 | **Repositories** | Data access abstraction |
 | **Decorators** | Cross-cutting concerns (logging, validation) |
 
@@ -232,6 +253,28 @@ Configuration/
 - ✅ Error handling middleware
 - ✅ Rate limiting support
 - ✅ Idempotency key handling
+
+### 8. Event Store Compaction
+- ✅ Prune superseded events once a snapshot is in place
+- ✅ Explicit version cut-off control via `CompactToVersionAsync`
+- ✅ Bulk compaction across multiple aggregates with `CompactAllAsync`
+- ✅ Safe: only deletes events that are fully captured by a snapshot
+- ✅ Returns a `CompactionResult` with metrics (events removed, boundary version)
+
+### 9. Saga Support
+- ✅ Long-running process coordination across multiple aggregates
+- ✅ `SagaBase` abstract class with lifecycle helpers (`Activate`, `Complete`, `Compensate`, `Fail`)
+- ✅ `ISagaHandler<TSaga, TEvent>` strongly-typed per-event handler contract
+- ✅ `InMemorySagaRepository<TSaga>` with correlation-based lookup
+- ✅ `SagaOrchestrator` routes domain events to registered saga handlers
+- ✅ Outbox pattern: sagas queue domain events that are published after state is persisted
+
+### 10. Read Model Rebuilder CLI
+- ✅ `rebuild-read-models` command rebuilds projections from the event store
+- ✅ Supports `--aggregate <id>` for targeted single-aggregate rebuild
+- ✅ Supports `--all` for a full projection rebuild
+- ✅ `--dry-run` flag to preview what would be rebuilt without applying changes
+- ✅ `CliCommandRegistry` is extensible – register any `ICliCommand` in DI
 
 ## Installation
 
@@ -499,6 +542,104 @@ public async Task CreateAccount_ShouldGenerateEvent()
     var events = await eventStore.GetEventsAsync("TEST-001");
     Assert.IsTrue(events.Any(e => e.EventType == nameof(AccountCreated)));
 }
+```
+
+## Event Store Compaction
+
+Compaction removes events that are no longer needed for aggregate reconstruction because they
+have been captured in a snapshot.  This reduces storage costs and speeds up replays.
+
+```csharp
+// Inject the compaction service
+var compactionService = serviceProvider.GetRequiredService<IEventStoreCompactionService>();
+var snapshotService   = serviceProvider.GetRequiredService<ISnapshotService>();
+
+// First create a snapshot, then compact
+await snapshotService.CreateSnapshotAsync(accountId, account.Version, serializedState);
+var result = await compactionService.CompactAsync(accountId);
+
+Console.WriteLine($"Removed {result.Data!.EventsRemoved} events (kept from v{result.Data.CompactedToVersion}).");
+
+// Or specify an explicit version boundary
+var result2 = await compactionService.CompactToVersionAsync(accountId, keepFromVersion: 50);
+
+// Bulk compaction across many aggregates (skips those without snapshots)
+var bulkResult = await compactionService.CompactAllAsync(new[] { id1, id2, id3 });
+```
+
+## Saga Support
+
+Sagas coordinate long-running processes that span multiple aggregates.  Implement
+`SagaBase` to define state and react to domain events:
+
+```csharp
+// Define your saga
+public class FundTransferSaga : SagaBase
+{
+    public override string SagaName => "FundTransferSaga";
+    public string? SourceAccountId { get; private set; }
+    public string? DestinationAccountId { get; private set; }
+
+    public void OnTransferInitiated(TransferInitiatedEvent e)
+    {
+        SourceAccountId = e.SourceAccountId;
+        DestinationAccountId = e.DestinationAccountId;
+        Activate();
+        // Raise a command event to debit the source account
+        RaiseEvent(new DebitRequestedEvent(e.SourceAccountId, e.Amount));
+    }
+
+    public void OnDebitConfirmed(DebitConfirmedEvent e)
+    {
+        RaiseEvent(new CreditRequestedEvent(DestinationAccountId!, e.Amount));
+    }
+
+    public void OnCreditConfirmed(CreditConfirmedEvent _) => Complete();
+    public void OnDebitFailed(DebitFailedEvent _) => Compensate();
+}
+
+// Implement a handler for each triggering event
+public class FundTransferSagaHandler : ISagaHandler<FundTransferSaga, TransferInitiatedEvent>
+{
+    private readonly ISagaRepository<FundTransferSaga> _repo;
+
+    public async Task<Result> HandleAsync(TransferInitiatedEvent e, CancellationToken ct = default)
+    {
+        var saga = new FundTransferSaga();
+        saga.OnTransferInitiated(e);
+        return await _repo.SaveAsync(saga, ct);
+    }
+}
+
+// Register in DI
+services.AddSingleton<ISagaRepository<FundTransferSaga>, InMemorySagaRepository<FundTransferSaga>>();
+services.AddSingleton<FundTransferSagaHandler>();
+services.AddSingleton<ISagaHandlerWrapper>(sp =>
+    new SagaHandlerWrapper<FundTransferSaga, TransferInitiatedEvent>(
+        sp.GetRequiredService<FundTransferSagaHandler>()));
+services.AddSingleton<SagaOrchestrator>();
+```
+
+## Read Model Rebuilder CLI
+
+Trigger a full or partial read-model rebuild from the command line:
+
+```bash
+# Rebuild projections for a single aggregate
+dotnet run -- rebuild-read-models --aggregate ACC-001
+
+# Rebuild all projections
+dotnet run -- rebuild-read-models --all
+
+# Preview without making changes
+dotnet run -- rebuild-read-models --all --dry-run
+```
+
+Add custom CLI commands by implementing `ICliCommand` and registering in DI:
+
+```csharp
+services.AddSingleton<ICliCommand, MyCustomCommand>();
+services.AddSingleton<CliCommandRegistry>();
 ```
 
 ## API Reference
