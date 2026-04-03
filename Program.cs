@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Configuration;
+using DotNetCqrsEventSourcing.Infrastructure.Cli;
 
 // Build service provider
 var services = new ServiceCollection();
@@ -22,10 +23,23 @@ services.AddLogging(builder =>
 // Register CQRS framework
 services.AddCqrsFramework();
 
+// Register CLI commands
+services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
+services.AddSingleton<CliCommandRegistry>();
+
 var serviceProvider = services.BuildServiceProvider();
 
 // Configure event handlers
 serviceProvider.ConfigureEventHandlers();
+
+// CLI mode: dispatch to registered commands when arguments are provided
+if (args.Length > 0)
+{
+    var registry = serviceProvider.GetRequiredService<CliCommandRegistry>();
+    var result = await registry.DispatchAsync(args);
+    Environment.Exit(result.IsSuccess ? 0 : 1);
+    return;
+}
 
 // Get logger and services
 var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
