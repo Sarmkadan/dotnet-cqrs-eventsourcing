@@ -378,3 +378,56 @@ public class Program
 }
 ```
 
+## ReadModelRebuilderCommandTests
+
+The `ReadModelRebuilderCommandTests` class provides unit tests for the `ReadModelRebuilderCommand` class, verifying its behavior when executing rebuild operations for read models and projections. It tests various scenarios including missing arguments, rebuilding all projections, rebuilding specific aggregate projections, dry-run mode, and error propagation from the projection service.
+
+
+Example usage:
+
+```csharp
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create mock services
+        var projectionMock = new Mock<IProjectionService>();
+        var eventStoreMock = new Mock<IEventStore>();
+        
+        // Create the command under test
+        var command = new ReadModelRebuilderCommand(
+            projectionMock.Object,
+            eventStoreMock.Object,
+            NullLogger<ReadModelRebuilderCommand>.Instance
+        );
+        
+        // Verify the command name
+        Console.WriteLine($"Command name: {command.Name}"); // Output: rebuild-read-models
+        
+        // Test ExecuteAsync with no arguments (should fail)
+        var noArgsResult = await command.ExecuteAsync(Array.Empty<string>());
+        Console.WriteLine($"No args result: Success={noArgsResult.IsSuccess}, Error={noArgsResult.ErrorCode}");
+        
+        // Test ExecuteAsync with --all flag
+        projectionMock
+            .Setup(p => p.RebuildAllProjectionsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        
+        var allResult = await command.ExecuteAsync(new[] { "--all" });
+        Console.WriteLine($"All flag result: Success={allResult.IsSuccess}");
+        
+        // Test ExecuteAsync with --aggregate flag
+        projectionMock
+            .Setup(p => p.RebuildProjectionAsync("product-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        
+        var aggregateResult = await command.ExecuteAsync(new[] { "--aggregate", "product-123" });
+        Console.WriteLine($"Aggregate flag result: Success={aggregateResult.IsSuccess}");
+        
+        // Test ExecuteAsync with --all and --dry-run flags
+        var dryRunResult = await command.ExecuteAsync(new[] { "--all", "--dry-run" });
+        Console.WriteLine($"Dry run result: Success={dryRunResult.IsSuccess}");
+    }
+}
+```
+
