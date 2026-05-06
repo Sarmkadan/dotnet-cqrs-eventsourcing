@@ -5,12 +5,11 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 /// <summary>
-/// Serialization and deserialization helpers supporting both System.Text.Json and Newtonsoft.Json.
+/// Serialization and deserialization helpers using System.Text.Json.
 /// Used for event persistence, API responses, and data interchange.
 /// Provides consistent JSON formatting and handles common serialization challenges (dates, decimals, nulls).
 /// Thread-safe - caches JsonSerializerOptions for reuse.
@@ -32,14 +31,6 @@ public static class SerializationUtilities
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter() }
-    };
-
-    // Newtonsoft.Json settings for backward compatibility
-    private static readonly JsonSerializerSettings NewtonsoftSettings = new()
-    {
-        NullValueHandling = NullValueHandling.Ignore,
-        DateFormatString = "yyyy-MM-ddTHH:mm:ssZ",
-        ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
     };
 
     /// <summary>
@@ -118,27 +109,6 @@ public static class SerializationUtilities
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// Deserializes using Newtonsoft.Json for backward compatibility with older systems.
-    /// Prefer System.Text.Json for new code.
-    /// </summary>
-    public static T? FromJsonNewtonsoft<T>(string json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return default;
-        }
-
-        try
-        {
-            return JsonConvert.DeserializeObject<T>(json, NewtonsoftSettings);
-        }
-        catch (Newtonsoft.Json.JsonException ex)
-        {
-            throw new InvalidOperationException($"Failed to deserialize JSON (Newtonsoft) to type {typeof(T).Name}", ex);
-        }
     }
 
     /// <summary>
