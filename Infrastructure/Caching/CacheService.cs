@@ -4,6 +4,7 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Caching;

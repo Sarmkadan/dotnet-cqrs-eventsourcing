@@ -9,4 +9,7 @@
     <Project Path="examples/07-CompleteScenario/07-CompleteScenario.csproj" />
   </Folder>
   <Project Path="dotnet-cqrs-eventsourcing.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/dotnet-cqrs-eventsourcing.Tests/dotnet-cqrs-eventsourcing.Tests.csproj" />
+  </Folder>
 </Solution>
