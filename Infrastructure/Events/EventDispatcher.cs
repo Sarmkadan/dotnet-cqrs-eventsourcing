@@ -97,15 +97,46 @@ public class EventDispatcher : IEventDispatcher
             aggregateId
         );
 
+        var handlerExceptions = new List<Exception>();
+
         foreach (var @event in eventList)
         {
-            await DispatchAsync(aggregateId, @event, cancellationToken);
+            try
+            {
+                await _eventStore.AppendEventAsync(aggregateId, @event, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist event {EventType} for aggregate {AggregateId} - aborting batch",
+                    @event.GetType().Name, aggregateId);
+                throw;
+            }
+
+            try
+            {
+                await _publisher.PublishAsync(@event, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Handler failed for event {EventType} [AggregateId: {AggregateId}] - event persisted, continuing batch",
+                    @event.GetType().Name, aggregateId);
+                handlerExceptions.Add(ex);
+            }
         }
 
         _logger.LogInformation(
-            "Batch event dispatch completed: {Count} events for aggregate {AggregateId}",
+            "Batch event dispatch completed: {Count} events for aggregate {AggregateId} ({FailedHandlers} handler failures)",
             eventList.Count,
-            aggregateId
+            aggregateId,
+            handlerExceptions.Count
         );
+
+        if (handlerExceptions.Count > 0)
+        {
+            throw new AggregateException(
+                $"One or more event handlers failed during batch dispatch for aggregate {aggregateId}",
+                handlerExceptions);
+        }
     }
 }
