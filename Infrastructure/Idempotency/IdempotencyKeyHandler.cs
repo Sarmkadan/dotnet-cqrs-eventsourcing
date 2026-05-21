@@ -177,27 +177,27 @@ public sealed class IdempotencyMiddleware
         // Only apply idempotency to mutation operations
         if (!IsMutationOperation(context.Request.Method))
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
             return;
         }
 
         if (!context.Request.Headers.TryGetValue("Idempotency-Key", out var idempotencyKeyValue))
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
             return;
         }
 
         var idempotencyKey = idempotencyKeyValue.ToString();
 
         // Check if this operation was already processed
-        var previousResult = await _idempotencyHandler.GetPreviousResultAsync(idempotencyKey);
+        var previousResult = await _idempotencyHandler.GetPreviousResultAsync(idempotencyKey).ConfigureAwait(false);
 
         if (previousResult is not null)
         {
             _logger.LogInformation("Returning cached result for idempotency key: {IdempotencyKey}", idempotencyKey);
 
             context.Response.StatusCode = previousResult.StatusCode;
-            await context.Response.WriteAsync(previousResult.ResponseBody);
+            await context.Response.WriteAsync(previousResult.ResponseBody).ConfigureAwait(false);
             return;
         }
 
@@ -208,11 +208,11 @@ public sealed class IdempotencyMiddleware
 
         try
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
 
             // Read and store the response
             responseStream.Position = 0;
-            var responseBody = await new StreamReader(responseStream).ReadToEndAsync();
+            var responseBody = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
 
             var result = new IdempotencyResult
             {
@@ -221,10 +221,10 @@ public sealed class IdempotencyMiddleware
                 RecordedAt = DateTime.UtcNow
             };
 
-            await _idempotencyHandler.RecordResultAsync(idempotencyKey, result);
+            await _idempotencyHandler.RecordResultAsync(idempotencyKey, result).ConfigureAwait(false);
 
             // Write response to original stream
-            await originalBodyStream.WriteAsync(responseStream.ToArray());
+            await originalBodyStream.WriteAsync(responseStream.ToArray()).ConfigureAwait(false);
         }
         finally
         {

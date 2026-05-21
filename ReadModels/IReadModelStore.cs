@@ -128,13 +128,13 @@ public sealed class ReadModelProjectionRunner<TReadModel> : IReadModelProjection
     {
         var key = _projector.GetKey(@event);
 
-        var fetchResult = await _store.GetAsync(key, cancellationToken);
+        var fetchResult = await _store.GetAsync(key, cancellationToken).ConfigureAwait(false);
         var current = fetchResult.IsSuccess ? fetchResult.Data : null;
 
-        var updated = await _projector.ProjectAsync(@event, current, cancellationToken);
+        var updated = await _projector.ProjectAsync(@event, current, cancellationToken).ConfigureAwait(false);
 
         return updated is null
             ? await _store.DeleteAsync(key, cancellationToken)
-            : await _store.UpsertAsync(key, updated, cancellationToken);
+            : await _store.UpsertAsync(key, updated, cancellationToken).ConfigureAwait(false);
     }
 }

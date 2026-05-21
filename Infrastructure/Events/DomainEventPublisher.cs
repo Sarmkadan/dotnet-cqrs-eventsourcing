@@ -108,7 +108,7 @@ public class DomainEventPublisher : IDomainEventPublisher
 
         foreach (var @event in eventList)
         {
-            await PublishAsync(@event, cancellationToken);
+            await PublishAsync(@event, cancellationToken).ConfigureAwait(false);
         }
     }
 

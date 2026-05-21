@@ -58,7 +58,7 @@ public class ProjectionService : IProjectionService
     {
         try
         {
-            var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
+            var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken).ConfigureAwait(false);
             if (!streamResult.IsSuccess)
                 return Result.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
 
@@ -96,7 +96,7 @@ public class ProjectionService : IProjectionService
                 _projections.Clear();
             }
 
-            var allEventsResult = await _eventStore.GetEventStreamAsync(string.Empty, cancellationToken);
+            var allEventsResult = await _eventStore.GetEventStreamAsync(string.Empty, cancellationToken).ConfigureAwait(false);
             if (!allEventsResult.IsSuccess)
             {
                 _logger.LogInformation("No events found to rebuild projections");

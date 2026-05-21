@@ -28,7 +28,7 @@ public class EventStore : IEventStore
 
     public async Task<Result> AppendEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
-        return await AppendEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
+        return await AppendEventsAsync(new List<DomainEvent> { @event }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result> AppendEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
@@ -41,7 +41,7 @@ public class EventStore : IEventStore
                 return new EventEnvelope(e, SerializeEvent(e));
             }).ToList();
 
-            var result = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken);
+            var result = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken).ConfigureAwait(false);
 
             if (result.IsSuccess)
             {
@@ -65,7 +65,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            var result = await _eventRepository.GetEventsByAggregateIdAsync(aggregateId, cancellationToken);
+            var result = await _eventRepository.GetEventsByAggregateIdAsync(aggregateId, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
 
@@ -85,7 +85,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            var result = await _eventRepository.GetEventsByAggregateIdAndVersionAsync(aggregateId, fromVersion, cancellationToken);
+            var result = await _eventRepository.GetEventsByAggregateIdAndVersionAsync(aggregateId, fromVersion, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
 
@@ -103,7 +103,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            return await _eventRepository.GetAggregateVersionAsync(aggregateId, cancellationToken);
+            return await _eventRepository.GetAggregateVersionAsync(aggregateId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -116,7 +116,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
+            var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken).ConfigureAwait(false);
             if (!streamResult.IsSuccess)
                 return Result.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
 
@@ -134,7 +134,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            var result = await _eventRepository.GetEventsByTypeAsync(eventType, cancellationToken);
+            var result = await _eventRepository.GetEventsByTypeAsync(eventType, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
 
@@ -152,7 +152,7 @@ public class EventStore : IEventStore
     {
         try
         {
-            var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
+            var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken).ConfigureAwait(false);
             if (!streamResult.IsSuccess)
                 return Result<int>.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
 

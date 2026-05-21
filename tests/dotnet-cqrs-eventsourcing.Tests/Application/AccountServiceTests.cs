@@ -42,7 +42,7 @@ public sealed class AccountServiceTests
             .Setup(b => b.PublishEventsAsync(It.IsAny<List<DomainEvent>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
-        var result = await _sut.CreateAccountAsync("ACC-500", "Maria Garcia", "USD", 1000m);
+        var result = await _sut.CreateAccountAsync("ACC-500", "Maria Garcia", "USD", 1000m).ConfigureAwait(false);
 
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -57,7 +57,7 @@ public sealed class AccountServiceTests
             .Setup(r => r.SaveAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("SAVE_ERROR", "Database unavailable"));
 
-        var result = await _sut.CreateAccountAsync("ACC-501", "Test User", "USD", 0m);
+        var result = await _sut.CreateAccountAsync("ACC-501", "Test User", "USD", 0m).ConfigureAwait(false);
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("SAVE_ERROR");
@@ -66,7 +66,7 @@ public sealed class AccountServiceTests
     [Fact]
     public async Task CreateAccountAsync_InvalidDomainOperation_ReturnsFailureWithCode()
     {
-        var result = await _sut.CreateAccountAsync("", "Test User", "USD", 0m);
+        var result = await _sut.CreateAccountAsync("", "Test User", "USD", 0m).ConfigureAwait(false);
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("CREATE_ACCOUNT_FAILED");
@@ -82,7 +82,7 @@ public sealed class AccountServiceTests
             .Setup(r => r.GetByIdAsync(missingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<Account>.Failure("NOT_FOUND", "Account not found"));
 
-        var result = await _sut.DepositAsync(missingId, 200m, "REF-X");
+        var result = await _sut.DepositAsync(missingId, 200m, "REF-X").ConfigureAwait(false);
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("NOT_FOUND");
@@ -107,7 +107,7 @@ public sealed class AccountServiceTests
             .Setup(b => b.PublishEventsAsync(It.IsAny<List<DomainEvent>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
-        var result = await _sut.DepositAsync(account.Id, 300m, "REF-DEP");
+        var result = await _sut.DepositAsync(account.Id, 300m, "REF-DEP").ConfigureAwait(false);
 
         result.IsSuccess.Should().BeTrue();
         _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -125,7 +125,7 @@ public sealed class AccountServiceTests
             .Setup(r => r.GetByIdAsync(account.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<Account>.Success(account));
 
-        var result = await _sut.WithdrawAsync(account.Id, 9999m, "REF-OVER");
+        var result = await _sut.WithdrawAsync(account.Id, 9999m, "REF-OVER").ConfigureAwait(false);
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("WITHDRAWAL_FAILED");
@@ -151,7 +151,7 @@ public sealed class AccountServiceTests
             .Setup(b => b.PublishEventsAsync(It.IsAny<List<DomainEvent>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
-        var result = await _sut.CloseAccountAsync(account.Id, "Customer closed account");
+        var result = await _sut.CloseAccountAsync(account.Id, "Customer closed account").ConfigureAwait(false);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -174,7 +174,7 @@ public sealed class AccountServiceTests
             .Setup(r => r.GetByIdAsync(account.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<Account>.Success(account));
 
-        var result = await _sut.GetTransactionCountAsync(account.Id);
+        var result = await _sut.GetTransactionCountAsync(account.Id).ConfigureAwait(false);
 
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().Be(2);

@@ -66,16 +66,16 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
                     if (_isPaused)
                     {
                         _logger.LogDebug("Projection worker is paused, waiting for resume");
-                        await Task.Delay(1000, stoppingToken);
+                        await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
                         continue;
                     }
                 }
 
                 // Process projections
-                await ProcessProjectionsAsync(stoppingToken);
+                await ProcessProjectionsAsync(stoppingToken).ConfigureAwait(false);
 
                 // Yield to allow other work
-                await Task.Delay(1000, stoppingToken);
+                await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -84,7 +84,7 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing projections");
-                await Task.Delay(5000, stoppingToken); // Back off on error
+                await Task.Delay(5000, stoppingToken).ConfigureAwait(false); // Back off on error
             }
         }
 
@@ -99,8 +99,8 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
 
         try
         {
-            var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken);
-            await _projectionService.RebuildProjectionAsync(aggregateId, events, cancellationToken);
+            var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken).ConfigureAwait(false);
+            await _projectionService.RebuildProjectionAsync(aggregateId, events, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Projection rebuilt for aggregate {AggregateId} from {EventCount} events",

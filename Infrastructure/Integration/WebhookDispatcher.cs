@@ -136,7 +136,7 @@ public class WebhookDispatcher : IWebhookDispatcher
         {
             foreach (var registration in registrationsSnapshot)
             {
-                await DispatchToWebhookAsync(registration, @event, cancellationToken);
+                await DispatchToWebhookAsync(registration, @event, cancellationToken).ConfigureAwait(false);
             }
         }, cancellationToken);
     }
@@ -175,7 +175,7 @@ public class WebhookDispatcher : IWebhookDispatcher
                 content.Headers.Add("X-Webhook-Signature", signature);
                 content.Headers.Add("X-Idempotency-Key", idempotencyKey);
 
-                var response = await _httpClient.PostAsync(registration.WebhookUrl, content, cancellationToken);
+                var response = await _httpClient.PostAsync(registration.WebhookUrl, content, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -213,7 +213,7 @@ public class WebhookDispatcher : IWebhookDispatcher
             {
                 // Exponential backoff: 1s, 2s, 4s
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                await Task.Delay(delay, cancellationToken);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
         }
 

@@ -54,7 +54,7 @@ public class ValidationDecorator<TCommand, TResult> where TCommand : class
         }
 
         _logger.LogDebug("Command validation passed for {CommandType}", typeof(TCommand).Name);
-        return await _next(command, cancellationToken);
+        return await _next(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public class BusinessRuleDecorator<TCommand, TResult> where TCommand : class
         if (!string.IsNullOrEmpty(aggregateId))
         {
             // Verify aggregate exists (if needed for this command)
-            var aggregateExists = await _accountService.AggregateExistsAsync(aggregateId, cancellationToken);
+            var aggregateExists = await _accountService.AggregateExistsAsync(aggregateId, cancellationToken).ConfigureAwait(false);
 
             if (!aggregateExists && IsModificationCommand())
             {
@@ -160,7 +160,7 @@ public class BusinessRuleDecorator<TCommand, TResult> where TCommand : class
             }
         }
 
-        return await _next(command, cancellationToken);
+        return await _next(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -195,6 +195,6 @@ public static class DecoratorChain
         // Apply decorators in reverse order of desired execution
         // Last decorator in list is innermost (closest to handler)
 
-        return await decorated(command, cancellationToken);
+        return await decorated(command, cancellationToken).ConfigureAwait(false);
     }
 }

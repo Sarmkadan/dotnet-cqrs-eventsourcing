@@ -34,7 +34,7 @@ public class EventBus : IEventBus
         {
             foreach (var @event in events)
             {
-                await PublishSingleEventAsync(@event, cancellationToken);
+                await PublishSingleEventAsync(@event, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("Successfully published {EventCount} events", events.Count);
@@ -76,12 +76,12 @@ public class EventBus : IEventBus
         try
         {
             // Persist to event store first
-            var persistResult = await eventStore.AppendEventAsync(@event, cancellationToken);
+            var persistResult = await eventStore.AppendEventAsync(@event, cancellationToken).ConfigureAwait(false);
             if (!persistResult.IsSuccess)
                 return persistResult;
 
             // Then publish
-            return await PublishEventAsync(@event, cancellationToken);
+            return await PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -118,7 +118,7 @@ public class EventBus : IEventBus
                 }
             });
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
     }
 }

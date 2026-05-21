@@ -50,7 +50,7 @@ public static class DependencyInjection
         // Subscribe projection service to all domain events
         eventBus.Subscribe<Domain.Events.DomainEvent>(async (@event) =>
         {
-            await projectionService.UpdateProjectionAsync(@event);
+            await projectionService.UpdateProjectionAsync(@event).ConfigureAwait(false);
         });
     }
 }

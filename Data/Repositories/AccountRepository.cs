@@ -34,7 +34,7 @@ public class AccountRepository : IRepository<Account>
                 return Result<Account>.Success(cachedAccount);
 
             // Get events from event store
-            var eventsResult = await _eventRepository.GetEventsByAggregateIdAsync(id, cancellationToken);
+            var eventsResult = await _eventRepository.GetEventsByAggregateIdAsync(id, cancellationToken).ConfigureAwait(false);
             eventsResult.ThrowIfFailure();
 
             if (eventsResult.Data!.Count == 0)
@@ -68,7 +68,7 @@ public class AccountRepository : IRepository<Account>
                 .ToList();
 
             // Persist to event store
-            var saveResult = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken);
+            var saveResult = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken).ConfigureAwait(false);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
@@ -101,7 +101,7 @@ public class AccountRepository : IRepository<Account>
     {
         try
         {
-            var allEventsResult = await _eventRepository.GetAllEventsAsync(1, 10000, cancellationToken);
+            var allEventsResult = await _eventRepository.GetAllEventsAsync(1, 10000, cancellationToken).ConfigureAwait(false);
             allEventsResult.ThrowIfFailure();
 
             var accountIds = allEventsResult.Data!
@@ -112,7 +112,7 @@ public class AccountRepository : IRepository<Account>
             var accounts = new List<Account>();
             foreach (var accountId in accountIds)
             {
-                var result = await GetByIdAsync(accountId, cancellationToken);
+                var result = await GetByIdAsync(accountId, cancellationToken).ConfigureAwait(false);
                 if (result.IsSuccess)
                     accounts.Add(result.Data!);
             }
@@ -127,7 +127,7 @@ public class AccountRepository : IRepository<Account>
 
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
     {
-        var result = await GetByIdAsync(id, cancellationToken);
+        var result = await GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess;
     }
 

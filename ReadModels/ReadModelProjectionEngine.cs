@@ -95,7 +95,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
         _logger.LogInformation("Starting projection rebuild for aggregate {AggregateId}.", aggregateId);
 
-        var eventsResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
+        var eventsResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken).ConfigureAwait(false);
         if (!eventsResult.IsSuccess)
             return Result<ProjectionRebuildResult>.Failure(eventsResult.ErrorCode!, eventsResult.ErrorMessage!);
 
@@ -104,7 +104,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
         foreach (var @event in events)
         {
-            var routeResult = await RouteAsync(@event, cancellationToken);
+            var routeResult = await RouteAsync(@event, cancellationToken).ConfigureAwait(false);
             if (!routeResult.IsSuccess)
                 failedIds.Add(@event.EventId);
         }
@@ -138,7 +138,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
         foreach (var id in aggregateIds)
         {
-            var result = await RebuildAsync(id, cancellationToken);
+            var result = await RebuildAsync(id, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
                 return Result<IReadOnlyList<ProjectionRebuildResult>>.Failure(
                     result.ErrorCode!, result.ErrorMessage!);
@@ -161,7 +161,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
     {
         Interlocked.Increment(ref _totalEventsRouted);
 
-        var result = await RouteAsync(@event, CancellationToken.None);
+        var result = await RouteAsync(@event, CancellationToken.None).ConfigureAwait(false);
 
         if (!result.IsSuccess)
             _logger.LogError(
@@ -180,10 +180,10 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
         await Task.WhenAll(capable.Select(async runner =>
         {
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var result = await ApplyWithRetryAsync(runner, @event, cancellationToken);
+                var result = await ApplyWithRetryAsync(runner, @event, cancellationToken).ConfigureAwait(false);
                 if (!result.IsSuccess)
                     errors.Add($"[{runner.ProjectionName}] {result.ErrorMessage}");
                 else
@@ -213,7 +213,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
             {
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 cts.CancelAfter(_options.ProjectorTimeout);
-                return await runner.RunAsync(@event, cts.Token);
+                return await runner.RunAsync(@event, cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -233,7 +233,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
                     "Projector '{Name}' attempt {Attempt} failed for event {EventId}; retrying in {Delay} ms.",
                     runner.ProjectionName, attempt + 1, @event.EventId, delay);
 
-                await Task.Delay(delay, cancellationToken);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 delay *= 2;
             }
         }
