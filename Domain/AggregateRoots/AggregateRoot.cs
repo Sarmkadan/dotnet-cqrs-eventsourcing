@@ -13,13 +13,28 @@ using Events;
 /// </summary>
 public abstract class AggregateRoot
 {
+    /// <summary>
+    /// Gets the aggregate ID.
+    /// </summary>
     public string Id { get; protected set; }
+    /// <summary>
+    /// Gets the current aggregate version.
+    /// </summary>
     public long Version { get; protected set; }
+    /// <summary>
+    /// Gets the creation time.
+    /// </summary>
     public DateTime CreatedAt { get; protected set; }
+    /// <summary>
+    /// Gets the last update time.
+    /// </summary>
     public DateTime UpdatedAt { get; protected set; }
 
     private readonly List<DomainEvent> _uncommittedEvents = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AggregateRoot"/> class.
+    /// </summary>
     protected AggregateRoot()
     {
         Id = Guid.NewGuid().ToString();
@@ -28,6 +43,10 @@ public abstract class AggregateRoot
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AggregateRoot"/> class with a specified ID.
+    /// </summary>
+    /// <param name="id">The aggregate ID.</param>
     protected AggregateRoot(string id)
         : this()
     {
