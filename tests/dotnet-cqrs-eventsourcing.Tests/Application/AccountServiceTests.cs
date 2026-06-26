@@ -179,4 +179,89 @@ public sealed class AccountServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().Be(2);
     }
+
+    [Fact]
+    public async Task CreateAccountAsync_InvalidCurrency_ReturnsFailure()
+    {
+        var result = await _sut.CreateAccountAsync("ACC-001", "User", "INVALID", 100m);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("CREATE_ACCOUNT_FAILED");
+    }
+
+    [Fact]
+    public async Task GetAccountAsync_RepositoryThrowsException_ReturnsFailure()
+    {
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database connection failed"));
+
+        var result = await _sut.GetAccountAsync("ACC-123");
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("GET_ACCOUNT_FAILED");
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_RepositoryThrowsException_ReturnsFailure()
+    {
+        var account = new Account();
+        account.CreateAccount("ACC-100", "User", "USD", 100m);
+        account.ClearUncommittedEvents();
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Account>.Success(account));
+
+        _repositoryMock
+            .Setup(r => r.SaveAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB Error"));
+
+        var result = await _sut.WithdrawAsync(account.Id, 50m, "REF");
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("WITHDRAWAL_FAILED");
+    }
+
+    [Fact]
+    public async Task DepositAsync_RepositoryThrowsException_ReturnsFailure()
+    {
+        var account = new Account();
+        account.CreateAccount("ACC-100", "User", "USD", 100m);
+        account.ClearUncommittedEvents();
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Account>.Success(account));
+
+        _repositoryMock
+            .Setup(r => r.SaveAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB Error"));
+
+        var result = await _sut.DepositAsync(account.Id, 50m, "REF");
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("DEPOSIT_FAILED");
+    }
+
+    [Fact]
+    public async Task CloseAccountAsync_RepositoryThrowsException_ReturnsFailure()
+    {
+        var account = new Account();
+        account.CreateAccount("ACC-100", "User", "USD", 100m);
+        account.ClearUncommittedEvents();
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Account>.Success(account));
+
+        _repositoryMock
+            .Setup(r => r.SaveAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB Error"));
+
+        var result = await _sut.CloseAccountAsync(account.Id, "Reason");
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("CLOSE_ACCOUNT_FAILED");
+    }
 }
