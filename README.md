@@ -828,6 +828,34 @@ docker build -t dotnet-cqrs:latest .
 docker run -p 5000:8080 dotnet-cqrs:latest
 ```
 
+## Docker Usage
+
+This project includes a full Docker setup for development and production.
+
+### Running with Docker Compose
+
+To start the API, SQL Server, Redis, and Adminer services:
+
+```bash
+docker-compose up -d
+```
+
+The services will be available at:
+- **API**: http://localhost:8080
+- **Adminer**: http://localhost:8081
+
+### Build and Run API Only
+
+To build the API image:
+```bash
+docker build -t dotnet-cqrs:latest .
+```
+
+To run the API container:
+```bash
+docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production dotnet-cqrs:latest
+```
+
 ### Kubernetes Deployment
 
 Basic Kubernetes YAML available in deployment guides.

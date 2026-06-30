@@ -1,0 +1,13 @@
+**
+.git
+.vs
+bin
+obj
+*.user
+*.lock
+.env
+.DS_Store
+*.log
+**/bin
+**/obj
+**/TestResults
