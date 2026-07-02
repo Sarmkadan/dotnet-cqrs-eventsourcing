@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+<PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>dotnet_cqrs_eventsourcing.Benchmarks</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+</PropertyGroup>
+
+<ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
+</ItemGroup>
+
+<ItemGroup>
+    <ProjectReference Include="../dotnet-cqrs-eventsourcing.csproj" />
+</ItemGroup>
+
+</Project>
