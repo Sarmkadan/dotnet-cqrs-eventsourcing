@@ -10,6 +10,7 @@ using Domain.AggregateRoots;
 using Data.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Results;
+using Shared.Exceptions;
 
 /// <summary>
 /// Account service implementation handling account operations and persistence.
@@ -32,6 +33,22 @@ public class AccountService : IAccountService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                throw new ValidationException("Account number cannot be null or whitespace.")
+                    .WithError(nameof(accountNumber), "Account number is required");
+
+            if (string.IsNullOrWhiteSpace(accountHolder))
+                throw new ValidationException("Account holder cannot be null or whitespace.")
+                    .WithError(nameof(accountHolder), "Account holder is required");
+
+            if (string.IsNullOrWhiteSpace(currency))
+                throw new ValidationException("Currency cannot be null or whitespace.")
+                    .WithError(nameof(currency), "Currency is required");
+
+            if (initialBalance < 0)
+                throw new ValidationException("Initial balance cannot be negative.")
+                    .WithError(nameof(initialBalance), "Initial balance must be zero or positive");
+
             var account = new Account();
             account.CreateAccount(accountNumber, accountHolder, currency, initialBalance);
 
@@ -48,6 +65,10 @@ public class AccountService : IAccountService
             _logger.LogInformation("Account created: {AccountNumber} for {AccountHolder}", accountNumber, accountHolder);
             return Result<Account>.Success(account);
         }
+        catch (ValidationException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating account");
@@ -59,7 +80,15 @@ public class AccountService : IAccountService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(accountId))
+                throw new ValidationException("Account ID cannot be null or whitespace.")
+                    .WithError(nameof(accountId), "Account ID is required");
+
             return await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+        }
+        catch (ValidationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -72,6 +101,18 @@ public class AccountService : IAccountService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(accountId))
+                throw new ValidationException("Account ID cannot be null or whitespace.")
+                    .WithError(nameof(accountId), "Account ID is required");
+
+            if (amount <= 0)
+                throw new ValidationException("Deposit amount must be positive.")
+                    .WithError(nameof(amount), "Amount must be greater than zero");
+
+            if (string.IsNullOrWhiteSpace(reference))
+                throw new ValidationException("Reference cannot be null or whitespace.")
+                    .WithError(nameof(reference), "Reference is required");
+
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -92,6 +133,10 @@ public class AccountService : IAccountService
             _logger.LogInformation("Deposit processed: {Amount} to account {AccountId}", amount, accountId);
             return Result.Success();
         }
+        catch (ValidationException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing deposit to account {AccountId}", accountId);
@@ -103,6 +148,18 @@ public class AccountService : IAccountService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(accountId))
+                throw new ValidationException("Account ID cannot be null or whitespace.")
+                    .WithError(nameof(accountId), "Account ID is required");
+
+            if (amount <= 0)
+                throw new ValidationException("Withdrawal amount must be positive.")
+                    .WithError(nameof(amount), "Amount must be greater than zero");
+
+            if (string.IsNullOrWhiteSpace(reference))
+                throw new ValidationException("Reference cannot be null or whitespace.")
+                    .WithError(nameof(reference), "Reference is required");
+
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -123,6 +180,10 @@ public class AccountService : IAccountService
             _logger.LogInformation("Withdrawal processed: {Amount} from account {AccountId}", amount, accountId);
             return Result.Success();
         }
+        catch (ValidationException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing withdrawal from account {AccountId}", accountId);
@@ -134,6 +195,14 @@ public class AccountService : IAccountService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(accountId))
+                throw new ValidationException("Account ID cannot be null or whitespace.")
+                    .WithError(nameof(accountId), "Account ID is required");
+
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ValidationException("Reason cannot be null or whitespace.")
+                    .WithError(nameof(reason), "Reason is required");
+
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -153,6 +222,10 @@ public class AccountService : IAccountService
 
             _logger.LogInformation("Account closed: {AccountId} - Reason: {Reason}", accountId, reason);
             return Result.Success();
+        }
+        catch (ValidationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
