@@ -6,8 +6,13 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Domain.Events;
 using Shared.Results;
+using Exceptions;
 
 /// <summary>
 /// Event store interface for saving and retrieving domain events with replay support.

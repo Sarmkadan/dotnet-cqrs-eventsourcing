@@ -6,10 +6,16 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Domain.Events;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Results;
+using Exceptions;
 
 /// <summary>
 /// Projection service implementation for building and maintaining read models from events.
@@ -29,6 +35,9 @@ public class ProjectionService : IProjectionService
 
     public async Task<Result> UpdateProjectionAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
+        if (@event is null)
+            throw new ArgumentNullException(nameof(@event));
+
         try
         {
             lock (_lockObject)
@@ -56,6 +65,9 @@ public class ProjectionService : IProjectionService
 
     public async Task<Result> RebuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(aggregateId))
+            throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+
         try
         {
             var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
@@ -133,6 +145,9 @@ public class ProjectionService : IProjectionService
 
     public async Task<Result<Dictionary<string, object>>> GetProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(aggregateId))
+            throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+
         try
         {
             lock (_lockObject)
@@ -171,6 +186,9 @@ public class ProjectionService : IProjectionService
 
     public async Task<AccountProjectionSummary> BuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(aggregateId))
+            throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+
         var summary = new AccountProjectionSummary();
 
         var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);

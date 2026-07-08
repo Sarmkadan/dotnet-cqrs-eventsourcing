@@ -6,9 +6,15 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Domain.Events;
 using Microsoft.Extensions.Logging;
 using Shared.Results;
+using Exceptions;
 
 /// <summary>
 /// In-memory event bus implementation for publishing and subscribing to domain events.
@@ -25,15 +31,24 @@ public class EventBus : IEventBus
 
     public Task<Result> PublishEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
+        if (@event is null)
+            throw new ArgumentNullException(nameof(@event));
+
         return PublishEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
     }
 
     public async Task<Result> PublishEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
     {
+        if (events is null)
+            throw new ArgumentNullException(nameof(events));
+
         try
         {
             foreach (var @event in events)
             {
+                if (@event is null)
+                    throw new ArgumentException("Event collection contains null element", nameof(events));
+
                 await PublishSingleEventAsync(@event, cancellationToken);
             }
 
@@ -49,6 +64,9 @@ public class EventBus : IEventBus
 
     public void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
+        if (handler is null)
+            throw new ArgumentNullException(nameof(handler));
+
         var eventType = typeof(TEvent);
 
         if (!_subscribers.ContainsKey(eventType))
@@ -62,6 +80,9 @@ public class EventBus : IEventBus
 
     public void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
+        if (handler is null)
+            throw new ArgumentNullException(nameof(handler));
+
         var eventType = typeof(TEvent);
 
         if (_subscribers.TryGetValue(eventType, out var handlers))
@@ -73,6 +94,11 @@ public class EventBus : IEventBus
 
     public async Task<Result> PublishAndPersistAsync(DomainEvent @event, IEventStore eventStore, CancellationToken cancellationToken = default)
     {
+        if (@event is null)
+            throw new ArgumentNullException(nameof(@event));
+        if (eventStore is null)
+            throw new ArgumentNullException(nameof(eventStore));
+
         try
         {
             // Persist to event store first

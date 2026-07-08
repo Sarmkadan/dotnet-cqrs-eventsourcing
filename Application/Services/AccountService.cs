@@ -6,11 +6,17 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Domain.AggregateRoots;
 using Data.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Results;
 using Shared.Exceptions;
+using Exceptions;
 
 /// <summary>
 /// Account service implementation handling account operations and persistence.
@@ -31,24 +37,17 @@ public class AccountService : IAccountService
     public async Task<Result<Account>> CreateAccountAsync(string accountNumber, string accountHolder,
         string currency, decimal initialBalance, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountNumber))
+            throw new ArgumentException("Account number cannot be null or whitespace.", nameof(accountNumber));
+        if (string.IsNullOrWhiteSpace(accountHolder))
+            throw new ArgumentException("Account holder cannot be null or whitespace.", nameof(accountHolder));
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new ArgumentException("Currency cannot be null or whitespace.", nameof(currency));
+        if (initialBalance < 0)
+            throw new ArgumentOutOfRangeException(nameof(initialBalance), "Initial balance must be zero or positive.");
+
         try
         {
-            if (string.IsNullOrWhiteSpace(accountNumber))
-                throw new ValidationException("Account number cannot be null or whitespace.")
-                    .WithError(nameof(accountNumber), "Account number is required");
-
-            if (string.IsNullOrWhiteSpace(accountHolder))
-                throw new ValidationException("Account holder cannot be null or whitespace.")
-                    .WithError(nameof(accountHolder), "Account holder is required");
-
-            if (string.IsNullOrWhiteSpace(currency))
-                throw new ValidationException("Currency cannot be null or whitespace.")
-                    .WithError(nameof(currency), "Currency is required");
-
-            if (initialBalance < 0)
-                throw new ValidationException("Initial balance cannot be negative.")
-                    .WithError(nameof(initialBalance), "Initial balance must be zero or positive");
-
             var account = new Account();
             account.CreateAccount(accountNumber, accountHolder, currency, initialBalance);
 
@@ -78,17 +77,12 @@ public class AccountService : IAccountService
 
     public async Task<Result<Account>> GetAccountAsync(string accountId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new ArgumentException("Account ID cannot be null or whitespace.", nameof(accountId));
+
         try
         {
-            if (string.IsNullOrWhiteSpace(accountId))
-                throw new ValidationException("Account ID cannot be null or whitespace.")
-                    .WithError(nameof(accountId), "Account ID is required");
-
             return await _accountRepository.GetByIdAsync(accountId, cancellationToken);
-        }
-        catch (ValidationException)
-        {
-            throw;
         }
         catch (Exception ex)
         {
@@ -99,20 +93,15 @@ public class AccountService : IAccountService
 
     public async Task<Result> DepositAsync(string accountId, decimal amount, string reference, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new ArgumentException("Account ID cannot be null or whitespace.", nameof(accountId));
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount), "Deposit amount must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(reference))
+            throw new ArgumentException("Reference cannot be null or whitespace.", nameof(reference));
+
         try
         {
-            if (string.IsNullOrWhiteSpace(accountId))
-                throw new ValidationException("Account ID cannot be null or whitespace.")
-                    .WithError(nameof(accountId), "Account ID is required");
-
-            if (amount <= 0)
-                throw new ValidationException("Deposit amount must be positive.")
-                    .WithError(nameof(amount), "Amount must be greater than zero");
-
-            if (string.IsNullOrWhiteSpace(reference))
-                throw new ValidationException("Reference cannot be null or whitespace.")
-                    .WithError(nameof(reference), "Reference is required");
-
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -146,20 +135,15 @@ public class AccountService : IAccountService
 
     public async Task<Result> WithdrawAsync(string accountId, decimal amount, string reference, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new ArgumentException("Account ID cannot be null or whitespace.", nameof(accountId));
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount), "Withdrawal amount must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(reference))
+            throw new ArgumentException("Reference cannot be null or whitespace.", nameof(reference));
+
         try
         {
-            if (string.IsNullOrWhiteSpace(accountId))
-                throw new ValidationException("Account ID cannot be null or whitespace.")
-                    .WithError(nameof(accountId), "Account ID is required");
-
-            if (amount <= 0)
-                throw new ValidationException("Withdrawal amount must be positive.")
-                    .WithError(nameof(amount), "Amount must be greater than zero");
-
-            if (string.IsNullOrWhiteSpace(reference))
-                throw new ValidationException("Reference cannot be null or whitespace.")
-                    .WithError(nameof(reference), "Reference is required");
-
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -193,16 +177,13 @@ public class AccountService : IAccountService
 
     public async Task<Result> CloseAccountAsync(string accountId, string reason, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new ArgumentException("Account ID cannot be null or whitespace.", nameof(accountId));
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Reason cannot be null or whitespace.", nameof(reason));
+
         try
         {
-            if (string.IsNullOrWhiteSpace(accountId))
-                throw new ValidationException("Account ID cannot be null or whitespace.")
-                    .WithError(nameof(accountId), "Account ID is required");
-
-            if (string.IsNullOrWhiteSpace(reason))
-                throw new ValidationException("Reason cannot be null or whitespace.")
-                    .WithError(nameof(reason), "Reason is required");
-
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
             if (!accountResult.IsSuccess)
                 return Result.Failure(accountResult.ErrorCode!, accountResult.ErrorMessage!);
@@ -249,6 +230,9 @@ public class AccountService : IAccountService
 
     public async Task<Result<int>> GetTransactionCountAsync(string accountId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new ArgumentException("Account ID cannot be null or whitespace.", nameof(accountId));
+
         try
         {
             var accountResult = await GetAccountAsync(accountId, cancellationToken);
