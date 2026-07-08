@@ -169,6 +169,54 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    public async Task<AccountProjectionSummary> BuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
+    {
+        var summary = new AccountProjectionSummary();
+
+        var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
+        if (!streamResult.IsSuccess || streamResult.Data is null)
+        {
+            _logger.LogWarning("No event stream found for aggregate {AggregateId}; returning empty summary", aggregateId);
+            return summary;
+        }
+
+        foreach (var @event in streamResult.Data.OrderBy(e => e.AggregateVersion))
+        {
+            switch (@event)
+            {
+                case AccountCreatedEvent accountCreated:
+                    summary.CurrentBalance = accountCreated.InitialBalance;
+                    summary.Status = "Active";
+                    break;
+
+                case MoneyDepositedEvent moneyDeposited:
+                    summary.CurrentBalance += moneyDeposited.Amount;
+                    summary.TotalDeposits += moneyDeposited.Amount;
+                    summary.TransactionCount++;
+                    break;
+
+                case MoneyWithdrawnEvent moneyWithdrawn:
+                    summary.CurrentBalance -= moneyWithdrawn.Amount;
+                    summary.TotalWithdrawals += moneyWithdrawn.Amount;
+                    summary.TransactionCount++;
+                    break;
+
+                case BalanceUpdatedEvent balanceUpdated:
+                    summary.CurrentBalance = balanceUpdated.NewBalance;
+                    break;
+
+                case AccountClosedEvent:
+                    summary.Status = "Closed";
+                    break;
+            }
+
+            summary.LastUpdated = @event.OccurredAt;
+        }
+
+        _logger.LogInformation("Built projection summary for aggregate {AggregateId} from {EventCount} events", aggregateId, streamResult.Data.Count);
+        return summary;
+    }
+
     private Dictionary<string, object> InitializeProjection(string aggregateId, string aggregateType)
     {
         return new Dictionary<string, object>

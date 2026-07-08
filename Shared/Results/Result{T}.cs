@@ -17,6 +17,11 @@ public class Result<T>
     public string? ErrorMessage { get; }
     public List<string> Errors { get; }
 
+    /// <summary>
+    /// Convenience alias for <see cref="ErrorMessage"/>.
+    /// </summary>
+    public string? Error => ErrorMessage;
+
     private Result(bool isSuccess, T? data = default, string? errorCode = null, string? errorMessage = null)
     {
         IsSuccess = isSuccess;

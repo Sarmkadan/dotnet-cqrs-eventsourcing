@@ -22,7 +22,7 @@ var eventBus = serviceProvider.GetRequiredService<IEventBus>();
 // Subscribe to events before they are published
 Console.WriteLine("1. Subscribing to events...\n");
 
-await eventBus.SubscribeAsync<AccountCreated>(async (@event) =>
+await eventBus.SubscribeAsync<AccountCreatedEvent>(async (@event) =>
 {
     Console.WriteLine($"[EVENT HANDLER] Account Created");
     Console.WriteLine($"  Account ID: {@event.AggregateId}");
@@ -32,7 +32,7 @@ await eventBus.SubscribeAsync<AccountCreated>(async (@event) =>
     await Task.CompletedTask;
 });
 
-await eventBus.SubscribeAsync<MoneyDeposited>(async (@event) =>
+await eventBus.SubscribeAsync<MoneyDepositedEvent>(async (@event) =>
 {
     Console.WriteLine($"[EVENT HANDLER] Money Deposited");
     Console.WriteLine($"  Account ID: {@event.AggregateId}");
@@ -41,7 +41,7 @@ await eventBus.SubscribeAsync<MoneyDeposited>(async (@event) =>
     await Task.CompletedTask;
 });
 
-await eventBus.SubscribeAsync<MoneyWithdrawn>(async (@event) =>
+await eventBus.SubscribeAsync<MoneyWithdrawnEvent>(async (@event) =>
 {
     Console.WriteLine($"[EVENT HANDLER] Money Withdrawn");
     Console.WriteLine($"  Account ID: {@event.AggregateId}");

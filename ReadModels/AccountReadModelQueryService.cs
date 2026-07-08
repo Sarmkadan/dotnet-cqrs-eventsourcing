@@ -66,6 +66,30 @@ public interface IAccountReadModelQueryService
     /// </summary>
     Task<Result<AccountPortfolioStatistics>> GetPortfolioStatisticsAsync(
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Convenience wrapper over <see cref="GetByIdAsync"/> that returns the read model
+    /// directly, or <see langword="null"/> when the account is not found or the lookup fails.
+    /// </summary>
+    async Task<AccountReadModel?> GetAccountByIdAsync(
+        string accountId, CancellationToken cancellationToken = default)
+    {
+        var result = await GetByIdAsync(accountId, cancellationToken);
+        return result.IsSuccess ? result.Data : null;
+    }
+
+    /// <summary>
+    /// Convenience wrapper over <see cref="GetActiveAccountsAsync"/> that returns the
+    /// account list directly, yielding an empty list when the lookup fails.
+    /// </summary>
+    async Task<IReadOnlyList<AccountReadModel>> GetAllAccountsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await GetActiveAccountsAsync(cancellationToken);
+        return result.IsSuccess && result.Data is not null
+            ? result.Data
+            : Array.Empty<AccountReadModel>();
+    }
 }
 
 /// <summary>

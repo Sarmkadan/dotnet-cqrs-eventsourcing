@@ -29,6 +29,27 @@ public abstract class DomainEvent
 
     public Dictionary<string, object> Metadata { get; set; }
 
+    /// <summary>
+    /// Convenience alias for <see cref="AggregateVersion"/>.
+    /// Excluded from serialization so stored event payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long Version => AggregateVersion;
+
+    /// <summary>
+    /// Convenience alias for <see cref="GetEventType"/>.
+    /// Excluded from serialization so stored event payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string EventType => GetEventType();
+
+    /// <summary>
+    /// Convenience alias for <see cref="OccurredAt"/>.
+    /// Excluded from serialization so stored event payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTime Timestamp => OccurredAt;
+
     protected DomainEvent()
     {
         EventId = Guid.NewGuid().ToString();

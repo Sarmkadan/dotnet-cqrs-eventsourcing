@@ -122,6 +122,15 @@ public sealed class AccountReadModel
     /// <summary>Total number of individual transactions recorded since account creation.</summary>
     public int TransactionCount => Transactions.Count;
 
+    /// <summary>Convenience alias for <see cref="AccountId"/>.</summary>
+    public string Id => AccountId;
+
+    /// <summary>Convenience alias for <see cref="AccountHolder"/>.</summary>
+    public string AccountHolderName => AccountHolder;
+
+    /// <summary>Convenience alias for <see cref="CurrentBalance"/>.</summary>
+    public decimal Balance => CurrentBalance;
+
     /// <summary>
     /// Net flow of funds through the account: <see cref="TotalDeposited"/> minus
     /// <see cref="TotalWithdrawn"/>. A positive value indicates net inflows.

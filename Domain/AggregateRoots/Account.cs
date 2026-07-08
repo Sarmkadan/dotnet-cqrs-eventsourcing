@@ -27,6 +27,30 @@ public class Account : AggregateRoot
     // Snapshot support
     public long LastSnapshotVersion { get; set; }
 
+    /// <summary>
+    /// Convenience alias for <see cref="AccountHolder"/>.
+    /// Excluded from serialization so snapshot payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string AccountHolderName => AccountHolder;
+
+    /// <summary>
+    /// Indicates whether the account has been closed.
+    /// Excluded from serialization so snapshot payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsClosed => Status == AggregateStatus.Closed;
+
+    /// <summary>
+    /// Replays the given event history onto this account and returns the account,
+    /// enabling fluent state reconstruction. Equivalent to <see cref="AggregateRoot.LoadFromHistory"/>.
+    /// </summary>
+    public Account ReplayEvents(IEnumerable<DomainEvent> events)
+    {
+        LoadFromHistory(events);
+        return this;
+    }
+
     public Account() : base()
     {
         AccountNumber = string.Empty;

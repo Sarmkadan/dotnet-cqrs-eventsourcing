@@ -7,6 +7,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Shared.Results;
 
 Console.WriteLine("=== Concurrency Example ===\n");
 
@@ -50,7 +51,7 @@ Console.WriteLine($"  Withdraw 1: {(withdraw1.IsSuccess ? "✓ Success" : "✗ F
 // Test case 2: Simulate concurrent operations
 Console.WriteLine("3. Simulating concurrent operations...\n");
 
-var tasks = new List<Task<dynamic>>();
+var tasks = new List<Task<(int Index, Result Result)>>();
 
 // Create 5 concurrent deposit operations
 for (int i = 0; i < 5; i++)
@@ -61,7 +62,7 @@ for (int i = 0; i < 5; i++)
         var amount = 100m;
         var reference = $"DEP-CONCURRENT-{index:000}";
         var result = await accountService.DepositAsync("ACC-CONCURRENT-001", amount, reference);
-        return new { Index = index, Result = result };
+        return (Index: index, Result: result);
     });
     tasks.Add(task);
 }
@@ -118,7 +119,7 @@ if (finalResult.IsSuccess)
     expectedBalance += 500m; // 5 concurrent deposits
 
     Console.WriteLine($"  Expected balance: {expectedBalance} USD");
-    Console.WriteLine($"  ✓ Consistency verified: {Math.Abs(finalAccount.Balance.CurrentAmount - expectedBalance) < 0.01m}\n");
+    Console.WriteLine($"  ✓ Consistency verified: {Math.Abs(finalAccount.Balance.CurrentAmount.Amount - expectedBalance) < 0.01m}\n");
 }
 
 // Test case 5: Optimistic concurrency explanation

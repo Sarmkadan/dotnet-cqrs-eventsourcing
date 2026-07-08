@@ -19,6 +19,13 @@ public class Balance : IEquatable<Balance>
     public Money AvailableAmount { get; private set; }
     public Money HoldAmount { get; private set; }
 
+    /// <summary>
+    /// Convenience alias for the ISO 4217 currency code of <see cref="CurrentAmount"/>.
+    /// Excluded from serialization so snapshot payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Currency => CurrentAmount.Currency;
+
     public Balance(Money initialAmount)
     {
         CurrentAmount = initialAmount ?? throw new ArgumentNullException(nameof(initialAmount));

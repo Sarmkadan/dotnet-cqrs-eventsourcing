@@ -21,6 +21,13 @@ public class Transaction : IEquatable<Transaction>
     public string? Description { get; }
     public Dictionary<string, object> Metadata { get; }
 
+    /// <summary>
+    /// Convenience alias for <see cref="TransactionDate"/>.
+    /// Excluded from serialization so snapshot payloads remain unchanged.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTime Timestamp => TransactionDate;
+
     public Transaction(TransactionType type, Money amount, string reference, string? description = null)
     {
         Id = Guid.NewGuid().ToString();

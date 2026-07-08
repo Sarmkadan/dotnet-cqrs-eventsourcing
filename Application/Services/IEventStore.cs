@@ -85,4 +85,20 @@ public interface IEventStore
     /// per-tenant streams.  Returns an empty list when no events exist for the partition.
     /// </summary>
     Task<Result<List<DomainEvent>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Convenience wrapper over <see cref="GetEventStreamAsync"/> that returns the raw
+    /// event list directly, yielding an empty list when the stream is missing or the
+    /// underlying call fails.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The ordered list of events for the aggregate, or an empty list.</returns>
+    async Task<List<DomainEvent>> GetEventsAsync(string aggregateId, CancellationToken cancellationToken = default)
+    {
+        var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
+        return streamResult.IsSuccess && streamResult.Data is not null
+            ? streamResult.Data
+            : new List<DomainEvent>();
+    }
 }
