@@ -14,12 +14,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
+/// <summary>
+/// Tests for the <see cref="ReadModelRebuilderCommand"/> class.
+/// </summary>
 public sealed class ReadModelRebuilderCommandTests
 {
     private readonly Mock<IProjectionService> _projectionMock;
     private readonly Mock<IEventStore> _eventStoreMock;
     private readonly ReadModelRebuilderCommand _sut;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReadModelRebuilderCommandTests"/> class.
+    /// </summary>
     public ReadModelRebuilderCommandTests()
     {
         _projectionMock = new Mock<IProjectionService>();
@@ -30,12 +36,19 @@ public sealed class ReadModelRebuilderCommandTests
             NullLogger<ReadModelRebuilderCommand>.Instance);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="ReadModelRebuilderCommand.Name"/> property returns the expected value.
+    /// </summary>
     [Fact]
     public void Name_IsExpectedValue()
     {
         _sut.Name.Should().Be("rebuild-read-models");
     }
 
+    /// <summary>
+    /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method returns a failure when no arguments are provided.
+    /// </summary>
+    /// <param name="result">The result of the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method.</param>
     [Fact]
     public async Task ExecuteAsync_NoArgs_ReturnsFailureWithMissingArgument()
     {
@@ -44,6 +57,9 @@ public sealed class ReadModelRebuilderCommandTests
         result.ErrorCode.Should().Be("MISSING_ARGUMENT");
     }
 
+    /// <summary>
+    /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method calls the <see cref="IProjectionService.RebuildAllProjectionsAsync"/> method when the <c>--all</c> flag is provided.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_AllFlag_CallsRebuildAllProjectionsAsync()
     {
@@ -57,6 +73,9 @@ public sealed class ReadModelRebuilderCommandTests
         _projectionMock.Verify(p => p.RebuildAllProjectionsAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method calls the <see cref="IProjectionService.RebuildProjectionAsync"/> method when the <c>--aggregate</c> flag is provided.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_AggregateFlag_CallsRebuildProjectionForSpecificAggregate()
     {
@@ -70,6 +89,9 @@ public sealed class ReadModelRebuilderCommandTests
         _projectionMock.Verify(p => p.RebuildProjectionAsync("agg-999", It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method skips rebuilding projections and succeeds when the <c>--dry-run</c> flag is provided.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_DryRunWithAllFlag_SkipsRebuildAndSucceeds()
     {
@@ -80,6 +102,9 @@ public sealed class ReadModelRebuilderCommandTests
         _projectionMock.Verify(p => p.RebuildProjectionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    /// <summary>
+    /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method propagates a failure when the <see cref="IProjectionService.RebuildProjectionAsync"/> method fails.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ProjectionServiceFails_PropagatesFailure()
     {
@@ -96,6 +121,9 @@ public sealed class ReadModelRebuilderCommandTests
 
 public sealed class CliCommandRegistryTests
 {
+    /// <summary>
+    /// Tests that the <see cref="CliCommandRegistry.DispatchAsync"/> method returns a failure when an unknown command is provided.
+    /// </summary>
     [Fact]
     public async Task DispatchAsync_UnknownCommand_ReturnsFailure()
     {
@@ -109,6 +137,9 @@ public sealed class CliCommandRegistryTests
         result.ErrorCode.Should().Be("UNKNOWN_COMMAND");
     }
 
+    /// <summary>
+    /// Tests that the <see cref="CliCommandRegistry.DispatchAsync"/> method executes and returns a success when a known command is provided.
+    /// </summary>
     [Fact]
     public async Task DispatchAsync_KnownCommand_ExecutesAndReturnsSuccess()
     {
