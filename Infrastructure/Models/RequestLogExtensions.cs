@@ -15,8 +15,9 @@ public static class RequestLogExtensions
     /// <summary>
     /// Determines if the request represents a read-only operation (GET, HEAD, OPTIONS).
     /// </summary>
-    /// <param name="requestLog">The request log to check</param>
-    /// <returns>True if the request is read-only; otherwise false</returns>
+    /// <param name="requestLog">The request log to check.</param>
+    /// <returns>True if the request is read-only; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="requestLog"/> is null.</exception>
     public static bool IsReadOnlyOperation(this RequestLog requestLog)
     {
         ArgumentNullException.ThrowIfNull(requestLog);
@@ -29,8 +30,9 @@ public static class RequestLogExtensions
     /// <summary>
     /// Determines if the request represents a write operation (POST, PUT, DELETE, PATCH).
     /// </summary>
-    /// <param name="requestLog">The request log to check</param>
-    /// <returns>True if the request is a write operation; otherwise false</returns>
+    /// <param name="requestLog">The request log to check.</param>
+    /// <returns>True if the request is a write operation; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="requestLog"/> is null.</exception>
     public static bool IsWriteOperation(this RequestLog requestLog)
     {
         ArgumentNullException.ThrowIfNull(requestLog);
@@ -41,8 +43,9 @@ public static class RequestLogExtensions
     /// <summary>
     /// Gets the client IP address from the request, handling common proxy headers.
     /// </summary>
-    /// <param name="requestLog">The request log</param>
-    /// <returns>The resolved client IP address</returns>
+    /// <param name="requestLog">The request log.</param>
+    /// <returns>The resolved client IP address.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="requestLog"/> is null.</exception>
     public static string GetClientIpAddress(this RequestLog requestLog)
     {
         ArgumentNullException.ThrowIfNull(requestLog);
@@ -57,7 +60,7 @@ public static class RequestLogExtensions
         if (requestLog.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor) &&
             !string.IsNullOrWhiteSpace(forwardedFor))
         {
-            var ips = forwardedFor.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var ips = forwardedFor.Split([','], StringSplitOptions.RemoveEmptyEntries);
             return ips.FirstOrDefault()?.Trim() ?? string.Empty;
         }
 
@@ -73,8 +76,9 @@ public static class RequestLogExtensions
     /// <summary>
     /// Gets the user agent from the request headers.
     /// </summary>
-    /// <param name="requestLog">The request log</param>
-    /// <returns>The user agent string if present; otherwise null</returns>
+    /// <param name="requestLog">The request log.</param>
+    /// <returns>The user agent string if present; otherwise null.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="requestLog"/> is null.</exception>
     public static string? GetUserAgent(this RequestLog requestLog)
     {
         ArgumentNullException.ThrowIfNull(requestLog);
@@ -86,8 +90,9 @@ public static class RequestLogExtensions
     /// <summary>
     /// Creates a correlation ID from the request if one is not already set.
     /// </summary>
-    /// <param name="requestLog">The request log</param>
-    /// <returns>The correlation ID (either existing or generated)</returns>
+    /// <param name="requestLog">The request log.</param>
+    /// <returns>The correlation ID (either existing or generated).</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="requestLog"/> is null.</exception>
     public static string EnsureCorrelationId(this RequestLog requestLog)
     {
         ArgumentNullException.ThrowIfNull(requestLog);
