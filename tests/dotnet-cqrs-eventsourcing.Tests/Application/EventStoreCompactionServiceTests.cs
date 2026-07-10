@@ -14,12 +14,20 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
+/// <summary>
+/// Test suite for <see cref="EventStoreCompactionService"/>.
+/// Verifies compaction behavior under various scenarios.
+/// </summary>
 public sealed class EventStoreCompactionServiceTests
 {
     private readonly InMemoryEventRepository _repository;
     private readonly Mock<ISnapshotService> _snapshotMock;
     private readonly EventStoreCompactionService _sut;
 
+    /// <summary>
+    /// Initializes the test fixture with an in-memory event repository,
+    /// a snapshot service mock, and the service under test.
+    /// </summary>
     public EventStoreCompactionServiceTests()
     {
         _repository = new InMemoryEventRepository();
@@ -42,6 +50,10 @@ public sealed class EventStoreCompactionServiceTests
             CreatedAt = DateTime.UtcNow
         };
 
+    /// <summary>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync(string,long)"/>
+    /// removes events before the specified <paramref name="keepFromVersion"/> and returns the correct result.
+    /// </summary>
     [Fact]
     public async Task CompactToVersionAsync_RemovesEventsBeforeVersion()
     {
@@ -67,6 +79,10 @@ public sealed class EventStoreCompactionServiceTests
         remaining.Data.Select(e => e.AggregateVersion).Should().BeEquivalentTo(new long[] { 4, 5 });
     }
 
+    /// <summary>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync(string)"/>
+    /// uses the latest snapshot version to determine the compaction point.
+    /// </summary>
     [Fact]
     public async Task CompactAsync_WithSnapshot_UsesSnapshotVersion()
     {
@@ -92,6 +108,10 @@ public sealed class EventStoreCompactionServiceTests
         remaining.Data!.Select(e => e.AggregateVersion).Should().BeEquivalentTo(new long[] { 5, 6 });
     }
 
+    /// <summary>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync(string)"/>
+    /// returns a failure result when no snapshot exists for the aggregate.
+    /// </summary>
     [Fact]
     public async Task CompactAsync_NoSnapshot_ReturnsFailure()
     {
@@ -105,6 +125,10 @@ public sealed class EventStoreCompactionServiceTests
         result.ErrorCode.Should().Be("NO_SNAPSHOT");
     }
 
+    /// <summary>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAllAsync(string[])"/>
+    /// processes only aggregates that have snapshots and skips those without.
+    /// </summary>
     [Fact]
     public async Task CompactAllAsync_SkipsAggregatesWithoutSnapshots()
     {
@@ -129,6 +153,10 @@ public sealed class EventStoreCompactionServiceTests
         result.Data[0].AggregateId.Should().Be(withSnap);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync(string,long)"/>
+    /// returns a failure result when the <paramref name="keepFromVersion"/> is invalid (<= 0).
+    /// </summary>
     [Fact]
     public async Task CompactToVersionAsync_InvalidVersion_ReturnsFailure()
     {
