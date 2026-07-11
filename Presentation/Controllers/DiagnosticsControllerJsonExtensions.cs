@@ -6,17 +6,16 @@
 // =============================================================================
 
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 namespace DotNetCqrsEventSourcing.Presentation.Controllers;
 
 /// <summary>
-/// System.Text.Json serialization extensions for DiagnosticsController to enable
-/// JSON serialization/deserialization of controller instances.
+/// Provides JSON serialization and deserialization extensions for <see cref="DiagnosticsController"/>.
+/// Enables conversion of controller instances to/from JSON strings for testing and debugging scenarios.
 /// </summary>
 public static class DiagnosticsControllerJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -25,35 +24,33 @@ public static class DiagnosticsControllerJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the DiagnosticsController instance to a JSON string.
+    /// Serializes a <see cref="DiagnosticsController"/> instance to a JSON string.
     /// </summary>
-    /// <param name="value">The DiagnosticsController instance to serialize.</param>
+    /// <param name="value">The <see cref="DiagnosticsController"/> instance to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the controller.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this DiagnosticsController value, bool indented = false)
     {
-        if (value is null)
-        {
-            return "{}";
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes a JSON string into a DiagnosticsController instance.
+    /// Deserializes a JSON string into a <see cref="DiagnosticsController"/> instance.
     /// </summary>
-    /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>A DiagnosticsController instance, or null if deserialization fails.</returns>
+    /// <param name="json">The JSON string to deserialize. Must not be <see langword="null"/> or whitespace.</param>
+    /// <returns>A <see cref="DiagnosticsController"/> instance if deserialization succeeds; otherwise, <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static DiagnosticsController? FromJson(string json)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
         try
         {
             return JsonSerializer.Deserialize<DiagnosticsController>(json, _jsonSerializerOptions);
@@ -65,13 +62,16 @@ public static class DiagnosticsControllerJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string into a DiagnosticsController instance.
+    /// Attempts to deserialize a JSON string into a <see cref="DiagnosticsController"/> instance.
     /// </summary>
-    /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized DiagnosticsController instance, or null on failure.</param>
-    /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <param name="json">The JSON string to deserialize. Must not be <see langword="null"/> or whitespace.</param>
+    /// <param name="value">Receives the deserialized <see cref="DiagnosticsController"/> instance if successful; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if deserialization succeeded; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static bool TryFromJson(string json, out DiagnosticsController? value)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
         try
         {
             value = JsonSerializer.Deserialize<DiagnosticsController>(json, _jsonSerializerOptions);
