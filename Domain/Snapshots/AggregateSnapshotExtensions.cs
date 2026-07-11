@@ -10,10 +10,13 @@ public static class AggregateSnapshotExtensions
     /// <summary>
     /// Creates a deep copy of the aggregate snapshot.
     /// </summary>
-    /// <param name="snapshot">The source snapshot to copy.</param>
+    /// <param name="snapshot">The source snapshot to copy. Cannot be <see langword="null"/>.</param>
     /// <returns>A new <see cref="AggregateSnapshot"/> instance with identical property values.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="snapshot"/> is <see langword="null"/>.</exception>
     public static AggregateSnapshot DeepCopy(this AggregateSnapshot snapshot)
     {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
         var copy = new AggregateSnapshot(
             snapshot.AggregateId,
             snapshot.AggregateType,
@@ -35,11 +38,15 @@ public static class AggregateSnapshotExtensions
     /// <summary>
     /// Updates the aggregate data while maintaining version and metadata consistency.
     /// </summary>
-    /// <param name="snapshot">The snapshot to update.</param>
-    /// <param name="newData">The new aggregate data.</param>
+    /// <param name="snapshot">The snapshot to update. Cannot be <see langword="null"/>.</param>
+    /// <param name="newData">The new aggregate data. Cannot be <see langword="null"/>.</param>
     /// <returns>The updated snapshot (same instance for method chaining).</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="snapshot"/> or <paramref name="newData"/> is <see langword="null"/>.</exception>
     public static AggregateSnapshot WithUpdatedData(this AggregateSnapshot snapshot, string newData)
     {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(newData);
+
         snapshot.AggregateData = newData;
         snapshot.UncompressedSize = newData.Length;
         snapshot.CompressedSize = newData.Length;
@@ -52,31 +59,33 @@ public static class AggregateSnapshotExtensions
     /// <summary>
     /// Determines if this snapshot is newer than another snapshot based on version and creation time.
     /// </summary>
-    /// <param name="snapshot">The current snapshot.</param>
-    /// <param name="other">The other snapshot to compare with.</param>
+    /// <param name="snapshot">The current snapshot. Cannot be <see langword="null"/>.</param>
+    /// <param name="other">The other snapshot to compare with. Can be <see langword="null"/>.</param>
     /// <returns>True if this snapshot is newer; otherwise false.</returns>
-    public static bool IsNewerThan(this AggregateSnapshot snapshot, AggregateSnapshot other)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="snapshot"/> is <see langword="null"/>.</exception>
+    public static bool IsNewerThan(this AggregateSnapshot snapshot, AggregateSnapshot? other)
     {
-        if (other == null)
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        if (other is null)
             return true;
 
-        if (snapshot.Version > other.Version)
-            return true;
-
-        if (snapshot.Version == other.Version)
-            return snapshot.CreatedAt > other.CreatedAt;
-
-        return false;
+        return snapshot.Version > other.Version
+            || (snapshot.Version == other.Version && snapshot.CreatedAt > other.CreatedAt);
     }
 
     /// <summary>
     /// Creates a snapshot with compressed data from uncompressed data.
     /// </summary>
-    /// <param name="snapshot">The snapshot to compress.</param>
-    /// <param name="compressor">Function that compresses the data and returns compressed size.</param>
+    /// <param name="snapshot">The snapshot to compress. Cannot be <see langword="null"/>.</param>
+    /// <param name="compressor">Function that compresses the data and returns compressed size. Cannot be <see langword="null"/>.</param>
     /// <returns>The compressed snapshot (same instance for method chaining).</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="snapshot"/> or <paramref name="compressor"/> is <see langword="null"/>.</exception>
     public static AggregateSnapshot WithCompressedData(this AggregateSnapshot snapshot, Func<string, (string compressedData, int compressedSize)> compressor)
     {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(compressor);
+
         var (compressedData, compressedSize) = compressor(snapshot.AggregateData);
         snapshot.AggregateData = compressedData;
         snapshot.MarkCompressed(compressedSize);
