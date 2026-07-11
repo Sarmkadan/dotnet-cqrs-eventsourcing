@@ -10,9 +10,11 @@ using System.Text.Json;
 namespace DotNetCqrsEventSourcing.Domain.Events;
 
 /// <summary>
-/// Extension methods for <see cref="DomainEvent"/> providing common utility operations
-/// for event serialization, metadata manipulation, and event comparison.
+/// Provides extension methods for <see cref="DomainEvent"/> instances,
+/// including serialization, metadata manipulation, and cloning operations.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerNonUserCode]
 public static class DomainEventExtensions
 {
     /// <summary>
@@ -20,10 +22,10 @@ public static class DomainEventExtensions
     /// </summary>
     /// <param name="domainEvent">The domain event to serialize.</param>
     /// <returns>A JSON string representation of the event.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="domainEvent"/> is <see langword="null"/>.</exception>
     public static string ToJson(this DomainEvent domainEvent)
     {
-        if (domainEvent == null)
-            throw new ArgumentNullException(nameof(domainEvent));
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         return JsonSerializer.Serialize(domainEvent, new JsonSerializerOptions
         {
@@ -37,10 +39,10 @@ public static class DomainEventExtensions
     /// </summary>
     /// <param name="domainEvent">The domain event to serialize.</param>
     /// <returns>A pretty-printed JSON string representation of the event.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="domainEvent"/> is <see langword="null"/>.</exception>
     public static string ToJsonPretty(this DomainEvent domainEvent)
     {
-        if (domainEvent == null)
-            throw new ArgumentNullException(nameof(domainEvent));
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         return JsonSerializer.Serialize(domainEvent, new JsonSerializerOptions
         {
@@ -56,13 +58,12 @@ public static class DomainEventExtensions
     /// <param name="key">The metadata key.</param>
     /// <param name="value">The metadata value.</param>
     /// <returns>The domain event instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="domainEvent"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is empty or consists only of whitespace.</exception>
     public static DomainEvent WithMetadata(this DomainEvent domainEvent, string key, object value)
     {
-        if (domainEvent == null)
-            throw new ArgumentNullException(nameof(domainEvent));
-
-        if (string.IsNullOrWhiteSpace(key))
-            throw new ArgumentException("Metadata key cannot be null or whitespace.", nameof(key));
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key, nameof(key));
 
         domainEvent.Metadata[key] = value;
         return domainEvent;
@@ -73,10 +74,11 @@ public static class DomainEventExtensions
     /// </summary>
     /// <param name="domainEvent">The domain event to clone.</param>
     /// <returns>A new instance with the same property values and metadata.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="domainEvent"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Failed to deserialize the cloned domain event.</exception>
     public static DomainEvent Clone(this DomainEvent domainEvent)
     {
-        if (domainEvent == null)
-            throw new ArgumentNullException(nameof(domainEvent));
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         // Use JSON serialization for deep cloning
         var json = JsonSerializer.Serialize(domainEvent, new JsonSerializerOptions
@@ -85,7 +87,7 @@ public static class DomainEventExtensions
             WriteIndented = false
         });
 
-        return JsonSerializer.Deserialize<DomainEvent>(json) ??
-            throw new InvalidOperationException("Failed to deserialize cloned domain event.");
+        return JsonSerializer.Deserialize<DomainEvent>(json)
+            ?? throw new InvalidOperationException("Failed to deserialize cloned domain event.");
     }
 }
