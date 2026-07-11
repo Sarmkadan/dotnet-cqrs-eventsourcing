@@ -20,9 +20,9 @@ using Xunit;
 /// </summary>
 public sealed class EventStoreCompactionServiceTests
 {
-    private readonly InMemoryEventRepository _repository;
-    private readonly Mock<ISnapshotService> _snapshotMock;
-    private readonly EventStoreCompactionService _sut;
+    internal readonly InMemoryEventRepository _repository;
+    internal readonly Mock<ISnapshotService> _snapshotMock;
+    internal readonly EventStoreCompactionService _sut;
 
     /// <summary>
     /// Initializes the test fixture with an in-memory event repository,
