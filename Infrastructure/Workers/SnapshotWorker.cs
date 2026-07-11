@@ -14,7 +14,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Workers;
 /// Snapshots are used to avoid replaying all events when reconstructing an aggregate.
 /// Without snapshots, reading an old aggregate requires replaying 1000s of events.
 /// With snapshots, only recent events need replay (e.g., last 100 events since snapshot).
-/// Runs on a schedule (default every 5 minutes) and only processes unchanged aggregates.
+/// Runs on a schedule (default every 5 minutes) and only processes aggregates that exceed the event threshold.
 /// </summary>
 public interface ISnapshotWorker : IHostedService
 {
@@ -96,19 +96,17 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
             }
 
             // Rebuild aggregate state from events
-            var account = Account.LoadFromHistory(aggregateId, events.Cast<dynamic>().ToList());
+            var account = new Account(aggregateId);
+            account.ReplayEvents(events);
 
             // Create and persist snapshot
-            var snapshot = new AggregateSnapshot
-            {
-                AggregateId = aggregateId,
-                AggregateType = account.GetType().Name,
-                State = account,
-                EventVersion = events.Count,
-                CreatedAt = DateTime.UtcNow
-            };
+            var result = await _snapshotService.CreateSnapshotAsync(account, aggregateId, events.Count, cancellationToken);
 
-            await _snapshotService.SaveSnapshotAsync(snapshot, cancellationToken);
+            if (!result.IsSuccess)
+            {
+                _logger.LogError("Failed to save snapshot for aggregate {AggregateId}: {Error}", aggregateId, result.Error);
+                return;
+            }
 
             _logger.LogInformation(
                 "Snapshot created for aggregate {AggregateId} at event version {Version}",
@@ -124,21 +122,121 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
 
     /// <summary>
     /// Processes all aggregates that need snapshots.
-    /// Currently a placeholder for integration with aggregate discovery.
-    /// In production, this would query tracked aggregates from a database or registry.
+    /// Finds aggregates where the number of events since the last snapshot exceeds the threshold,
+    /// then creates new snapshots for those aggregates.
     /// </summary>
     private async Task ProcessSnapshotsAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Processing snapshots - interval cycle");
 
-        // In a real implementation, this would:
-        // 1. Query list of aggregate IDs from a registry/database
-        // 2. For each aggregate:
-        //    - Check if events since last snapshot exceed threshold
-        //    - If yes, create new snapshot
-        //    - Track which aggregates were processed
+        try
+        {
+            // Get all aggregate IDs that have events
+            // In a production system, this would query a registry or aggregate repository
+            // For this implementation, we'll query the event store for distinct aggregate IDs
+            var result = await _eventStore.GetEventsByTypeAsync("AccountCreatedEvent", cancellationToken);
 
-        // For now, this is a placeholder that demonstrates the structure
-        await Task.CompletedTask;
+            if (!result.IsSuccess || result.Data == null)
+            {
+                _logger.LogWarning("Failed to retrieve aggregate IDs for snapshot processing: {Error}", result.Error);
+                return;
+            }
+
+            // Get distinct aggregate IDs from events
+            var aggregateIds = result.Data
+                .Select(e => e.AggregateId)
+                .Distinct()
+                .ToList();
+
+            if (aggregateIds.Count == 0)
+            {
+                _logger.LogDebug("No aggregates found for snapshot processing");
+                return;
+            }
+
+            _logger.LogInformation("Processing {Count} aggregates for snapshots", aggregateIds.Count);
+
+            // Process each aggregate
+            var snapshotsCreated = 0;
+            foreach (var aggregateId in aggregateIds)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    // Check if aggregate already has a snapshot
+                    var hasSnapshotResult = await _snapshotService.HasSnapshotAsync(aggregateId, cancellationToken);
+                    if (!hasSnapshotResult.IsSuccess)
+                    {
+                        _logger.LogWarning(
+                            "Failed to check for existing snapshot for aggregate {AggregateId}: {Error}",
+                            aggregateId,
+                            hasSnapshotResult.Error
+                        );
+                        continue;
+                    }
+
+                    // Get current aggregate version
+                    var versionResult = await _eventStore.GetAggregateVersionAsync(aggregateId, cancellationToken);
+                    if (!versionResult.IsSuccess)
+                    {
+                        _logger.LogWarning(
+                            "Failed to get version for aggregate {AggregateId}: {Error}",
+                            aggregateId,
+                            versionResult.Error
+                        );
+                        continue;
+                    }
+
+                    var currentVersion = versionResult.Data;
+                    long lastSnapshotVersion = 0;
+
+                    if (hasSnapshotResult.Data)
+                    {
+                        // Get latest snapshot to determine events since snapshot
+                        var snapshotResult = await _snapshotService.GetLatestSnapshotAsync(aggregateId, cancellationToken);
+                        if (snapshotResult.IsSuccess && snapshotResult.Data != null)
+                        {
+                            lastSnapshotVersion = snapshotResult.Data.Version;
+                        }
+                    }
+
+                    // Calculate events since last snapshot
+                    var eventsSinceSnapshot = currentVersion - lastSnapshotVersion;
+
+                    _logger.LogDebug(
+                        "Aggregate {AggregateId}: Current version={CurrentVersion}, Last snapshot={LastSnapshotVersion}, Events since snapshot={EventsSinceSnapshot}",
+                        aggregateId,
+                        currentVersion,
+                        lastSnapshotVersion,
+                        eventsSinceSnapshot
+                    );
+
+                    // Create snapshot if threshold exceeded
+                    if (eventsSinceSnapshot >= _eventsThresholdForSnapshot)
+                    {
+                        _logger.LogInformation(
+                            "Creating snapshot for aggregate {AggregateId} - {EventsSinceSnapshot} events since last snapshot (threshold: {Threshold})",
+                            aggregateId,
+                            eventsSinceSnapshot,
+                            _eventsThresholdForSnapshot
+                        );
+
+                        await CreateSnapshotAsync(aggregateId, cancellationToken);
+                        snapshotsCreated++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing aggregate {AggregateId} for snapshots", aggregateId);
+                }
+            }
+
+            _logger.LogInformation("Snapshot processing complete. Created {Count} new snapshots", snapshotsCreated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in ProcessSnapshotsAsync");
+        }
     }
 }
