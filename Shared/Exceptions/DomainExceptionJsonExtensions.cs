@@ -14,7 +14,7 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions;
 /// </summary>
 public static class DomainExceptionJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false
@@ -26,12 +26,10 @@ public static class DomainExceptionJsonExtensions
     /// <param name="value">The DomainException to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the DomainException.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static string ToJson(this DomainException value, bool indented = false)
     {
-        if (value == null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
             ? new JsonSerializerOptions(_jsonSerializerOptions)
@@ -48,14 +46,14 @@ public static class DomainExceptionJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized DomainException, or null if the JSON is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static DomainException? FromJson(string json)
     {
-        if (string.IsNullOrEmpty(json))
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(json);
 
-        return JsonSerializer.Deserialize<DomainException>(json, _jsonSerializerOptions);
+        return string.IsNullOrEmpty(json)
+            ? null
+            : JsonSerializer.Deserialize<DomainException>(json, _jsonSerializerOptions);
     }
 
     /// <summary>
@@ -63,24 +61,31 @@ public static class DomainExceptionJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">The deserialized DomainException if successful; otherwise, null.</param>
-    /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <returns>True if deserialization succeeded; otherwise, false.
+    /// Returns true for null or empty JSON strings (consistent with <see cref="FromJson"/> behavior).</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out DomainException? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         value = null;
 
-        if (string.IsNullOrEmpty(json))
-        {
-            return true;
-        }
+        return string.IsNullOrEmpty(json)
+            ? true
+            : TryDeserialize(json, out value);
 
-        try
+        static bool TryDeserialize(string jsonValue, out DomainException? result)
         {
-            value = JsonSerializer.Deserialize<DomainException>(json, _jsonSerializerOptions);
-            return true;
-        }
-        catch (JsonException)
-        {
-            return false;
+            try
+            {
+                result = JsonSerializer.Deserialize<DomainException>(jsonValue, _jsonSerializerOptions);
+                return true;
+            }
+            catch (JsonException)
+            {
+                result = null;
+                return false;
+            }
         }
     }
 }
