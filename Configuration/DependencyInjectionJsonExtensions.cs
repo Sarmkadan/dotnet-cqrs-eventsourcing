@@ -10,7 +10,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// System.Text.Json serialization extensions for DependencyInjection configuration.
+/// Provides JSON serialization and deserialization extensions for <see cref="DotnetCqrsEventsourcingOptions"/>
+/// configuration using System.Text.Json.
 /// </summary>
 public static class DependencyInjectionJsonExtensions
 {
@@ -22,35 +23,34 @@ public static class DependencyInjectionJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the DependencyInjection configuration options to a JSON string.
+    /// Serializes the <see cref="DotnetCqrsEventsourcingOptions"/> configuration to a JSON string.
     /// </summary>
-    /// <param name="options">The DotnetCqrsEventsourcingOptions to serialize.</param>
+    /// <param name="options">The options to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation.</param>
     /// <returns>A JSON string representation of the options.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is <see langword="null"/>.</exception>
     public static string ToJson(this DotnetCqrsEventsourcingOptions options, bool indented = false)
     {
-        if (options is null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var optionsCopy = indented
             ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
+            { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(options, optionsCopy);
     }
 
     /// <summary>
-    /// Deserializes a JSON string to a DotnetCqrsEventsourcingOptions instance.
+    /// Deserializes a JSON string to a <see cref="DotnetCqrsEventsourcingOptions"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>A DotnetCqrsEventsourcingOptions instance, or null if the JSON is null or empty.</returns>
+    /// <returns>A <see cref="DotnetCqrsEventsourcingOptions"/> instance, or <see langword="null"/> if the JSON is <see langword="null"/>, empty, or whitespace.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <see langword="null"/>.</exception>
     public static DotnetCqrsEventsourcingOptions? FromJson(string json)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -60,11 +60,11 @@ public static class DependencyInjectionJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string to a DotnetCqrsEventsourcingOptions instance.
+    /// Attempts to deserialize a JSON string to a <see cref="DotnetCqrsEventsourcingOptions"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="options">The resulting DotnetCqrsEventsourcingOptions instance, or null if deserialization fails.</param>
-    /// <returns>True if deserialization succeeds; otherwise, false.</returns>
+    /// <param name="options">The resulting <see cref="DotnetCqrsEventsourcingOptions"/> instance, or <see langword="null"/> if deserialization fails.</param>
+    /// <returns><see langword="true"/> if deserialization succeeds; otherwise, <see langword="false"/>.</returns>
     public static bool TryFromJson(string json, out DotnetCqrsEventsourcingOptions? options)
     {
         options = null;
