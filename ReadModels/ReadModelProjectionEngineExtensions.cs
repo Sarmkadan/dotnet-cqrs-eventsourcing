@@ -5,6 +5,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using DotNetCqrsEventSourcing.Shared.Results;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -23,10 +24,15 @@ public static class ReadModelProjectionEngineExtensions
     /// <param name="engine">The projection engine instance.</param>
     /// <param name="projectionName">Name of the projection to get or create checkpoint for.</param>
     /// <returns>A checkpoint instance, either existing or newly created.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static ProjectionCheckpoint GetOrCreateCheckpoint(
         this ReadModelProjectionEngine engine,
         string projectionName)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectionName);
+
         var checkpoint = engine.GetCheckpoint(projectionName);
 
         if (checkpoint is not null)
@@ -51,10 +57,13 @@ public static class ReadModelProjectionEngineExtensions
     /// <see langword="true"/> if all projections have reached or exceeded the target version;
     /// otherwise, <see langword="false"/>.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
     public static bool AllProjectionsAtVersionOrHigher(
         this ReadModelProjectionEngine engine,
         long targetVersion)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+
         if (engine.Checkpoints.Count == 0)
             return false;
 
@@ -66,9 +75,11 @@ public static class ReadModelProjectionEngineExtensions
     /// </summary>
     /// <param name="engine">The projection engine instance.</param>
     /// <returns>An enumerable of projection names with checkpoints.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
     public static IEnumerable<string> GetProjectionNamesWithCheckpoints(
         this ReadModelProjectionEngine engine)
     {
+        ArgumentNullException.ThrowIfNull(engine);
         return engine.Checkpoints.Keys;
     }
 
@@ -77,9 +88,11 @@ public static class ReadModelProjectionEngineExtensions
     /// </summary>
     /// <param name="engine">The projection engine instance.</param>
     /// <returns>The sum of all events processed by all projections.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
     public static long GetTotalEventsProcessed(
         this ReadModelProjectionEngine engine)
     {
+        ArgumentNullException.ThrowIfNull(engine);
         return engine.Checkpoints.Values.Sum(cp => cp.TotalEventsProcessed);
     }
 
@@ -91,9 +104,11 @@ public static class ReadModelProjectionEngineExtensions
     /// <see langword="true"/> if any projection has encountered errors during processing;
     /// otherwise, <see langword="false"/>.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
     public static bool HasAnyProjectionErrors(
         this ReadModelProjectionEngine engine)
     {
+        ArgumentNullException.ThrowIfNull(engine);
         return engine.Checkpoints.Values.Any(cp => cp.TotalEventsProcessed > 0 && cp.LastProcessedVersion == 0);
     }
 
@@ -106,10 +121,14 @@ public static class ReadModelProjectionEngineExtensions
     /// The event ID of the most recent event processed, or <see langword="null"/>
     /// if the projection has no checkpoint or hasn't processed any events yet.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static string? GetLastProcessedEventId(
         this ReadModelProjectionEngine engine,
         string projectionName)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectionName);
         return engine.GetCheckpoint(projectionName)?.LastProcessedEventId;
     }
 
@@ -122,10 +141,14 @@ public static class ReadModelProjectionEngineExtensions
     /// The UTC timestamp when the projection was last updated, or <see cref="DateTime.MinValue"/>
     /// if the projection has no checkpoint.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static DateTime GetLastUpdatedTimestamp(
         this ReadModelProjectionEngine engine,
         string projectionName)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectionName);
         return engine.GetCheckpoint(projectionName)?.WrittenAt ?? DateTime.MinValue;
     }
 
@@ -138,10 +161,15 @@ public static class ReadModelProjectionEngineExtensions
     /// <see langword="true"/> if the projection has processed at least one event and has a valid checkpoint;
     /// otherwise, <see langword="false"/>.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
     public static bool IsProjectionActive(
         this ReadModelProjectionEngine engine,
         string projectionName)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectionName);
+
         var checkpoint = engine.GetCheckpoint(projectionName);
         return checkpoint is not null && checkpoint.TotalEventsProcessed > 0;
     }
@@ -154,10 +182,13 @@ public static class ReadModelProjectionEngineExtensions
     /// A dictionary mapping projection names to their status information tuples containing:
     /// (LastProcessedEventId, LastProcessedVersion, TotalEventsProcessed, WrittenAt)
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null"/>.</exception>
     public static IReadOnlyDictionary<string, (string? LastEventId, long Version, long TotalProcessed, DateTime WrittenAt)>
         GetProjectionStatusSummary(
-        this ReadModelProjectionEngine engine)
+            this ReadModelProjectionEngine engine)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+
         var result = new Dictionary<string, (string?, long, long, DateTime)>(engine.Checkpoints.Count);
 
         foreach (var kvp in engine.Checkpoints)
