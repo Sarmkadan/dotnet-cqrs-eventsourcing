@@ -21,7 +21,7 @@ namespace DotNetCqrsEventSourcing.ReadModels;
 /// the read model's current state.
 /// </para>
 /// <para>
-/// The projector mutates the <paramref name="current"/> instance in place when one exists,
+/// The projector mutates the <c>current</c> instance in place when one exists,
 /// avoiding unnecessary object allocations. For thread-safety under concurrent event delivery,
 /// configure <see cref="ReadModelProjectionOptions.MaxConcurrentProjectors"/> to <c>1</c>
 /// or use a database-backed store with optimistic concurrency.

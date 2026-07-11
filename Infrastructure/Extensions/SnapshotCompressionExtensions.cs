@@ -117,7 +117,7 @@ public static class SnapshotCompressionExtensions
     /// <param name="compressionService">The compression service instance.</param>
     /// <param name="snapshot">The snapshot to decompress.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A <see cref="Result{T}" where T=string/> containing the decompressed data or an error.</returns>
+    /// <returns>A <see cref="Result{T}"/> of <see cref="string"/> containing the decompressed data or an error.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="compressionService"/> or <paramref name="snapshot"/> is <see langword="null"/>.
     /// </exception>
