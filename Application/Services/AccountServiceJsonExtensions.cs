@@ -11,11 +11,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Provides System.Text.Json serialization extensions for AccountService.
+/// Provides System.Text.Json serialization extensions for <see cref="AccountService"/>.
 /// </summary>
 public static class AccountServiceJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -25,17 +25,15 @@ public static class AccountServiceJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the AccountService instance to a JSON string.
+    /// Serializes the <see cref="AccountService"/> to a JSON string.
     /// </summary>
-    /// <param name="value">The AccountService instance to serialize.</param>
+    /// <param name="value">The <see cref="AccountService"/> to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation.</param>
-    /// <returns>A JSON string representation of the AccountService.</returns>
+    /// <returns>A JSON string representation of the <see cref="AccountService"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this AccountService value, bool indented = false)
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
             ? new JsonSerializerOptions(_jsonSerializerOptions)
@@ -48,12 +46,15 @@ public static class AccountServiceJsonExtensions
     }
 
     /// <summary>
-    /// Deserializes a JSON string to an AccountService instance.
+    /// Deserializes a JSON string to an <see cref="AccountService"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>An AccountService instance, or null if the JSON is null or empty.</returns>
+    /// <returns>An <see cref="AccountService"/> instance, or <see langword="null"/> if the JSON is <see langword="null"/> or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <see langword="null"/>.</exception>
     public static AccountService? FromJson(string json)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -63,13 +64,16 @@ public static class AccountServiceJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string to an AccountService instance.
+    /// Attempts to deserialize a JSON string to an <see cref="AccountService"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">The resulting AccountService instance, or null if deserialization fails.</param>
-    /// <returns>True if deserialization succeeds; otherwise, false.</returns>
+    /// <param name="value">The resulting <see cref="AccountService"/> instance, or <see langword="null"/> if deserialization fails.</param>
+    /// <returns><see langword="true"/> if deserialization succeeds; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <see langword="null"/>.</exception>
     public static bool TryFromJson(string json, out AccountService? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         value = null;
 
         if (string.IsNullOrWhiteSpace(json))
