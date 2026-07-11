@@ -19,6 +19,7 @@ public static class CompactionResultExtensions
     /// <param name="result">The original compaction result.</param>
     /// <param name="delta">The number of additional events to report as removed.</param>
     /// <returns>A new <see cref="CompactionResult"/> with updated event count.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="result"/> is <see langword="null"/>.</exception>
     public static CompactionResult WithAdditionalEventsRemoved(this CompactionResult result, int delta)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -37,6 +38,7 @@ public static class CompactionResultExtensions
     /// <param name="result">The original compaction result.</param>
     /// <param name="delta">The delta to apply to the compacted version.</param>
     /// <returns>A new <see cref="CompactionResult"/> with updated compacted version.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="result"/> is <see langword="null"/>.</exception>
     public static CompactionResult WithVersionDelta(this CompactionResult result, long delta)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -54,6 +56,7 @@ public static class CompactionResultExtensions
     /// </summary>
     /// <param name="result">The compaction result to check.</param>
     /// <returns>True if no events were removed; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="result"/> is <see langword="null"/>.</exception>
     public static bool IsNoOp(this CompactionResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -66,10 +69,7 @@ public static class CompactionResultExtensions
     /// </summary>
     /// <param name="result">The compaction result to format.</param>
     /// <returns>A formatted string with all compaction details.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="result"/> is <see langword="null"/>.</exception>
     public static string ToDetailedString(this CompactionResult result)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-
-        return $"Compaction completed for aggregate {result.AggregateId} at {result.CompactedAt:O}: removed {result.EventsRemoved} events, compacted to version {result.CompactedToVersion}";
-    }
+        => $"Compaction completed for aggregate {result.AggregateId} at {result.CompactedAt:O}: removed {result.EventsRemoved} events, compacted to version {result.CompactedToVersion}";
 }
