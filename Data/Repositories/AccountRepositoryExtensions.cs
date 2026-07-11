@@ -32,6 +32,7 @@ public static class AccountRepositoryExtensions
     {
         if (repository is null)
             throw new ArgumentNullException(nameof(repository));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
         var existingAccountResult = await repository.GetByIdAsync(id, cancellationToken);
 
@@ -43,7 +44,7 @@ public static class AccountRepositoryExtensions
         var saveResult = await repository.SaveAsync(newAccount, cancellationToken);
 
         if (!saveResult.IsSuccess)
-            return Result<Account>.Failure("CREATE_FAILED", saveResult.ErrorMessage);
+            return Result<Account>.Failure("CREATE_FAILED", saveResult.ErrorMessage ?? "Failed to save the new account.");
 
         return Result<Account>.Success(newAccount);
     }
@@ -66,7 +67,9 @@ public static class AccountRepositoryExtensions
         var allAccountsResult = await repository.GetAllAsync(cancellationToken);
 
         if (!allAccountsResult.IsSuccess)
-            return Result<List<Account>>.Failure(allAccountsResult.ErrorCode, allAccountsResult.ErrorMessage);
+            return Result<List<Account>>.Failure(
+                allAccountsResult.ErrorCode ?? "GET_ALL_FAILED",
+                allAccountsResult.ErrorMessage ?? "Failed to load accounts.");
 
         var filteredAccounts = allAccountsResult.Data!;
 
@@ -130,14 +133,18 @@ public static class AccountRepositoryExtensions
         // Get source account
         var fromAccountResult = await repository.GetByIdAsync(fromAccountId, cancellationToken);
         if (!fromAccountResult.IsSuccess)
-            return Result.Failure(fromAccountResult.ErrorCode, fromAccountResult.ErrorMessage);
+            return Result.Failure(
+                fromAccountResult.ErrorCode ?? "SOURCE_ACCOUNT_NOT_FOUND",
+                fromAccountResult.ErrorMessage ?? $"Failed to load source account {fromAccountId}.");
 
         var fromAccount = fromAccountResult.Data!;
 
         // Get destination account
         var toAccountResult = await repository.GetByIdAsync(toAccountId, cancellationToken);
         if (!toAccountResult.IsSuccess)
-            return Result.Failure(toAccountResult.ErrorCode, toAccountResult.ErrorMessage);
+            return Result.Failure(
+                toAccountResult.ErrorCode ?? "DESTINATION_ACCOUNT_NOT_FOUND",
+                toAccountResult.ErrorMessage ?? $"Failed to load destination account {toAccountId}.");
 
         var toAccount = toAccountResult.Data!;
 
@@ -158,7 +165,15 @@ public static class AccountRepositoryExtensions
         {
             // Rollback withdrawal if deposit fails
             fromAccount.Deposit(amount, "TRANSFER_ROLLBACK");
-            await repository.SaveAsync(fromAccount, cancellationToken);
+            var rollbackResult = await repository.SaveAsync(fromAccount, cancellationToken);
+
+            if (!rollbackResult.IsSuccess)
+                return Result.Failure(
+                    "TRANSFER_ROLLBACK_FAILED",
+                    $"Deposit to {toAccountId} failed ({depositResult.ErrorMessage}) and the withdrawal " +
+                    $"rollback on {fromAccountId} also failed ({rollbackResult.ErrorMessage}). " +
+                    "Manual reconciliation is required.");
+
             return depositResult;
         }
 

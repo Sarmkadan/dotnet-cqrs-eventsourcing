@@ -20,7 +20,7 @@ public class DotnetCqrsEventsourcingException : Exception
         ErrorCode = errorCode;
     }
 
-    public DotnetCqrsEventsourcingException(string message, string errorCode, Exception innerException)
+    public DotnetCqrsEventsourcingException(string message, string errorCode, Exception? innerException)
         : base(message, innerException)
     {
         ErrorCode = errorCode;

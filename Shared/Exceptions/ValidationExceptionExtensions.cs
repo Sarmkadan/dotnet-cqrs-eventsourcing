@@ -98,7 +98,7 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions
         /// <param name="propertyName">The property name to get the error for.</param>
         /// <returns>The error message if found; otherwise null.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="exception"/> is null.</exception>
-        public static string GetErrorMessage(this ValidationException exception, string propertyName)
+        public static string? GetErrorMessage(this ValidationException exception, string propertyName)
         {
             ArgumentNullException.ThrowIfNull(exception);
             ArgumentNullException.ThrowIfNull(propertyName);

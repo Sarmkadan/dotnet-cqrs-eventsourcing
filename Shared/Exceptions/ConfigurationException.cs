@@ -16,7 +16,7 @@ public class ConfigurationException : DotnetCqrsEventsourcingException
     {
     }
 
-    public ConfigurationException(string message, string errorCode, Exception innerException)
+    public ConfigurationException(string message, string errorCode, Exception? innerException)
         : base(message, errorCode, innerException)
     {
     }
