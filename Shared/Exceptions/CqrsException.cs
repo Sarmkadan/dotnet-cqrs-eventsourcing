@@ -12,8 +12,8 @@ namespace DotNetCqrsEventSourcing.Shared.Exceptions;
 public class CqrsException : Exception
 {
     public string ErrorCode { get; }
-    public string? CorrelationId { get; }
-    public DateTime OccurredAt { get; }
+    public string? CorrelationId { get; internal set; }
+    public DateTime OccurredAt { get; internal set; }
 
     public CqrsException(string message, string errorCode = "CQRS_ERROR", string? correlationId = null)
         : base(message)
@@ -23,7 +23,7 @@ public class CqrsException : Exception
         OccurredAt = DateTime.UtcNow;
     }
 
-    public CqrsException(string message, string errorCode, Exception innerException, string? correlationId = null)
+    public CqrsException(string message, string errorCode, Exception? innerException, string? correlationId = null)
         : base(message, innerException)
     {
         ErrorCode = errorCode;

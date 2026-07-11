@@ -37,17 +37,11 @@ public class AccountService : IAccountService
     public async Task<Result<Account>> CreateAccountAsync(string accountNumber, string accountHolder,
         string currency, decimal initialBalance, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(accountNumber))
-            throw new ArgumentException("Account number cannot be null or whitespace.", nameof(accountNumber));
-        if (string.IsNullOrWhiteSpace(accountHolder))
-            throw new ArgumentException("Account holder cannot be null or whitespace.", nameof(accountHolder));
-        if (string.IsNullOrWhiteSpace(currency))
-            throw new ArgumentException("Currency cannot be null or whitespace.", nameof(currency));
-        if (initialBalance < 0)
-            throw new ArgumentOutOfRangeException(nameof(initialBalance), "Initial balance must be zero or positive.");
-
         try
         {
+            // Input validation is owned by the domain: Account.CreateAccount and the Money
+            // value object throw DomainException for invalid arguments, which is translated
+            // below into a CREATE_ACCOUNT_FAILED result instead of leaking exceptions.
             var account = new Account();
             account.CreateAccount(accountNumber, accountHolder, currency, initialBalance);
 

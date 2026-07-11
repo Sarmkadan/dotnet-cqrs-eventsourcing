@@ -140,17 +140,17 @@ Console.WriteLine("=== PHASE 7: Audit Trail ===\n");
 
 decimal totalDeposits = 0;
 decimal totalWithdrawals = 0;
-decimal totalFees = 0;
 
 foreach (var evt in events)
 {
-    if (evt.EventType == "MoneyDeposited")
+    switch (evt)
     {
-        totalDeposits += 100; // Placeholder - actual would parse event data
-    }
-    else if (evt.EventType == "MoneyWithdrawn")
-    {
-        totalWithdrawals += 50; // Placeholder
+        case MoneyDepositedEvent deposited:
+            totalDeposits += deposited.Amount;
+            break;
+        case MoneyWithdrawnEvent withdrawn:
+            totalWithdrawals += withdrawn.Amount;
+            break;
     }
 }
 

@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Globalization;
 using System.Text;
 using System.Reflection;
 
@@ -44,22 +45,24 @@ public class CsvFormatter : ICsvFormatter
         }
 
         var opts = options ?? CsvFormatOptions.Default();
-        var properties = GetColumns<T>().ToList();
+        var columns = GetOrderedColumns<T>();
 
         var sb = new StringBuilder();
 
         // Write headers
         if (opts.IncludeHeaders)
         {
-            var headers = properties.Select(p => EscapeCsvValue(p));
+            var headers = columns.Select(c => EscapeCsvValue(c.Header, opts.Delimiter));
             sb.AppendLine(string.Join(opts.Delimiter, headers));
         }
 
         // Write data rows
         foreach (var item in itemsList)
         {
-            var values = properties.Select(prop => GetPropertyValue(item, prop));
-            var csvRow = string.Join(opts.Delimiter, values.Select(v => EscapeCsvValue(v?.ToString() ?? "")));
+            var values = columns.Select(c => GetPropertyValue(item, c.PropertyName));
+            var csvRow = string.Join(
+                opts.Delimiter,
+                values.Select(v => EscapeCsvValue(FormatValue(v, opts), opts.Delimiter)));
             sb.AppendLine(csvRow);
         }
 
@@ -68,18 +71,52 @@ public class CsvFormatter : ICsvFormatter
 
     public string FormatWithoutHeaders<T>(IEnumerable<T> items, CsvFormatOptions? options = null)
     {
-        var opts = options ?? CsvFormatOptions.Default();
-        opts.IncludeHeaders = false;
+        var source = options ?? CsvFormatOptions.Default();
+
+        // Copy the options so the caller's instance is not mutated.
+        var opts = new CsvFormatOptions
+        {
+            Delimiter = source.Delimiter,
+            DateFormat = source.DateFormat,
+            IncludeHeaders = false
+        };
+
         return Format(items, opts);
     }
 
     public IEnumerable<string> GetColumns<T>()
     {
-        var type = typeof(T);
-        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => !p.GetCustomAttributes<CsvIgnoreAttribute>().Any())
-            .Select(p => p.Name);
+        return GetOrderedColumns<T>().Select(c => c.PropertyName);
     }
+
+    /// <summary>
+    /// Resolves exportable columns for a type, honoring <see cref="CsvIgnoreAttribute"/>,
+    /// <see cref="CsvColumnAttribute.Name"/> for headers, and <see cref="CsvColumnAttribute.Order"/>
+    /// for column ordering (unannotated properties keep declaration order at the end).
+    /// </summary>
+    private static List<(string PropertyName, string Header)> GetOrderedColumns<T>()
+    {
+        return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => !p.GetCustomAttributes<CsvIgnoreAttribute>().Any())
+            .Select((p, index) => (Property: p, Index: index, Column: p.GetCustomAttribute<CsvColumnAttribute>()))
+            .OrderBy(x => x.Column?.Order ?? int.MaxValue)
+            .ThenBy(x => x.Index)
+            .Select(x => (x.Property.Name, x.Column?.Name ?? x.Property.Name))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Converts a property value to its CSV string form using the invariant culture,
+    /// applying <see cref="CsvFormatOptions.DateFormat"/> to date values.
+    /// </summary>
+    private static string FormatValue(object? value, CsvFormatOptions options) => value switch
+    {
+        null => string.Empty,
+        DateTime dateTime => dateTime.ToString(options.DateFormat, CultureInfo.InvariantCulture),
+        DateTimeOffset dateTimeOffset => dateTimeOffset.ToString(options.DateFormat, CultureInfo.InvariantCulture),
+        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? string.Empty
+    };
 
     /// <summary>
     /// Extracts property value from an object.
@@ -106,16 +143,16 @@ public class CsvFormatter : ICsvFormatter
     }
 
     /// <summary>
-    /// Escapes CSV field values: quotes, newlines, commas require quoting.
+    /// Escapes CSV field values: quotes, newlines, and the active delimiter require quoting.
     /// </summary>
-    private static string EscapeCsvValue(string value)
+    private static string EscapeCsvValue(string value, char delimiter)
     {
         if (string.IsNullOrEmpty(value))
         {
             return string.Empty;
         }
 
-        var needsQuoting = value.Contains('"') || value.Contains(',') || value.Contains('\n') || value.Contains('\r');
+        var needsQuoting = value.Contains('"') || value.Contains(delimiter) || value.Contains('\n') || value.Contains('\r');
 
         if (needsQuoting)
         {
