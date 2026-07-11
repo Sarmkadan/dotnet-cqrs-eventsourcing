@@ -52,6 +52,18 @@ public class RateLimitingMiddleware
     }
 
     /// <summary>
+    /// Gets the current rate limit options used by this middleware instance.
+    /// </summary>
+    /// <returns>The rate limit configuration options.</returns>
+    public RateLimitOptions GetRateLimitOptions() => _options;
+
+    /// <summary>
+    /// Gets the current state of all token buckets for monitoring and serialization purposes.
+    /// </summary>
+    /// <returns>A dictionary mapping client IPs to their token bucket states.</returns>
+    public Dictionary<string, TokenBucket> GetBucketState() => new(_buckets);
+
+    /// <summary>
     /// Periodically removes buckets for clients that haven't made requests in a while.
     /// Prevents unbounded memory growth in long-running applications.
     /// </summary>
