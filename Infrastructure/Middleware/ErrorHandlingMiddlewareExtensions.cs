@@ -1,36 +1,23 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Middleware
 {
+    /// <summary>
+    /// Extension methods for configuring and using ErrorHandlingMiddleware in the request pipeline.
+    /// </summary>
     public static class ErrorHandlingMiddlewareExtensions
     {
-        public static ErrorHandlingMiddleware WithCustomErrorId(this ErrorHandlingMiddleware middleware, string errorId)
+        /// <summary>
+        /// Adds global error handling middleware to the request pipeline.
+        /// This should be registered as the first middleware to catch all exceptions.
+        /// </summary>
+        /// <param name="builder">The application builder</param>
+        /// <returns>The configured application builder</returns>
+        /// <exception cref="ArgumentNullException">Thrown if builder is null</exception>
+        public static IApplicationBuilder UseGlobalErrorHandling(this IApplicationBuilder builder)
         {
-            middleware.ErrorId = errorId;
-            return middleware;
-        }
-
-        public static ErrorHandlingMiddleware WithTimestamp(this ErrorHandlingMiddleware middleware, DateTime timestamp)
-        {
-            middleware.Timestamp = timestamp;
-            return middleware;
-        }
-
-        public static void LogError(this ErrorHandlingMiddleware middleware, ILogger logger)
-        {
-            logger.LogError(
-                "ErrorId: {ErrorId}, Message: {Message}, Timestamp: {Timestamp}, Details: {Details}",
-                middleware.ErrorId,
-                middleware.Message,
-                middleware.Timestamp,
-                string.Join(", ", middleware.Details));
-        }
-
-        public static ErrorHandlingMiddleware AddDetail(this ErrorHandlingMiddleware middleware, string detail)
-        {
-            middleware.Details = middleware.Details.Concat(new[] { detail }).ToArray();
-            return middleware;
+            ArgumentNullException.ThrowIfNull(builder);
+            return builder.UseMiddleware<ErrorHandlingMiddleware>();
         }
     }
 }
