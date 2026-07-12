@@ -276,9 +276,58 @@ Configuration/
 - ✅ `--dry-run` flag to preview what would be rebuilt without applying changes
 - ✅ `CliCommandRegistry` is extensible – register any `ICliCommand` in DI
 
-## RequestLogExtensions
+## RequestContextMiddlewareExtensions
 
-`RequestLogExtensions` provides a set of utility methods for `RequestLog` to simplify request inspection, client identification, and correlation ID management within your application. These extensions facilitate identifying request types, resolving client IP addresses, extracting user agents, and ensuring a correlation ID is present for traceability.
+`RequestContextMiddlewareExtensions` provides extension methods for the `RequestContextMiddleware` that enable easy access to request correlation, tracing, and contextual information throughout your ASP.NET Core application. These extensions maintain request-scoped metadata including correlation IDs, user IDs, timestamps, and request details, making it simple to track and log requests across your entire application.
+
+The middleware adds request context information to each HTTP request, which can then be accessed anywhere in the request pipeline using the provided extension methods.
+
+### Example Usage
+
+```csharp
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using DotNetCqrsEventSourcing.Infrastructure.Middleware;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add RequestContextMiddleware to the pipeline
+builder.Services.AddControllers();
+var app = builder.Build();
+
+// Configure the middleware with default correlation header
+app.UseRequestContext();
+
+// Or configure with custom correlation header
+// app.UseRequestContext("X-Custom-Correlation-ID");
+
+app.MapGet("/api/accounts/{id}", (HttpContext context, string id) =>
+{
+    // Access request context information
+    var correlationId = context.GetCorrelationId();
+    var requestId = context.GetRequestId();
+    var userId = context.GetUserId();
+    var timestamp = context.GetRequestTimestamp();
+    var method = context.GetRequestMethod();
+    var path = context.GetRequestPath();
+    
+    var requestContext = context.GetRequestContext();
+    
+    return Results.Ok(new {
+        AccountId = id,
+        CorrelationId = correlationId,
+        RequestId = requestId,
+        UserId = userId,
+        Timestamp = timestamp,
+        Method = method,
+        Path = path,
+        RequestContextAvailable = requestContext != null
+    });
+});
+
+app.Run();
+```
 
 ### Example Usage
 
