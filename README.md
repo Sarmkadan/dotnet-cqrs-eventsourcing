@@ -276,6 +276,31 @@ Configuration/
 - ✅ `--dry-run` flag to preview what would be rebuilt without applying changes
 - ✅ `CliCommandRegistry` is extensible – register any `ICliCommand` in DI
 
+## RequestLogExtensions
+
+`RequestLogExtensions` provides a set of utility methods for `RequestLog` to simplify request inspection, client identification, and correlation ID management within your application. These extensions facilitate identifying request types, resolving client IP addresses, extracting user agents, and ensuring a correlation ID is present for traceability.
+
+### Example Usage
+
+```csharp
+using DotNetCqrsEventSourcing.Infrastructure.Models;
+
+// Assuming 'log' is an instance of RequestLog
+if (log.IsWriteOperation())
+{
+    var ipAddress = log.GetClientIpAddress();
+    var correlationId = log.EnsureCorrelationId();
+    
+    Console.WriteLine($"Processing write request from {ipAddress} with Correlation ID: {correlationId}");
+}
+
+if (log.IsReadOnlyOperation())
+{
+    var userAgent = log.GetUserAgent() ?? "Unknown";
+    Console.WriteLine($"Read-only operation from: {userAgent}");
+}
+```
+
 ## Installation
 
 ### Prerequisites
