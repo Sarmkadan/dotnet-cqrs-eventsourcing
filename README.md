@@ -1,5 +1,34 @@
 // existing content ...
 
+## IHttpClientFactory
+
+The `IHttpClientFactory` interface provides a way to create instances of `HttpClient` with various configurations. It allows for the creation of clients with base addresses, authentication, and other settings.
+
+### Usage Example
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var factory = new StandardHttpClientFactory();
+        var client = factory.CreateClient("MyClient");
+        client.BaseAddress = new Uri("https://example.com/api");
+
+        var authenticatedClient = factory.CreateAuthenticatedClient("MyAuthenticatedClient");
+        authenticatedClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "my_token");
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddStandardHttpClients();
+        serviceCollection.AddHttpClientResilience();
+
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var clientFactory = serviceProvider.GetService<IHttpClientFactory>();
+        var client = clientFactory.CreateClient("MyClient");
+    }
+}
+```
+
 ## EventTypeRegistry
 
 The `EventTypeRegistry` is a utility class that helps manage event types in your application. It allows you to register event types, scan assemblies for event types, and resolve event types by name.
@@ -103,3 +132,4 @@ The dispatcher exposes the following public members:
 - `WebhookRegistration` properties: `Id`, `WebhookUrl`, `EventType`, `RegisteredAt`, `Active`.
 
 These members provide a straightforward API for integrating webhook-based event notifications into your CQRS and event‑sourcing architecture.
+```
