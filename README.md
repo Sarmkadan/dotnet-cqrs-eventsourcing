@@ -156,6 +156,72 @@ public class Program
 }
 ```
 
+## InMemorySagaRepository
+
+`InMemorySagaRepository<TSaga>` is a thread-safe, in-memory implementation of `ISagaRepository<TSaga>` that stores saga instances in a concurrent dictionary. This repository is ideal for development, testing scenarios, and single-instance deployments where persistence requirements are minimal. It provides fast, deterministic access to saga state without external dependencies.
+
+The repository supports all standard saga operations including retrieval by ID, finding by correlation ID, saving, querying by state, and deletion. All operations are atomic and thread-safe through the use of `ConcurrentDictionary`.
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Sagas;
+using DotNetCqrsEventSourcing.Domain.Sagas;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create repository for TestSaga type
+        var repository = new InMemorySagaRepository<TestSaga>();
+
+        // Create a new saga instance
+        var saga = new TestSaga();
+        saga.SetCorrelation("account-123");
+        saga.Handle(new AccountCreatedEvent("agg-1", "ACC-123", "Test User", "USD", 1000m)
+        {
+            CorrelationId = "account-123"
+        });
+
+        // Save the saga
+        var saveResult = await repository.SaveAsync(saga);
+        if (saveResult.IsSuccess)
+        {
+            Console.WriteLine("Saga saved successfully");
+        }
+
+        // Retrieve saga by ID
+        var getResult = await repository.GetByIdAsync(saga.SagaId);
+        if (getResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved saga: {getResult.Data}");
+        }
+
+        // Find saga by correlation ID
+        var findResult = await repository.FindByCorrelationIdAsync("account-123");
+        if (findResult.IsSuccess)
+        {
+            Console.WriteLine($"Found saga by correlation: {findResult.Data.SagaId}");
+        }
+
+        // Get all sagas in a specific state
+        var allActive = await repository.GetAllAsync(SagaState.Active);
+        Console.WriteLine($"Active sagas: {allActive.Data.Count}");
+
+        // Delete the saga
+        var deleteResult = await repository.DeleteAsync(saga.SagaId);
+        if (deleteResult.IsSuccess)
+        {
+            Console.WriteLine("Saga deleted successfully");
+        }
+    }
+}
+```
+
 ## SagaBase
 
 `SagaBase` is the abstract base class for all saga implementations in the CQRS + Event Sourcing framework. It provides lifecycle management, outbox event collection, state transitions, and correlation tracking for implementing distributed sagas that coordinate multiple domain operations across aggregates and services.
