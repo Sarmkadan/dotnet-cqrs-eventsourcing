@@ -427,6 +427,132 @@ public class Program
 }
 ```
 
+## ProjectionService
+
+`ProjectionService` is the core service responsible for building and maintaining read models from domain events in the CQRS + Event Sourcing framework. It provides functionality to update projections incrementally as new events are published, rebuild individual projections from historical events, and rebuild all projections from scratch. The service maintains an in-memory cache of projections that can be queried and supports thread-safe operations through internal locking.
+
+The projection service handles various account-related events including account creation, deposits, withdrawals, and closure, maintaining a comprehensive read model that reflects the current state of each aggregate.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class ProjectionServiceExample
+{
+    private readonly ProjectionService _projectionService;
+
+    public ProjectionServiceExample(ProjectionService projectionService)
+    {
+        _projectionService = projectionService;
+    }
+
+    public async Task ManageAccountProjectionsAsync()
+    {
+        // Create a new account event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        // Update projection with the new account event
+        var updateResult = await _projectionService.UpdateProjectionAsync(accountCreatedEvent);
+        if (updateResult.IsSuccess)
+        {
+            Console.WriteLine("Projection updated successfully");
+        }
+
+        // Get the projection for the account
+        var getResult = await _projectionService.GetProjectionAsync("account-123");
+        if (getResult.IsSuccess)
+        {
+            var projection = getResult.Data;
+            Console.WriteLine($"Account projection: {projection["AccountNumber"]}");
+            Console.WriteLine($"Account holder: {projection["AccountHolder"]}");
+            Console.WriteLine($"Current balance: {projection["InitialBalance"]}");
+            Console.WriteLine($"Status: {projection["Status"]}");
+        }
+
+        // Deposit funds
+        var depositEvent = new MoneyDepositedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            amount: 500.00m,
+            reference: "Salary payment",
+            aggregateVersion: 2
+        );
+        depositEvent.PopulateMetadata();
+
+        await _projectionService.UpdateProjectionAsync(depositEvent);
+
+        // Rebuild projection from event stream
+        var rebuildResult = await _projectionService.RebuildProjectionAsync("account-123");
+        if (rebuildResult.IsSuccess)
+        {
+            Console.WriteLine("Projection rebuilt successfully");
+        }
+
+        // Build projection summary
+        var summary = await _projectionService.BuildProjectionAsync("account-123");
+        Console.WriteLine($"Account summary - Balance: {summary.CurrentBalance}, Status: {summary.Status}");
+    }
+
+    public async Task RebuildAllProjectionsAsync()
+    {
+        // Rebuild all projections from scratch (useful after application restart)
+        var rebuildAllResult = await _projectionService.RebuildAllProjectionsAsync();
+        if (rebuildAllResult.IsSuccess)
+        {
+            Console.WriteLine("All projections rebuilt successfully");
+        }
+
+        // Get all projections
+        var allProjectionsResult = await _projectionService.GetAllProjectionsAsync();
+        if (allProjectionsResult.IsSuccess)
+        {
+            Console.WriteLine($"Total projections: {allProjectionsResult.Data?.Count}");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+
+        // Create in-memory event repository for demonstration
+        services.AddSingleton<IEventRepository>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<InMemoryEventRepository>>();
+            return new InMemoryEventRepository(logger);
+        });
+
+        services.AddSingleton<EventStore>();
+        services.AddSingleton<ProjectionService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var projectionService = serviceProvider.GetRequiredService<ProjectionService>();
+
+        var example = new ProjectionServiceExample(projectionService);
+        await example.ManageAccountProjectionsAsync();
+        await example.RebuildAllProjectionsAsync();
+    }
+}
+```
+
 ## EventStoreCompactionServiceTests
 
 The `EventStoreCompactionServiceTests` class provides unit tests for the `EventStoreCompactionService`, which handles event store compaction by removing old events while preserving snapshots. These tests verify compaction behavior under various scenarios including version-based compaction, snapshot-based compaction, and error handling when snapshots are missing.
