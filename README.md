@@ -451,6 +451,75 @@ public class TransactionExample
 The example demonstrates all public members of `TransactionSummary` with realistic usage patterns for querying and processing account transactions.
 
 
+## EventEnvelope
+
+`EventEnvelope` is a wrapper for domain events that adds infrastructure metadata required for event store persistence, versioning, and integrity verification. It serves as the transport envelope for events between the domain layer and the event store, carrying both the serialized event data and essential metadata like aggregate identity, version tracking, and optional tenant partitioning for multi-tenant scenarios.
+
+Each envelope contains the event payload (`EventData`), its type (`EventType`), the aggregate it belongs to (`AggregateId`, `AggregateType`, `AggregateVersion`), and system-generated fields like a unique identifier (`Id`), creation timestamp (`CreatedAt`), and optional integrity checksum (`ChecksumHash`) for tamper detection.
+
+Example usage:
+
+```csharp
+using System;
+using System.Text.Json;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class EventEnvelopeExample
+{
+    public void CreateAndStoreEventEnvelope()
+    {
+        // Create a domain event
+        var domainEvent = new AccountCreatedEvent("agg-123", "ACC-0001", "John Doe", "USD", 1000m)
+        {
+            CorrelationId = "corr-456",
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Serialize the event data
+        var eventData = JsonSerializer.Serialize(domainEvent, new JsonSerializerOptions { WriteIndented = false });
+
+        // Create an event envelope from the domain event
+        var envelope = new EventEnvelope(domainEvent, eventData);
+        
+        Console.WriteLine($"Envelope created: {envelope.Id}");
+        Console.WriteLine($"Aggregate: {envelope.AggregateType}#{envelope.AggregateId} v{envelope.AggregateVersion}");
+        Console.WriteLine($"Event type: {envelope.EventType}");
+        Console.WriteLine($"Created at: {envelope.CreatedAt:u}");
+        Console.WriteLine($"Metadata count: {envelope.Metadata.Count}");
+
+        // Compute and verify checksum for integrity
+        envelope.ComputeChecksum();
+        Console.WriteLine($"Checksum: {envelope.ChecksumHash}");
+        Console.WriteLine($"Checksum valid: {envelope.VerifyChecksum()}");
+
+        // Access metadata
+        if (envelope.Metadata.TryGetValue("CorrelationId", out var correlationId))
+        {
+            Console.WriteLine($"Correlation ID: {correlationId}");
+        }
+
+        // Use ToString() for debugging
+        Console.WriteLine(envelope.ToString());
+    }
+
+    public void UsePartitionKeyForMultiTenancy()
+    {
+        // Create an event with tenant context
+        var domainEvent = new AccountCreatedEvent("agg-789", "ACC-TENANT-001", "Jane Smith", "EUR", 500m);
+        var eventData = JsonSerializer.Serialize(domainEvent);
+        
+        // Set partition key for tenant isolation
+        var envelope = new EventEnvelope(domainEvent, eventData)
+        {
+            PartitionKey = "tenant-abc-123"
+        };
+
+        Console.WriteLine($"Partition key: {envelope.PartitionKey}");
+        Console.WriteLine($"Tenant-specific envelope: {envelope.Id}");
+    }
+}
+```
+
 ## DeadLetterEntry
 
 `DeadLetterEntry` represents a domain event that could not be processed by a projection runner after all retry attempts were exhausted. It captures the failed event, the projection that failed, the error message, and metadata about retry attempts. This type is used by the dead-letter store to track events that need manual intervention or reprocessing.
