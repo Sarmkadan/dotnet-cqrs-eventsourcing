@@ -69,7 +69,6 @@ public class Program
         test.IsGreaterThan_LargerAmount_ReturnsTrue();
     }
 }
-```
 
-// existing content ...
+// existing content
 ```
