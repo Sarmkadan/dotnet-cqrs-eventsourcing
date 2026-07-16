@@ -12,6 +12,52 @@ The full picture - layers, write/read data flow, projection engine, snapshots/co
 - `Infrastructure/` - dispatch, workers, middleware, CLI
 - All default stores are in‑memory; swap `IEventRepository` / `IReadModelStore<T>` for real persistence.
 
+## CreateAccountCommand
+
+`CreateAccountCommand` is a command object used to initiate the creation of a new bank account in the system. This command carries all the essential information required to open a new account including the account number, holder details, currency, and initial balance. It also includes correlation tracking for distributed tracing and timestamping for audit purposes.
+
+The command is processed by the `Account` aggregate root which raises an `AccountCreatedEvent` upon successful account creation, ensuring that all state changes are captured as immutable domain events.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Application.Commands;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Create a new account creation command
+        var command = new CreateAccountCommand(
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+
+        // Access command properties
+        Console.WriteLine($"Command created: {command}");
+        Console.WriteLine($"Account Number: {command.AccountNumber}");
+        Console.WriteLine($"Account Holder: {command.AccountHolder}");
+        Console.WriteLine($"Currency: {command.Currency}");
+        Console.WriteLine($"Initial Balance: {command.InitialBalance:C}");
+        Console.WriteLine($"Correlation ID: {command.CorrelationId}");
+        Console.WriteLine($"Issued At: {command.IssuedAt:u}");
+
+        // Create command with default correlation ID
+        var commandWithDefaults = new CreateAccountCommand(
+            accountNumber: "ACC-2024-002",
+            accountHolder: "Jane Smith", 
+            currency: "EUR",
+            initialBalance: 5000.00m
+        );
+
+        Console.WriteLine($"\nCommand with auto-generated correlation: {commandWithDefaults}");
+    }
+}
+```
+
 ## AccountAggregateTests
 
 The `AccountAggregateTests` class provides a comprehensive set of unit tests for the `Account` aggregate root, covering various scenarios such as account creation, deposit, withdrawal, and closure. These tests ensure that the `Account` class behaves correctly under different conditions.
