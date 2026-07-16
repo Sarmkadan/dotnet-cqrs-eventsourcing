@@ -1347,6 +1347,124 @@ public class DomainEventExample
 }
 ```
 
+## EventBus
+
+`EventBus` is an in-memory implementation of the event bus pattern that enables publish-subscribe communication between components in the CQRS + Event Sourcing framework. It allows domain events to be published and distributed to multiple subscribers without tight coupling between components, making it ideal for implementing event-driven architectures and sagas.
+
+The event bus maintains a registry of event handlers subscribed to specific event types and dispatches published events to all registered handlers asynchronously. It provides both fire-and-forget publishing and transactional publishing with persistence through the `PublishAndPersistAsync` method.
+
+**Public members:**
+- `PublishEventAsync(DomainEvent, CancellationToken)` - Publishes a single domain event asynchronously
+- `PublishEventsAsync(List<DomainEvent>, CancellationToken)` - Publishes multiple domain events asynchronously
+- `Subscribe<TEvent>(Func<TEvent, Task>)` - Subscribes a handler to events of type TEvent
+- `Unsubscribe<TEvent>(Func<TEvent, Task>)` - Unsubscribes a handler from events of type TEvent
+- `PublishAndPersistAsync(DomainEvent, IEventStore, CancellationToken)` - Publishes an event and persists it to the event store atomically
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.Logging;
+
+public class EventBusExample
+{
+    private readonly EventBus _eventBus;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public EventBusExample()
+    {
+        _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        _eventBus = new EventBus(_loggerFactory.CreateLogger<EventBus>());
+    }
+
+    public void SubscribeAndPublishEvents()
+    {
+        // Subscribe to AccountCreatedEvent
+        _eventBus.Subscribe<AccountCreatedEvent>(async @event => {
+            Console.WriteLine($"Received AccountCreatedEvent: {@event.AccountNumber}");
+            await Task.CompletedTask;
+        });
+
+        // Subscribe to MoneyDepositedEvent
+        _eventBus.Subscribe<MoneyDepositedEvent>(async @event => {
+            Console.WriteLine($"Received MoneyDepositedEvent: {@event.Amount} {@event.Currency}");
+            await Task.CompletedTask;
+        });
+
+        // Create and publish an event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        // Publish single event
+        var publishResult = _eventBus.PublishEventAsync(accountCreatedEvent);
+        Console.WriteLine($"Event published: {publishResult.Result.IsSuccess}");
+
+        // Publish multiple events
+        var events = new System.Collections.Generic.List<DomainEvent>
+        {
+            new MoneyDepositedEvent(
+                aggregateId: "agg-123",
+                accountNumber: "ACC-2024-001",
+                amount: 500.00m,
+                reference: "Salary payment",
+                aggregateVersion: 2
+            ),
+            new MoneyWithdrawnEvent(
+                aggregateId: "agg-123",
+                accountNumber: "ACC-2024-001",
+                amount: 200.00m,
+                reference: "Rent payment",
+                aggregateVersion: 3
+            )
+        };
+
+        var multiPublishResult = _eventBus.PublishEventsAsync(events);
+        Console.WriteLine($"Multiple events published: {multiPublishResult.Result.IsSuccess}");
+    }
+
+    public void UnsubscribeFromEvents()
+    {
+        // Create a handler
+        Func<AccountCreatedEvent, Task> handler = async @event => {
+            Console.WriteLine($"Handler processing: {@event.AccountNumber}");
+            await Task.CompletedTask;
+        };
+
+        // Subscribe the handler
+        _eventBus.Subscribe(handler);
+        Console.WriteLine("Handler subscribed");
+
+        // Unsubscribe the handler
+        _eventBus.Unsubscribe(handler);
+        Console.WriteLine("Handler unsubscribed");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var example = new EventBusExample();
+
+        Console.WriteLine("=== Subscribing and Publishing Events ===");
+        example.SubscribeAndPublishEvents();
+
+        Console.WriteLine("\n=== Unsubscribing from Events ===");
+        example.UnsubscribeFromEvents();
+    }
+}
+```
+
 ## Account
 
 `Account` is the aggregate root that manages the complete lifecycle of a bank account within the CQRS + Event Sourcing framework. It handles account creation, deposits, withdrawals, and closure while maintaining a transaction history and balance state. All state changes are persisted as a sequence of immutable domain events.
