@@ -1247,9 +1247,93 @@ public class Program
 }
 ```
 
-## Money
+## Balance
 
-`Money` is an immutable value object that represents a monetary amount with currency information. It provides arithmetic operations, comparison operators, and equality checks for financial calculations while ensuring currency consistency. The type is designed for use in domain models and value objects where monetary values need to be tracked with their currency context.
+`Balance` is a value object representing an account balance with transaction tracking. It maintains the current balance, available funds, held funds, and transaction count while providing methods for adding funds, removing funds, and managing holds. The balance automatically tracks the last update timestamp and supports equality comparisons for state validation.
+
+**Public members:**
+- `CurrentAmount` - The total current balance including all transactions
+- `AvailableAmount` - The amount available for withdrawal or transfer
+- `HoldAmount` - The amount currently on hold (reserved but not withdrawn)
+- `LastUpdated` - When the balance was last modified
+- `TransactionCount` - The total number of balance-changing operations
+- `AddFunds(Money amount)` - Adds funds to the balance
+- `RemoveFunds(Money amount)` - Removes funds from the balance (with validation)
+- `PlaceHold(Money amount)` - Places a hold on available funds
+- `ReleaseHold(Money amount)` - Releases a previously placed hold
+- `Equals(Balance? other)` - Equality comparison
+- `Equals(object? obj)` - Override for equality comparison
+- `GetHashCode()` - Override for hash code generation
+- `ToString()` - Returns formatted balance information
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Domain.ValueObjects;
+
+public class BalanceExample
+{
+    public void ManageAccountBalance()
+    {
+        // Create initial balance with 1000 USD
+        var initialBalance = new Money(1000.00m, "USD");
+        var balance = new Balance(initialBalance);
+        
+        Console.WriteLine($"Initial balance: {balance}");
+        Console.WriteLine($"Current: {balance.CurrentAmount}");
+        Console.WriteLine($"Available: {balance.AvailableAmount}");
+        Console.WriteLine($"Hold: {balance.HoldAmount}");
+        Console.WriteLine($"Last updated: {balance.LastUpdated:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"Transaction count: {balance.TransactionCount}");
+        
+        // Add funds (deposit)
+        var depositAmount = new Money(500.00m, "USD");
+        balance.AddFunds(depositAmount);
+        
+        Console.WriteLine($"\nAfter deposit of {depositAmount}:");
+        Console.WriteLine($"Current: {balance.CurrentAmount}");
+        Console.WriteLine($"Available: {balance.AvailableAmount}");
+        Console.WriteLine($"Transaction count: {balance.TransactionCount}");
+        
+        // Place a hold on funds (e.g., for a pending transaction)
+        var holdAmount = new Money(200.00m, "USD");
+        balance.PlaceHold(holdAmount);
+        
+        Console.WriteLine($"\nAfter placing hold of {holdAmount}:");
+        Console.WriteLine($"Current: {balance.CurrentAmount}");
+        Console.WriteLine($"Available: {balance.AvailableAmount}");
+        Console.WriteLine($"Hold: {balance.HoldAmount}");
+        
+        // Release part of the hold
+        var releaseAmount = new Money(100.00m, "USD");
+        balance.ReleaseHold(releaseAmount);
+        
+        Console.WriteLine($"\nAfter releasing {releaseAmount} of hold:");
+        Console.WriteLine($"Current: {balance.CurrentAmount}");
+        Console.WriteLine($"Available: {balance.AvailableAmount}");
+        Console.WriteLine($"Hold: {balance.HoldAmount}");
+        
+        // Remove funds (withdrawal)
+        var withdrawalAmount = new Money(300.00m, "USD");
+        balance.RemoveFunds(withdrawalAmount);
+        
+        Console.WriteLine($"\nAfter withdrawal of {withdrawalAmount}:");
+        Console.WriteLine($"Current: {balance.CurrentAmount}");
+        Console.WriteLine($"Available: {balance.AvailableAmount}");
+        Console.WriteLine($"Transaction count: {balance.TransactionCount}");
+        
+        // Check balance state
+        Console.WriteLine($"\nFinal balance state: {balance}");
+        
+        // Equality comparison
+        var sameBalance = new Balance(new Money(1200.00m, "USD"));
+        Console.WriteLine($"\nAre balances equal: {balance.Equals(sameBalance)}");
+    }
+}
+```
+
+## Money
 
 Example usage:
 
