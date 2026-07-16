@@ -460,6 +460,187 @@ public class Example
 
 The example demonstrates all public members of `DotnetCqrsEventsourcingException` with realistic usage patterns for error handling and logging.
 
+## LoggingDecorator
+
+The `LoggingDecorator` provides comprehensive logging for event processing, aggregate operations, and system events within the CQRS + Event Sourcing framework. It tracks event publication, processing times, errors, concurrency conflicts, snapshots, and projection rebuilds with detailed contextual information including correlation IDs for distributed tracing.
+
+This decorator is essential for:
+- Debugging event processing workflows
+- Monitoring system performance and bottlenecks
+- Tracking correlation across distributed services
+- Identifying concurrency issues and conflicts
+- Auditing aggregate state changes and snapshots
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Decorators;
+using DotNetCqrsEventSourcing.Domain.Events;
+using Microsoft.Extensions.Logging;
+
+public class LoggingDecoratorExample
+{
+    private readonly LoggingDecorator _loggingDecorator;
+    private readonly PerformanceDecorator _performanceDecorator;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public LoggingDecoratorExample()
+    {
+        // Setup logger factory (in real app this would be injected)
+        _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        
+        _loggingDecorator = new LoggingDecorator(_loggerFactory.CreateLogger<LoggingDecorator>());
+        _performanceDecorator = new PerformanceDecorator(_loggerFactory.CreateLogger<PerformanceDecorator>());
+    }
+
+    public void LogDomainEvents()
+    {
+        // Create a domain event with correlation tracking
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+        accountCreatedEvent.CorrelationId = "corr-trace-456";
+
+        // Log event publication
+        _loggingDecorator.LogEventPublished(accountCreatedEvent);
+
+        // Simulate event processing with timing
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        
+        try
+        {
+            // Process the event...
+            ProcessEvent(accountCreatedEvent);
+            
+            stopwatch.Stop();
+            _loggingDecorator.LogEventProcessed(accountCreatedEvent, stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _loggingDecorator.LogEventProcessingError(accountCreatedEvent, ex, stopwatch.ElapsedMilliseconds);
+            throw;
+        }
+    }
+
+    public void LogAggregateOperations()
+    {
+        // Log aggregate operations with context
+        _loggingDecorator.LogAggregateOperation(
+            operationName: "AccountDeposit",
+            aggregateId: "agg-123",
+            aggregateType: "Account",
+            correlationId: "corr-trace-789"
+        );
+
+        _loggingDecorator.LogAggregateOperation(
+            operationName: "AccountWithdrawal",
+            aggregateId: "agg-456",
+            aggregateType: "Account"
+        );
+    }
+
+    public void LogConcurrencyIssues()
+    {
+        // Log concurrency conflicts when detected
+        _loggingDecorator.LogConcurrencyConflict(
+            aggregateId: "agg-789",
+            expectedVersion: 15,
+            actualVersion: 14
+        );
+    }
+
+    public void LogSnapshots()
+    {
+        // Log snapshot creation
+        _loggingDecorator.LogSnapshotCreated(
+            aggregateId: "agg-101",
+            version: 100
+        );
+    }
+
+    public void LogProjectionRebuilds()
+    {
+        // Log projection rebuild operations
+        _loggingDecorator.LogProjectionRebuilt(
+            aggregateId: "agg-projection-202",
+            eventCount: 42,
+            elapsedMilliseconds: 158
+        );
+    }
+
+    private void ProcessEvent(DomainEvent @event)
+    {
+        // Simulate event processing
+        Console.WriteLine($"Processing event: {@event.GetEventType()}");
+    }
+
+    public void TrackPerformance()
+    {
+        // Track operation performance
+        var operations = new Dictionary<string, long>();
+        
+        var stopwatch1 = System.Diagnostics.Stopwatch.StartNew();
+        SimulateWork("DatabaseQuery");
+        stopwatch1.Stop();
+        operations["DatabaseQuery"] = stopwatch1.ElapsedMilliseconds;
+        
+        var stopwatch2 = System.Diagnostics.Stopwatch.StartNew();
+        SimulateWork("EventProcessing");
+        stopwatch2.Stop();
+        operations["EventProcessing"] = stopwatch2.ElapsedMilliseconds;
+        
+        var stopwatch3 = System.Diagnostics.Stopwatch.StartNew();
+        SimulateWork("ProjectionUpdate");
+        stopwatch3.Stop();
+        operations["ProjectionUpdate"] = stopwatch3.ElapsedMilliseconds;
+
+        // Get performance summary
+        var summary = _performanceDecorator.GetPerformanceSummary(operations);
+        Console.WriteLine($"Performance summary: {summary}");
+    }
+
+    private void SimulateWork(string operationName)
+    {
+        // Simulate some work
+        Task.Delay(200).Wait();
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var example = new LoggingDecoratorExample();
+        
+        Console.WriteLine("=== Logging Domain Events ===");
+        example.LogDomainEvents();
+        
+        Console.WriteLine("\n=== Logging Aggregate Operations ===");
+        example.LogAggregateOperations();
+        
+        Console.WriteLine("\n=== Logging Concurrency Issues ===");
+        example.LogConcurrencyIssues();
+        
+        Console.WriteLine("\n=== Logging Snapshots ===");
+        example.LogSnapshots();
+        
+        Console.WriteLine("\n=== Logging Projection Rebuilds ===");
+        example.LogProjectionRebuilds();
+        
+        Console.WriteLine("\n=== Tracking Performance ===");
+        example.TrackPerformance();
+    }
+}
+```
+
 ## ValidationException
 
 `ValidationException` is thrown when input validation fails during command processing or domain validation. It collects validation errors in a `Dictionary<string, string>` where the key is the field name and the value is the error message. This exception is commonly used for validating command parameters, DTOs, and domain entity state before processing operations.
