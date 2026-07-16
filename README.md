@@ -1333,6 +1333,109 @@ public class BalanceExample
 }
 ```
 
+## AggregateSnapshot
+
+`AggregateSnapshot` is a complete state snapshot of an aggregate root at a specific version. It captures the entire serialized state of an aggregate, allowing for efficient reconstruction of aggregate state without replaying the entire event history. Snapshots are particularly useful for aggregates with long event streams, as they significantly reduce the time required for state reconstruction during event replay.
+
+Aggregate snapshots support compression for storage optimization and include checksum verification for data integrity. They are automatically created by the event store compaction service when configured thresholds are reached, and can be used as the base for incremental snapshots that record only state changes between snapshots.
+
+Example usage:
+
+```csharp
+using System;
+using System.Text.Json;
+using DotNetCqrsEventSourcing.Domain.Snapshots;
+using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+
+public class AggregateSnapshotExample
+{
+    public void CreateAndUseAggregateSnapshot()
+    {
+        // Create an account aggregate with some state
+        var account = new Account("ACC-123", "John Doe", 1000.00m);
+        
+        // Simulate some operations that would normally raise events
+        account.Deposit(500.00m, "Salary");
+        account.Withdraw(200.00m, "Rent");
+        
+        // Get the current state as a snapshot
+        var snapshot = new AggregateSnapshot
+        {
+            Id = Guid.NewGuid().ToString(),
+            AggregateId = account.Id,
+            AggregateType = typeof(Account).FullName!,
+            Version = account.Version,
+            AggregateData = JsonSerializer.Serialize(account),
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        // Compute checksum for integrity verification
+        snapshot.ComputeChecksum();
+        
+        Console.WriteLine($"Created snapshot: {snapshot.Id}");
+        Console.WriteLine($"Aggregate: {snapshot.AggregateType}#{snapshot.AggregateId} v{snapshot.Version}");
+        Console.WriteLine($"Created at: {snapshot.CreatedAt:u}");
+        Console.WriteLine($"Checksum valid: {snapshot.VerifyChecksum()}");
+        Console.WriteLine($"Data size: {snapshot.AggregateData.Length} characters");
+        
+        // Access size information
+        Console.WriteLine($"Compressed size: {snapshot.CompressedSize} bytes");
+        Console.WriteLine($"Uncompressed size: {snapshot.UncompressedSize} bytes");
+        Console.WriteLine($"Is compressed: {snapshot.IsCompressed}");
+        Console.WriteLine($"Compression ratio: {snapshot.GetCompressionRatio():P2}");
+        
+        // Mark as compressed for storage optimization
+        snapshot.MarkCompressed();
+        Console.WriteLine($"After compression - Size in KB: {snapshot.GetSizeInKilobytes()}");
+        
+        // String representation for debugging
+        Console.WriteLine($"\nSnapshot details: {snapshot}");
+    } 
+    
+    public void UseSnapshotForStateReconstruction()
+    {
+        // In a real application, snapshots are created by the event store compaction service
+        // Here we simulate loading a snapshot to reconstruct aggregate state
+        
+        var snapshotData = new
+        {
+            Id = "ACC-123",
+            AccountHolder = "Jane Smith",
+            Balance = 1500.75m,
+            Status = "Active",
+            OpenDate = DateTime.UtcNow.AddDays(-30),
+            Transactions = new[] { "Deposit: 1000", "Deposit: 500" }
+        };
+        
+        // Create snapshot from serialized data
+        var snapshot = new AggregateSnapshot
+        {
+            Id = "snap-456",
+            AggregateId = "agg-456",
+            AggregateType = "Account",
+            Version = 15,
+            AggregateData = JsonSerializer.Serialize(snapshotData),
+            CreatedAt = DateTime.UtcNow,
+            Checksum = "valid-checksum-here"
+        };
+        
+        // Verify snapshot integrity before using it
+        if (snapshot.VerifyChecksum())
+        {
+            Console.WriteLine("Snapshot integrity verified - safe to use for state reconstruction");
+            
+            // Deserialize the aggregate state from the snapshot
+            var reconstructedState = JsonSerializer.Deserialize<object>(snapshot.AggregateData);
+            Console.WriteLine($"Reconstructed state from snapshot v{snapshot.Version}");
+        }
+        else
+        {
+            Console.WriteLine("Snapshot checksum verification failed - do not use this snapshot");
+        }
+    }
+}
+```
+
 ## IncrementalSnapshot
 
 `IncrementalSnapshot` represents a lightweight delta snapshot that records only the state changes that occurred since a base `AggregateSnapshot` (or a previous incremental). This approach reduces storage costs and write latency by avoiding repeated serialization of the full aggregate state. Incremental snapshots form chains anchored to a base snapshot, allowing efficient reconstruction of aggregate state through incremental deltas.
