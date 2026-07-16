@@ -539,6 +539,85 @@ public class AccountQueryServiceExample
 }
 ```
 
+## ReadModelProjectionOptions
+
+`ReadModelProjectionOptions` configures the behavior of the `ReadModelProjectionEngine`, allowing fine-grained control over retry policies, checkpointing, concurrency, timeouts, and dead-letter handling. These options can be bound from configuration files or supplied programmatically when registering projection services.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.ReadModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+public class ReadModelProjectionOptionsExample
+{
+    public void ConfigureProjectionOptions()
+    {
+        // Example 1: Configure via Options pattern
+        var services = new ServiceCollection();
+        
+        services.Configure<ReadModelProjectionOptions>(options =>
+        {
+            options.MaxRetryAttempts = 5;
+            options.RetryBaseDelayMilliseconds = 200;
+            options.EnableCheckpointing = true;
+            options.CheckpointInterval = 25;
+            options.MaxConcurrentProjectors = 8;
+            options.ProjectorTimeout = TimeSpan.FromSeconds(60);
+            options.ClearCheckpointsBeforeRebuild = false;
+            options.EnableDeadLetterStore = true;
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<ReadModelProjectionOptions>>().Value;
+        
+        Console.WriteLine($"Max retry attempts: {options.MaxRetryAttempts}");
+        Console.WriteLine($"Retry base delay: {options.RetryBaseDelayMilliseconds}ms");
+        Console.WriteLine($"Checkpoint interval: {options.CheckpointInterval}");
+        Console.WriteLine($"Max concurrent projectors: {options.MaxConcurrentProjectors}");
+        Console.WriteLine($"Projector timeout: {options.ProjectorTimeout}");
+    }
+    
+    public void UseDefaultOptions()
+    {
+        // Example 2: Use default options (all properties have sensible defaults)
+        var defaultOptions = new ReadModelProjectionOptions();
+        
+        Console.WriteLine("Default options:");
+        Console.WriteLine($"MaxRetryAttempts: {defaultOptions.MaxRetryAttempts}");
+        Console.WriteLine($"RetryBaseDelayMilliseconds: {defaultOptions.RetryBaseDelayMilliseconds}");
+        Console.WriteLine($"EnableCheckpointing: {defaultOptions.EnableCheckpointing}");
+        Console.WriteLine($"CheckpointInterval: {defaultOptions.CheckpointInterval}");
+        Console.WriteLine($"MaxConcurrentProjectors: {defaultOptions.MaxConcurrentProjectors}");
+        Console.WriteLine($"ProjectorTimeout: {defaultOptions.ProjectorTimeout}");
+        Console.WriteLine($"ClearCheckpointsBeforeRebuild: {defaultOptions.ClearCheckpointsBeforeRebuild}");
+        Console.WriteLine($"EnableDeadLetterStore: {defaultOptions.EnableDeadLetterStore}");
+    }
+    
+    public void ConfigureFromConfiguration()
+    {
+        // Example 3: Bind from configuration (appsettings.json)
+        // Configuration structure:
+        /*
+        {
+          "ReadModelProjections": {
+            "MaxRetryAttempts": 5,
+            "RetryBaseDelayMilliseconds": 200,
+            "EnableCheckpointing": true,
+            "CheckpointInterval": 25,
+            "MaxConcurrentProjectors": 8,
+            "ProjectorTimeout": "00:01:00",
+            "ClearCheckpointsBeforeRebuild": false,
+            "EnableDeadLetterStore": true
+          }
+        }
+        */
+    }
+}
+```
+
 ## ReadModelProjectionEngine
 
 `ReadModelProjectionEngine` orchestrates eventually consistent read-model projections by subscribing to the application event bus and routing domain events to registered projection runners. It provides configurable retry with exponential back-off, per-projection checkpointing, bounded concurrency, and on-demand aggregate replay for rebuilds.
