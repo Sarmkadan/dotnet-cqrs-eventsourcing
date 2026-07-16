@@ -928,6 +928,90 @@ public class Program
 }
 ```
 
+## HealthController
+
+`HealthController` is an ASP.NET Core controller that provides health check and diagnostic endpoints for monitoring application state. It exposes endpoints for liveness, readiness, and detailed health checks that are essential for infrastructure monitoring, load balancers, and orchestration platforms like Kubernetes and Docker.
+
+The controller returns standardized health check responses with status codes and JSON payloads that include application version, timestamps, and dependency check results. All endpoints are public and unauthenticated to ensure compatibility with infrastructure monitoring systems.
+
+Example usage:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Presentation.Controllers;
+
+public class HealthControllerExample
+{
+    private readonly HttpClient _httpClient;
+
+    public HealthControllerExample(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task MonitorApplicationHealthAsync()
+    {
+        // Basic liveness check for load balancers
+        var healthResponse = await _httpClient.GetAsync("/api/health");
+        healthResponse.EnsureSuccessStatusCode();
+        var healthData = await healthResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Health status: {healthData.status}");
+        Console.WriteLine($"Version: {healthData.version}");
+
+        // Detailed health check including dependencies
+        var detailedResponse = await _httpClient.GetAsync("/api/health/detailed");
+        detailedResponse.EnsureSuccessStatusCode();
+        var detailedData = await detailedResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Overall health: {detailedData.status}");
+        Console.WriteLine($"Dependency checks: {detailedData.checks.Count}");
+
+        // Readiness probe for orchestration
+        var readyResponse = await _httpClient.GetAsync("/api/health/ready");
+        if (readyResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Application is ready to accept traffic");
+        }
+        else
+        {
+            Console.WriteLine("Application is not ready");
+        }
+
+        // Liveness probe for orchestration
+        var liveResponse = await _httpClient.GetAsync("/api/health/live");
+        liveResponse.EnsureSuccessStatusCode();
+        var liveData = await liveResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Application uptime: {liveData.uptime}");
+
+        // Application information and version
+        var infoResponse = await _httpClient.GetAsync("/api/health/info");
+        infoResponse.EnsureSuccessStatusCode();
+        var infoData = await infoResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Application: {infoData.application}");
+        Console.WriteLine($"Version: {infoData.version}");
+        Console.WriteLine($"Environment: {infoData.environment}");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // In a real application, use HttpClient with base address
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://localhost:5001")
+        };
+
+        var example = new HealthControllerExample(httpClient);
+        await example.MonitorApplicationHealthAsync();
+    }
+}
+
+```
+
 ## EventsController
 
 `EventsController` is an ASP.NET Core controller that provides HTTP API endpoints for event stream management and inspection. It offers read-only access to domain events for auditing, debugging, and data analysis purposes. The controller exposes endpoints for retrieving complete event histories, counting events, exporting events in various formats, analyzing event types, and viewing chronological timelines of aggregate events.
