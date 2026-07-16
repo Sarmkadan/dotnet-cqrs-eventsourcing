@@ -451,6 +451,94 @@ public class TransactionExample
 The example demonstrates all public members of `TransactionSummary` with realistic usage patterns for querying and processing account transactions.
 
 
+## IAccountReadModelQueryService
+
+`IAccountReadModelQueryService` provides domain-oriented queries over the `AccountReadModel` store, hiding low-level key lookups behind business-meaningful method signatures. It serves as the primary read-side interface for querying account data in the CQRS + Event Sourcing framework.
+
+All methods return `Result<T>` so callers can distinguish between genuine "not found" scenarios and infrastructure failures without relying on exceptions.
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.ReadModels;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class AccountQueryServiceExample
+{
+    private readonly IAccountReadModelQueryService _queryService;
+
+    public AccountQueryServiceExample(IAccountReadModelQueryService queryService)
+    {
+        _queryService = queryService;
+    }
+
+    public async Task QueryAccountsAsync()
+    {
+        // Get account by aggregate ID
+        var accountById = await _queryService.GetByIdAsync("agg-123");
+        if (accountById.IsSuccess)
+        {
+            Console.WriteLine($"Found account: {accountById.Data?.AccountNumber}");
+        }
+
+        // Get account by account number
+        var accountByNumber = await _queryService.GetByAccountNumberAsync("ACC-0001");
+        if (accountByNumber.IsSuccess)
+        {
+            Console.WriteLine($"Account holder: {accountByNumber.Data?.AccountHolder}");
+        }
+
+        // Get all active accounts
+        var activeAccounts = await _queryService.GetActiveAccountsAsync();
+        if (activeAccounts.IsSuccess)
+        {
+            Console.WriteLine($"Active accounts: {activeAccounts.Data?.Count}");
+        }
+
+        // Find accounts by account holder name (substring match)
+        var holderAccounts = await _queryService.GetByAccountHolderAsync("John");
+        if (holderAccounts.IsSuccess)
+        {
+            foreach (var account in holderAccounts.Data ?? Enumerable.Empty<AccountReadModel>())
+            {
+                Console.WriteLine($"Account: {account.AccountNumber}, Balance: {account.CurrentBalance}");
+            }
+        }
+
+        // Get top N accounts by balance
+        var topAccounts = await _queryService.GetTopBalanceAccountsAsync(10);
+        if (topAccounts.IsSuccess)
+        {
+            var top10 = topAccounts.Data ?? Enumerable.Empty<AccountReadModel>();
+            Console.WriteLine($"Top {top10.Count()} accounts by balance:");
+        }
+
+        // Get accounts within balance range
+        var rangeAccounts = await _queryService.GetByBalanceRangeAsync(1000, 10000);
+        if (rangeAccounts.IsSuccess)
+        {
+            Console.WriteLine($"Accounts with balance between 1000 and 10000: {rangeAccounts.Data?.Count}");
+        }
+
+        // Get portfolio statistics
+        var statsResult = await _queryService.GetPortfolioStatisticsAsync();
+        if (statsResult.IsSuccess)
+        {
+            var stats = statsResult.Data!;
+            Console.WriteLine($"Portfolio: {stats.TotalAccounts} total, {stats.ActiveAccounts} active");
+            Console.WriteLine($"Total balance: {stats.TotalActiveBalance}, Average: {stats.AverageActiveBalance}");
+        }
+
+        // Convenience methods (non-Result returning)
+        var account = await _queryService.GetAccountByIdAsync("agg-456");
+        var allAccounts = await _queryService.GetAllAccountsAsync();
+    }
+}
+```
+
 ## ValidationExtensions
 
 `ValidationExtensions` provides a comprehensive set of guard clause extension methods for validating method parameters and business rules. These extensions follow a fluent, exception-throwing pattern that integrates seamlessly with C# method chaining, making validation code more readable and maintainable.
