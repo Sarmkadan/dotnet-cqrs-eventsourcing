@@ -539,6 +539,95 @@ public class AccountQueryServiceExample
 }
 ```
 
+## InMemoryReadModelStore
+
+`InMemoryReadModelStore<TReadModel>` is a thread-safe, in-process implementation of `IReadModelStore<TReadModel>` backed by a dictionary protected with a monitor lock. It's designed for development, testing, and single-instance deployments where persistence requirements are minimal. For distributed scenarios or production workloads, replace this with a database-backed implementation.
+
+The store provides basic CRUD operations with atomic updates and supports querying via predicates. A diagnostic method `GetAllKeys()` returns all keys for testing and observability purposes.
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.ReadModels;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class AccountReadModelStoreExample
+{
+    private readonly InMemoryReadModelStore<AccountReadModel> _store = 
+        new InMemoryReadModelStore<AccountReadModel>();
+
+    public async Task ManageAccountReadModels()
+    {
+        // Create a new account read model
+        var account = new AccountReadModel
+        {
+            AggregateId = "agg-123",
+            AccountNumber = "ACC-0001",
+            AccountHolder = "John Doe",
+            CurrentBalance = 1000.00m,
+            Currency = "USD",
+            IsClosed = false
+        };
+
+        // Upsert: Add or update a read model
+        var upsertResult = await _store.UpsertAsync(account.AggregateId, account);
+        if (upsertResult.IsSuccess)
+        {
+            Console.WriteLine("Account read model upserted successfully");
+        }
+
+        // Get a single read model by key
+        var getResult = await _store.GetAsync("agg-123");
+        if (getResult.IsSuccess)
+        {
+            var retrievedAccount = getResult.Data;
+            Console.WriteLine($"Retrieved account: {retrievedAccount.AccountNumber}, Balance: {retrievedAccount.CurrentBalance}");
+        }
+
+        // Query: Find all accounts with balance > 500
+        var queryResult = await _store.QueryAsync(acc => acc.CurrentBalance > 500);
+        if (queryResult.IsSuccess)
+        {
+            var highBalanceAccounts = queryResult.Data;
+            Console.WriteLine($"Found {highBalanceAccounts.Count} accounts with balance > 500");
+        }
+
+        // Get all read models
+        var allResult = await _store.GetAllAsync();
+        if (allResult.IsSuccess)
+        {
+            var allAccounts = allResult.Data;
+            Console.WriteLine($"Total accounts in store: {allAccounts.Count}");
+        }
+
+        // Get count of read models
+        var countResult = await _store.GetCountAsync();
+        if (countResult.IsSuccess)
+        {
+            Console.WriteLine($"Current count: {countResult.Data}");
+        }
+
+        // Delete a read model
+        var deleteResult = await _store.DeleteAsync("agg-123");
+        if (deleteResult.IsSuccess)
+        {
+            Console.WriteLine("Account deleted successfully");
+        }
+
+        // Clear all read models
+        await _store.ClearAsync();
+        Console.WriteLine("Store cleared");
+
+        // Diagnostic: Get all keys (for testing/observability)
+        var keys = _store.GetAllKeys();
+        Console.WriteLine($"Current keys: {string.Join(", ", keys)}");
+    }
+}
+```
+
 ## ValidationExtensions
 
 `ValidationExtensions` provides a comprehensive set of guard clause extension methods for validating method parameters and business rules. These extensions follow a fluent, exception-throwing pattern that integrates seamlessly with C# method chaining, making validation code more readable and maintainable.
