@@ -513,6 +513,99 @@ public class ConfigurationExample
 
 The example demonstrates all public members of `ConfigurationException` including the factory methods and custom exception creation with proper error handling.
 
+## Transaction
+
+`Transaction` is an immutable value object that represents a financial transaction record in the system. It captures essential details such as transaction type (deposit or withdrawal), monetary amount with currency, reference information, timestamps, and extensible metadata for additional context. Transactions are typically created during account operations and can be used for audit trails, reporting, and reconciliation.
+
+**Public members:**
+- `Id` - Unique identifier for the transaction
+- `Type` - Transaction type (deposit or withdrawal) as `TransactionType` enum
+- `Amount` - Monetary amount with currency as `Money` value object
+- `TransactionDate` - UTC timestamp when the transaction occurred
+- `Reference` - Human-readable reference text for the transaction
+- `Description` - Optional description of the transaction
+- `Metadata` - Dictionary for storing additional custom metadata
+- `Timestamp` - Convenience property alias for `TransactionDate` (excluded from serialization)
+- `Equals(Transaction? other)` - Equality comparison method
+- `Equals(object? obj)` - Override for equality comparison
+- `GetHashCode()` - Override for hash code generation
+- `ToString()` - Returns formatted string representation
+
+**Typical usage**
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Domain.ValueObjects;
+using DotNetCqrsEventSourcing.Shared.Enums;
+
+public class TransactionExample
+{
+  public void CreateAndUseTransactions()
+  {
+    // Create a deposit transaction
+    var depositAmount = new Money(1000.50m, "USD");
+    var depositTransaction = new Transaction(
+      type: TransactionType.Deposit,
+      amount: depositAmount,
+      reference: "Salary payment",
+      description: "Monthly salary deposit"
+    );
+
+    Console.WriteLine($"Deposit transaction: {depositTransaction}");
+    Console.WriteLine($"Type: {depositTransaction.Type}");
+    Console.WriteLine($"Amount: {depositTransaction.Amount}");
+    Console.WriteLine($"Reference: {depositTransaction.Reference}");
+    Console.WriteLine($"Description: {depositTransaction.Description}");
+    Console.WriteLine($"Timestamp: {depositTransaction.TransactionDate:yyyy-MM-dd HH:mm:ss}");
+    Console.WriteLine($"Timestamp alias: {depositTransaction.Timestamp:yyyy-MM-dd HH:mm:ss}");
+
+    // Create a withdrawal transaction
+    var withdrawalAmount = new Money(250.75m, "USD");
+    var withdrawalTransaction = new Transaction(
+      type: TransactionType.Withdrawal,
+      amount: withdrawalAmount,
+      reference: "ATM withdrawal",
+      description: "Cash withdrawal from ATM"
+    );
+
+    Console.WriteLine($"\nWithdrawal transaction: {withdrawalTransaction}");
+
+    // Add custom metadata
+    withdrawalTransaction.Metadata["Location"] = "New York City";
+    withdrawalTransaction.Metadata["TerminalId"] = "ATM-001";
+    withdrawalTransaction.Metadata["UserId"] = "user-123";
+
+    Console.WriteLine($"Metadata count: {withdrawalTransaction.Metadata.Count}");
+    Console.WriteLine($"Location: {withdrawalTransaction.Metadata["Location"]}");
+
+    // Create transaction with custom ID (for replay scenarios)
+    var customTransaction = new Transaction(
+      id: "txn-12345",
+      type: TransactionType.Deposit,
+      amount: new Money(5000.00m, "EUR"),
+      transactionDate: DateTime.UtcNow.AddDays(-1),
+      reference: "Bonus payment",
+      description: "Quarterly performance bonus"
+    );
+
+    Console.WriteLine($"\nCustom ID transaction: {customTransaction.Id}");
+
+    // Equality comparison
+    var sameTransaction = new Transaction(
+      type: TransactionType.Deposit,
+      amount: new Money(1000.50m, "USD"),
+      reference: "Salary payment"
+    );
+
+    Console.WriteLine($"\nAre transactions equal: {depositTransaction.Equals(sameTransaction)}");
+    Console.WriteLine($"Hash codes match: {depositTransaction.GetHashCode() == sameTransaction.GetHashCode()}");
+  }
+}
+```
+
+The example demonstrates all public members of `Transaction` with realistic usage patterns for creating, querying, and comparing transaction records.
+
+
 ## TransactionSummary
 
 `TransactionSummary` is an immutable record that represents a single credit or debit transaction entry recorded against an account. It is appended to the `Transactions` collection of an `AccountReadModel` by the `AccountProjector` whenever a `MoneyDeposited` or `MoneyWithdrawn` event is projected.
