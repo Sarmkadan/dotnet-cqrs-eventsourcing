@@ -198,6 +198,70 @@ public class Example
 The example demonstrates the public members of `CqrsException` and its derived types without relying on any hidden implementation details.
 
 
+## DotnetCqrsEventsourcingException
+
+`DotnetCqrsEventsourcingException` is the base exception type for all custom exceptions in the DotNetCqrsEventSourcing framework. It provides structured error handling with an **ErrorCode** for categorizing exceptions, an **OccurredAt** timestamp for tracking when the exception occurred, and a custom **ToString()** implementation that includes the error code.
+
+This exception is designed to be inherited by more specific exception types throughout the framework, allowing for consistent error handling patterns.
+
+**Public members:**
+- `ErrorCode` - Gets the error code identifying the type/category of error
+- `OccurredAt` - Gets the UTC timestamp when the exception was created
+- `DotnetCqrsEventsourcingException(string message, string errorCode)` - Constructor with message and error code
+- `DotnetCqrsEventsourcingException(string message, string errorCode, Exception? innerException)` - Constructor with message, error code, and inner exception
+- `ToString()` - Override that includes the error code in the output
+
+**Typical usage**
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Shared.Exceptions;
+
+public class Example
+{
+    public void ProcessAccountCommand(AccountCommand command)
+    {
+        try
+        {
+            // Business logic that might throw domain-specific exceptions
+            ProcessCommandInternal(command);
+        }
+        catch (DotnetCqrsEventsourcingException ex)
+        {
+            // Handle framework-specific exceptions
+            Console.WriteLine($"Error occurred at {{ex.OccurredAt:u}}");
+            Console.WriteLine($"Error code: {{ex.ErrorCode}}");
+            Console.WriteLine($"Message: {{ex.Message}}");
+            Console.WriteLine($"Full string representation: {{ex}}");
+            
+            // Log or propagate the error
+            LogError(ex);
+        }
+    }
+    
+    private void ProcessCommandInternal(AccountCommand command)
+    {
+        // Simulate a domain error
+        throw new DotnetCqrsEventsourcingException(
+            message: "Account operation failed due to validation rules",
+            errorCode: "ACCOUNT_VALIDATION_FAILED");
+    }
+    
+    private void LogError(DotnetCqrsEventsourcingException ex)
+    {
+        // Example of logging with all available information
+        var logMessage = $"[{ex.OccurredAt:u}] [{ex.ErrorCode}] {ex.Message}";
+        Console.WriteLine(logMessage);
+        
+        // The ToString() method provides a formatted output
+        Console.WriteLine($"Exception details: {{ex}}");
+    }
+}
+```
+
+The example demonstrates all public members of `DotnetCqrsEventsourcingException` with realistic usage patterns for error handling and logging.
+
+
 
 ## ValidationException
 
