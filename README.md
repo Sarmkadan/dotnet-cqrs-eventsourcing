@@ -650,6 +650,111 @@ public class Program
 }
 ```
 
+## QueriesController
+
+`QueriesController` is an ASP.NET Core controller that provides read-side query endpoints for retrieving account information and statistics. It implements the CQRS pattern by separating read operations from write operations, allowing efficient data retrieval without loading aggregate state. The controller exposes endpoints for listing accounts, searching accounts, retrieving balances, transaction histories, and account statistics, as well as cache invalidation for read model consistency.
+
+The controller uses the projection service to build read models from the event store and provides comprehensive filtering, sorting, and pagination capabilities for account queries.
+
+Example usage:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Presentation.Controllers;
+using DotNetCqrsEventSourcing.ReadModels;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+public class QueriesControllerExample
+{
+    private readonly QueriesController _queriesController;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public QueriesControllerExample()
+    {
+        _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        _queriesController = new QueriesController(
+            logger: _loggerFactory.CreateLogger<QueriesController>(),
+            projectionService: null, // In real app: inject IProjectionService
+            readModelStore: null    // In real app: inject IReadModelStore<AccountReadModel>
+        );
+    }
+
+    public async Task DemonstrateQueryEndpointsAsync()
+    {
+        // List all accounts with pagination
+        var listResult = await _queriesController.ListAccounts(pageNumber: 1, pageSize: 10);
+        if (listResult.IsSuccess)
+        {
+            var accounts = listResult.Data;
+            Console.WriteLine($"Found {accounts?.Count} accounts");
+        }
+
+        // Search accounts by account number or holder name
+        var searchResult = await _queriesController.SearchAccounts(
+            query: "John",
+            pageNumber: 1,
+            pageSize: 10
+        );
+        if (searchResult.IsSuccess)
+        {
+            var matchingAccounts = searchResult.Data;
+            Console.WriteLine($"Found {matchingAccounts?.Count} accounts matching 'John'");
+        }
+
+        // Get account balance by account number
+        var balanceResult = await _queriesController.GetAccountBalance("ACC-2024-001");
+        if (balanceResult.IsSuccess)
+        {
+            var balanceInfo = balanceResult.Data;
+            Console.WriteLine($"Account balance: {balanceInfo.CurrentBalance:C}");
+        }
+
+        // Get transaction history for an account
+        var historyResult = await _queriesController.GetTransactionHistory(
+            accountNumber: "ACC-2024-001",
+            pageNumber: 1,
+            pageSize: 50
+        );
+        if (historyResult.IsSuccess)
+        {
+            var transactions = historyResult.Data;
+            Console.WriteLine($"Found {transactions?.Count} transactions");
+        }
+
+        // Get account statistics
+        var statsResult = await _queriesController.GetAccountStatistics("ACC-2024-001");
+        if (statsResult.IsSuccess)
+        {
+            var stats = statsResult.Data;
+            Console.WriteLine($"Account statistics - Total deposits: {stats.TotalDeposits:C}, " +
+                           $"Total withdrawals: {stats.TotalWithdrawals:C}, " +
+                           $"Transaction count: {stats.TransactionCount}");
+        }
+
+        // Invalidate query cache to force rebuild of projections
+        var invalidateResult = await _queriesController.InvalidateQueryCache();
+        if (invalidateResult.IsSuccess)
+        {
+            Console.WriteLine("Query cache invalidated successfully");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var example = new QueriesControllerExample();
+        await example.DemonstrateQueryEndpointsAsync();
+    }
+}
+```
+
 ## AccountProjectionSummary
 
 `AccountProjectionSummary` is a strongly-typed read model that provides a compact summary of an account's state and transaction history. It is computed by replaying an aggregate's event stream and serves as a convenient data transfer object for reporting scenarios, dashboards, and API responses.
