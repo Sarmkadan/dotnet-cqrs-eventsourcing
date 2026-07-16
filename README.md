@@ -58,6 +58,123 @@ public class Program
 }
 ```
 
+## AccountService
+
+`AccountService` is an application service that provides the primary interface for managing bank accounts within the CQRS + Event Sourcing framework. It coordinates account operations including creation, deposits, withdrawals, closures, and querying, while ensuring proper event publishing and persistence through the repository and event bus.
+
+The service handles domain validation errors gracefully by translating them into structured `Result` objects with appropriate error codes, making it suitable for use in both application code and API controllers.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class AccountServiceExample
+{
+    private readonly IAccountService _accountService;
+
+    public AccountServiceExample(IAccountService accountService)
+    {
+        _accountService = accountService;
+    }
+
+    public async Task ManageAccountOperationsAsync()
+    {
+        // Create a new account
+        var createResult = await _accountService.CreateAccountAsync(
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+
+        if (createResult.IsSuccess)
+        {
+            var account = createResult.Data!;
+            Console.WriteLine($"Account created: {account.AccountNumber}");
+            Console.WriteLine($"Initial balance: {account.Balance.CurrentAmount}");
+
+            // Deposit funds
+            var depositResult = await _accountService.DepositAsync(
+                accountId: account.Id,
+                amount: 500.00m,
+                reference: "Salary payment"
+            );
+
+            if (depositResult.IsSuccess)
+            {
+                Console.WriteLine("Deposit successful");
+
+                // Withdraw funds
+                var withdrawResult = await _accountService.WithdrawAsync(
+                    accountId: account.Id,
+                    amount: 200.00m,
+                    reference: "Rent payment"
+                );
+
+                if (withdrawResult.IsSuccess)
+                {
+                    Console.WriteLine("Withdrawal successful");
+
+                    // Get transaction count
+                    var countResult = await _accountService.GetTransactionCountAsync(account.Id);
+                    if (countResult.IsSuccess)
+                    {
+                        Console.WriteLine($"Transaction count: {countResult.Data}");
+                    }
+                }
+            }
+        }
+
+        // Get all accounts
+        var allAccountsResult = await _accountService.GetAllAccountsAsync();
+        if (allAccountsResult.IsSuccess)
+        {
+            Console.WriteLine($"Total accounts: {allAccountsResult.Data?.Count}");
+        }
+
+        // Close an account
+        var closeResult = await _accountService.CloseAccountAsync(
+            accountId: "ACC-2024-001",
+            reason: "Customer request"
+        );
+
+        if (closeResult.IsSuccess)
+        {
+            Console.WriteLine("Account closed successfully");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection (simplified example)
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IAccountService>(provider => 
+        {
+            var logger = provider.GetRequiredService<ILogger<AccountService>>();
+            var repository = new InMemoryRepository<Account>();
+            var eventBus = new EventBus(logger);
+            return new AccountService(repository, eventBus, logger);
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var accountService = serviceProvider.GetRequiredService<IAccountService>();
+
+        var example = new AccountServiceExample(accountService);
+        await example.ManageAccountOperationsAsync();
+    }
+}
+```
+
 ## AccountAggregateTests
 
 The `AccountAggregateTests` class provides a comprehensive set of unit tests for the `Account` aggregate root, covering various scenarios such as account creation, deposit, withdrawal, and closure. These tests ensure that the `Account` class behaves correctly under different conditions.
