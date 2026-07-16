@@ -539,6 +539,104 @@ public class AccountQueryServiceExample
 }
 ```
 
+## ReadModelProjectionEngine
+
+`ReadModelProjectionEngine` orchestrates eventually consistent read-model projections by subscribing to the application event bus and routing domain events to registered projection runners. It provides configurable retry with exponential back-off, per-projection checkpointing, bounded concurrency, and on-demand aggregate replay for rebuilds.
+
+Example usage:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using DotNetCqrsEventSourcing.ReadModels;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+public class ReadModelProjectionEngineExample
+{
+    public async Task RunProjectionEngineExample(
+        IEventBus eventBus,
+        IEventStore eventStore,
+        IEnumerable<IReadModelProjectionRunner> runners,
+        IOptions<ReadModelProjectionOptions> options,
+        ILogger<ReadModelProjectionEngine> logger,
+        IDeadLetterStore? deadLetterStore = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Create the projection engine
+        using var projectionEngine = new ReadModelProjectionEngine(
+            eventBus,
+            eventStore,
+            runners,
+            options,
+            logger,
+            deadLetterStore);
+
+        // Rebuild projections for a specific aggregate
+        string aggregateId = "agg-123";
+        Result<ProjectionRebuildResult> rebuildResult = await projectionEngine.RebuildAsync(
+            aggregateId, 
+            cancellationToken);
+
+        if (rebuildResult.IsSuccess)
+        {
+            ProjectionRebuildResult result = rebuildResult.Data;
+            Console.WriteLine($"Rebuilt projections for aggregate {result.AggregateId}: " +
+                $"{result.TotalEventsReplayed} events replayed, {result.FailedEventIds.Count} failures");
+        }
+        else
+        {
+            Console.WriteLine($"Rebuild failed: {rebuildResult.ErrorMessage}");
+        }
+
+        // Rebuild projections for multiple aggregates
+        List<string> aggregateIds = new() { "agg-123", "agg-456", "agg-789" };
+        Result<IReadOnlyList<ProjectionRebuildResult>> rebuildAllResult = await projectionEngine.RebuildAllAsync(
+            aggregateIds,
+            cancellationToken);
+
+        if (rebuildAllResult.IsSuccess)
+        {
+            IReadOnlyList<ProjectionRebuildResult> results = rebuildAllResult.Data;
+            Console.WriteLine($"Rebuilt projections for {results.Count} aggregates");
+            
+            foreach (var result in results)
+            {
+                Console.WriteLine($"  Aggregate {result.AggregateId}: " +
+                    $"{result.TotalEventsReplayed} events replayed");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Rebuild all failed: {rebuildAllResult.ErrorMessage}");
+        }
+
+        // Get checkpoint for a specific projection
+        string projectionName = "AccountReadModel";
+        ProjectionCheckpoint? checkpoint = projectionEngine.GetCheckpoint(projectionName);
+        if (checkpoint != null)
+        {
+            Console.WriteLine($"Checkpoint for {projectionName}: " +
+                $"EventId={checkpoint.EventId}, Version={checkpoint.AggregateVersion}, " +
+                $"Timestamp={checkpoint.Timestamp:u}, ProcessedEvents={checkpoint.ProcessedEvents}");
+        }
+        else
+        {
+            Console.WriteLine($"No checkpoint found for projection {projectionName}");
+        }
+
+        // The engine will be disposed automatically when exiting the using block,
+        // which unsubscribes from the event bus and releases resources
+    }
+}
+```
+
 ## InMemoryReadModelStore
 
 `InMemoryReadModelStore<TReadModel>` is a thread-safe, in-process implementation of `IReadModelStore<TReadModel>` backed by a dictionary protected with a monitor lock. It's designed for development, testing, and single-instance deployments where persistence requirements are minimal. For distributed scenarios or production workloads, replace this with a database-backed implementation.
