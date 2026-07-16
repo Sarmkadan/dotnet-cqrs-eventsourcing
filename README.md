@@ -175,6 +175,166 @@ public class Program
 }
 ```
 
+## EventStore
+
+`EventStore` is the core infrastructure service responsible for persisting, retrieving, and replaying domain events in the CQRS + Event Sourcing framework. It acts as the bridge between domain events raised by aggregates and the underlying event repository, providing atomic append operations and efficient event stream retrieval.
+
+The event store handles event serialization/deserialization, version tracking, and provides query capabilities for event streams, event types, and partition-based access. It's designed to work with both in-memory and persistent event repositories while maintaining consistency guarantees through atomic operations.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class EventStoreExample
+{
+    private readonly EventStore _eventStore;
+
+    public EventStoreExample(EventStore eventStore)
+    {
+        _eventStore = eventStore;
+    }
+
+    public async Task ManageAccountEventsAsync()
+    {
+        // Create a new account event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        // Append single event to event store
+        var appendResult = await _eventStore.AppendEventAsync(accountCreatedEvent);
+        if (appendResult.IsSuccess)
+        {
+            Console.WriteLine("Event appended successfully");
+        }
+
+        // Append multiple events atomically
+        var depositEvent = new MoneyDepositedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            amount: 500.00m,
+            reference: "Salary payment",
+            aggregateVersion: 2
+        );
+        depositEvent.PopulateMetadata();
+
+        var withdrawEvent = new MoneyWithdrawnEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            amount: 200.00m,
+            reference: "Rent payment",
+            aggregateVersion: 3
+        );
+        withdrawEvent.PopulateMetadata();
+
+        var multiAppendResult = await _eventStore.AppendEventsAsync(
+            new List<DomainEvent> { depositEvent, withdrawEvent }
+        );
+        if (multiAppendResult.IsSuccess)
+        {
+            Console.WriteLine("Multiple events appended successfully");
+        }
+
+        // Retrieve entire event stream for an aggregate
+        var streamResult = await _eventStore.GetEventStreamAsync("account-123");
+        if (streamResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved {streamResult.Data!.Count} events for account-123");
+            foreach (var @event in streamResult.Data)
+            {
+                Console.WriteLine($" - {@event.GetType().Name} (version: {@event.AggregateVersion})");
+            }
+        }
+
+        // Get events from a specific version
+        var fromVersionResult = await _eventStore.GetEventStreamFromVersionAsync(
+            aggregateId: "account-123",
+            fromVersion: 2
+        );
+        if (fromVersionResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved {fromVersionResult.Data!.Count} events from version 2");
+        }
+
+        // Get aggregate version
+        var versionResult = await _eventStore.GetAggregateVersionAsync("account-123");
+        if (versionResult.IsSuccess)
+        {
+            Console.WriteLine($"Current aggregate version: {versionResult.Data}");
+        }
+
+        // Count events for an aggregate
+        var countResult = await _eventStore.GetEventCountAsync("account-123");
+        if (countResult.IsSuccess)
+        {
+            Console.WriteLine($"Total events: {countResult.Data}");
+        }
+
+        // Replay events for an aggregate (useful for rebuilding state)
+        var replayResult = await _eventStore.ReplayEventsAsync("account-123");
+        if (replayResult.IsSuccess)
+        {
+            Console.WriteLine("Events replayed successfully");
+        }
+
+        // Get events by type
+        var typeResult = await _eventStore.GetEventsByTypeAsync("AccountCreatedEvent");
+        if (typeResult.IsSuccess)
+        {
+            Console.WriteLine($"Found {typeResult.Data!.Count} AccountCreatedEvent instances");
+        }
+
+        // Get events by partition key (for multi-tenant scenarios)
+        var partitionResult = await _eventStore.GetEventsByPartitionKeyAsync(
+            partitionKey: "tenant-abc",
+            pageNumber: 1,
+            pageSize: 100
+        );
+        if (partitionResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved {partitionResult.Data!.Count} events for tenant-abc");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        
+        // Create in-memory event repository for demonstration
+        services.AddSingleton<IEventRepository>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<InMemoryEventRepository>>();
+            return new InMemoryEventRepository(logger);
+        });
+        
+        services.AddSingleton<EventStore>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var eventStore = serviceProvider.GetRequiredService<EventStore>();
+
+        var example = new EventStoreExample(eventStore);
+        await example.ManageAccountEventsAsync();
+    }
+}
+```
+
 ## AccountAggregateTests
 
 The `AccountAggregateTests` class provides a comprehensive set of unit tests for the `Account` aggregate root, covering various scenarios such as account creation, deposit, withdrawal, and closure. These tests ensure that the `Account` class behaves correctly under different conditions.
