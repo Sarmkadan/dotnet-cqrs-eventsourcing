@@ -1333,6 +1333,129 @@ public class BalanceExample
 }
 ```
 
+## EventHandlers
+
+`EventHandlers` is the central event handling coordinator in the CQRS + Event Sourcing framework. It manages the registration of domain event handlers and coordinates event processing across the system. The class provides a centralized location for subscribing to domain events and delegating their processing to appropriate handlers.
+
+The `EventHandlers` class coordinates:
+- Domain event subscriptions and routing
+- Projection updates for read models  
+- Snapshot creation for aggregates
+- Error handling and logging for event processing
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Application.Handlers;
+using DotNetCqrsEventSourcing.Domain.Events;
+using Microsoft.Extensions.Logging;
+
+public class EventHandlersExample
+{
+    private readonly EventHandlers _eventHandlers;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public EventHandlersExample()
+    {
+        // Setup dependencies (in real app these would be injected)
+        _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        
+        // EventHandlers would typically be registered as a singleton service
+        _eventHandlers = new EventHandlers(
+            eventBus: new InMemoryEventBus(),
+            projectionService: new InMemoryProjectionService(),
+            snapshotService: new InMemorySnapshotService(),
+            logger: _loggerFactory.CreateLogger<EventHandlers>()
+        );
+    }
+
+    public void SetupEventHandlers()
+    {
+        // Register all event handlers
+        _eventHandlers.RegisterHandlers();
+        
+        Console.WriteLine("Event handlers registered successfully");
+    }
+
+    public void CustomEventHandlerExample()
+    {
+        // Example of custom event handler implementation
+        var customHandler = new CustomAccountEventHandler(
+            _loggerFactory.CreateLogger<CustomAccountEventHandler>()
+        );
+
+        // Handle a domain event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-0001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+
+        customHandler.HandleAsync(accountCreatedEvent).Wait();
+    }
+}
+
+// Custom event handler implementation
+public class CustomAccountEventHandler : EventHandler<AccountCreatedEvent>
+{
+    public CustomAccountEventHandler(ILogger logger) : base(logger) { }
+
+    public override async Task HandleAsync(AccountCreatedEvent @event)
+    {
+        Logger.LogInformation("Custom handler processing account creation: {AccountNumber}", @event.AccountNumber);
+        
+        // Custom business logic for account creation
+        await Task.Delay(100); // Simulate processing
+        
+        Console.WriteLine($"Account created: {@event.AccountNumber} for {@event.AccountHolder}");
+    }
+
+    public override async Task HandleErrorAsync(AccountCreatedEvent @event, Exception exception)
+    {
+        Logger.LogError(exception, "Failed to process account creation for {AccountNumber}", @event.AccountNumber);
+        await Task.CompletedTask;
+    }
+}
+
+// Saga example
+public class TransferSaga : EventSaga
+{
+    private string _sagaId = Guid.NewGuid().ToString();
+    private string _fromAccountId;
+    private string _toAccountId;
+    private decimal _amount;
+
+    public TransferSaga(IEventBus eventBus, ILogger logger) 
+        : base(eventBus, logger) { }
+
+    public override async Task StartAsync(DomainEvent triggeringEvent)
+    {
+        if (triggeringEvent is AccountCreatedEvent accountEvent)
+        {
+            _fromAccountId = accountEvent.AggregateId;
+            Logger.LogInformation("Transfer saga started for account: {AccountId}", _fromAccountId);
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    public override async Task CompleteStepAsync(DomainEvent @event)
+    {
+        Logger.LogInformation("Saga step completed for event: {EventType}", @event.GetType().Name);
+        await Task.CompletedTask;
+    }
+
+    public override async Task CompensateAsync(string sagaId)
+    {
+        Logger.LogWarning("Compensating saga: {SagaId}", sagaId);
+        await Task.CompletedTask;
+    }
+}
+```
+
 ## AggregateSnapshot
 
 `AggregateSnapshot` is a complete state snapshot of an aggregate root at a specific version. It captures the entire serialized state of an aggregate, allowing for efficient reconstruction of aggregate state without replaying the entire event history. Snapshots are particularly useful for aggregates with long event streams, as they significantly reduce the time required for state reconstruction during event replay.
