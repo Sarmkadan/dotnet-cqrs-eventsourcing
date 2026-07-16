@@ -325,3 +325,60 @@ public class Example
 ```
 
 The example demonstrates all public members of `ValidationException`: the `ValidationErrors` dictionary, the base constructors, the `WithError` method, and the factory methods.
+
+
+## ConfigurationException
+
+`ConfigurationException` is thrown when there are errors in application configuration or validation. It extends `DotnetCqrsEventsourcingException` and provides factory methods for common configuration error scenarios such as missing required configuration values, invalid configuration values, and configuration validation failures.
+
+**Public members:**
+- Constructors for creating custom configuration exceptions
+- `MissingRequiredConfiguration(string configurationKey)` - factory method for missing configuration
+- `InvalidConfigurationValue(string configurationKey, string value)` - factory method for invalid configuration values  
+- `ValidationFailed(string validationMessage)` - factory method for configuration validation failures
+
+**Typical usage**
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Shared.Exceptions;
+
+public class ConfigurationExample
+{
+    public void LoadConfiguration(string[] args)
+    {
+        // Example 1: Missing required configuration
+        var apiKey = Environment.GetEnvironmentVariable("API_KEY");
+        if (string.IsNullOrEmpty(apiKey))
+            throw ConfigurationException.MissingRequiredConfiguration("API_KEY");
+
+        // Example 2: Invalid configuration value
+        var timeoutValue = Environment.GetEnvironmentVariable("TIMEOUT_SECONDS");
+        if (!int.TryParse(timeoutValue, out var timeout) || timeout <= 0)
+            throw ConfigurationException.InvalidConfigurationValue("TIMEOUT_SECONDS", timeoutValue ?? "null");
+
+        // Example 3: Configuration validation failed
+        var maxConnections = Environment.GetEnvironmentVariable("MAX_CONNECTIONS");
+        if (string.IsNullOrEmpty(maxConnections) || !int.TryParse(maxConnections, out var max) || max < 1 || max > 100)
+            throw ConfigurationException.ValidationFailed("MAX_CONNECTIONS must be a number between 1 and 100");
+
+        // Example 4: Custom configuration exception
+        try
+        {
+            var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+            if (string.IsNullOrEmpty(databaseUrl))
+                throw new ConfigurationException(
+                    "Database connection string is required",
+                    "DB_CONNECTION_MISSING");
+        }
+        catch (ConfigurationException ex)
+        {
+            Console.WriteLine($"Configuration error occurred at {{ex.OccurredAt:u}}");
+            Console.WriteLine($"Error code: {{ex.ErrorCode}}");
+            Console.WriteLine($"Message: {{ex.Message}}");
+        }
+    }
+}
+```
+
+The example demonstrates all public members of `ConfigurationException` including the factory methods and custom exception creation with proper error handling.
