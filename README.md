@@ -606,6 +606,77 @@ public class TransactionExample
 The example demonstrates all public members of `Transaction` with realistic usage patterns for creating, querying, and comparing transaction records.
 
 
+## GetAccountQuery
+
+`GetAccountQuery` is a query object used to retrieve a specific account by its unique identifier. This query is part of the CQRS pattern and is typically dispatched to a query handler that returns the account read model or aggregate state. The query includes correlation tracking for distributed tracing and timestamping for audit purposes.
+
+**Public members:**
+- `AccountId` - The unique identifier of the account to retrieve
+- `CorrelationId` - Unique identifier for tracing the query across services
+- `IssuedAt` - UTC timestamp when the query was created
+- `GetAccountQuery()` - Default constructor
+- `GetAccountQuery(string accountId)` - Constructor with account ID
+- `ToString()` - Returns formatted string representation
+
+**Typical usage**
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Queries;
+using DotNetCqrsEventSourcing.ReadModels;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class GetAccountQueryExample
+{
+    private readonly IAccountReadModelQueryService _queryService;
+
+    public GetAccountQueryExample(IAccountReadModelQueryService queryService)
+    {
+        _queryService = queryService;
+    }
+
+    public async Task RetrieveAccountAsync()
+    {
+        // Create a query to retrieve account by ID
+        var query = new GetAccountQuery("account-123");
+        
+        Console.WriteLine($"Query created: {query}");
+        Console.WriteLine($"Account ID: {query.AccountId}");
+        Console.WriteLine($"Correlation ID: {query.CorrelationId}");
+        Console.WriteLine($"Issued at: {query.IssuedAt:u}");
+
+        // Execute the query to get the account
+        var result = await _queryService.GetByIdAsync(query.AccountId);
+        
+        if (result.IsSuccess)
+        {
+            var account = result.Data;
+            Console.WriteLine($"Account found: {account?.AccountNumber}");
+            Console.WriteLine($"Account holder: {account?.AccountHolder}");
+            Console.WriteLine($"Current balance: {account?.CurrentBalance}");
+        }
+        else
+        {
+            Console.WriteLine($"Account not found: {result.ErrorCode}");
+        }
+    }
+
+    public void CreateQueryWithCustomCorrelation()
+    {
+        // Create query with custom correlation ID for tracing
+        var query = new GetAccountQuery("account-456")
+        {
+            CorrelationId = "corr-trace-123",
+            IssuedAt = DateTime.UtcNow.AddMinutes(-5) // Simulate delayed query
+        };
+        
+        Console.WriteLine($"Custom query: {query}");
+        Console.WriteLine($"Custom correlation: {query.CorrelationId}");
+    }
+}
+```
+
 ## TransactionSummary
 
 `TransactionSummary` is an immutable record that represents a single credit or debit transaction entry recorded against an account. It is appended to the `Transactions` collection of an `AccountReadModel` by the `AccountProjector` whenever a `MoneyDeposited` or `MoneyWithdrawn` event is projected.
