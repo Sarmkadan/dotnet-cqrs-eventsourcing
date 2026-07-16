@@ -715,6 +715,152 @@ public class DomainEventExample
 }
 ```
 
+## Account
+
+`Account` is the aggregate root that manages the complete lifecycle of a bank account within the CQRS + Event Sourcing framework. It handles account creation, deposits, withdrawals, and closure while maintaining a transaction history and balance state. All state changes are persisted as a sequence of immutable domain events.
+
+The account tracks its version, timestamps, and supports event replay for state reconstruction. It also provides snapshot support through `LastSnapshotVersion` for performance optimization in systems with frequent aggregate access.
+
+**Public members:**
+- `AccountNumber` - The unique account identifier
+- `AccountHolder` - The name of the account holder
+- `Balance` - The current balance as a `Balance` value object
+- `Status` - The account status (`Active` or `Closed`)
+- `Transactions` - List of transaction history entries
+- `OpenDate` - When the account was opened
+- `CloseDate` - When the account was closed (null if still open)
+- `LastSnapshotVersion` - Version at which the last snapshot was taken
+- `AccountHolderName` - Convenience alias for `AccountHolder`
+- `IsClosed` - Boolean indicating if account is closed
+- `ReplayEvents(IEnumerable<DomainEvent>)` - Replays events to reconstruct state
+- `CreateAccount(string, string, string, decimal)` - Creates and opens a new account
+- `Deposit(decimal, string)` - Deposits funds into the account
+- `Withdraw(decimal, string)` - Withdraws funds from the account
+- `CloseAccount(string)` - Closes the account
+- `ToString()` - Returns formatted account information
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class AccountExample
+{
+    public void CreateAndManageAccount()
+    {
+        // Create a new account aggregate instance
+        var account = new Account("ACC-2024-001");
+
+        // Create and open the account with initial balance
+        account.CreateAccount(
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+
+        Console.WriteLine($"Account created: {account}");
+        Console.WriteLine($"Initial balance: {account.Balance.CurrentAmount}");
+        Console.WriteLine($"Account holder: {account.AccountHolder}");
+        Console.WriteLine($"Status: {account.Status}");
+        Console.WriteLine($"Open date: {account.OpenDate:yyyy-MM-dd}");
+        Console.WriteLine($"Version: {account.Version}");
+
+        // Deposit funds
+        account.Deposit(500.00m, "Salary payment");
+        Console.WriteLine($"\nAfter deposit: Balance = {account.Balance.CurrentAmount}");
+        Console.WriteLine($"Transactions count: {account.Transactions.Count}");
+
+        // Withdraw funds
+        account.Withdraw(200.00m, "Rent payment");
+        Console.WriteLine($"\nAfter withdrawal: Balance = {account.Balance.CurrentAmount}");
+        Console.WriteLine($"Transactions count: {account.Transactions.Count}");
+
+        // Access transaction history
+        var lastTransaction = account.Transactions.Last();
+        Console.WriteLine($"\nLast transaction: {lastTransaction.Type} of {lastTransaction.Amount} {lastTransaction.Amount.Currency}");
+        Console.WriteLine($"Reference: {lastTransaction.Reference}");
+
+        // Close the account
+        account.CloseAccount("Account closed by customer");
+        Console.WriteLine($"\nAccount closed: Status = {account.Status}");
+        Console.WriteLine($"Close date: {account.CloseDate?.ToString("yyyy-MM-dd") ?? "null"}");
+
+        // Get all uncommitted events for persistence
+        var uncommittedEvents = account.GetUncommittedEvents();
+        Console.WriteLine($"\nUncommitted events to persist: {uncommittedEvents.Count}");
+        Console.WriteLine("Event types:");
+        foreach (var @event in uncommittedEvents)
+        {
+            Console.WriteLine($"  - {@event.GetType().Name}");
+        }
+
+        // Clear events after persistence
+        account.ClearUncommittedEvents();
+        Console.WriteLine($"\nEvents after clearing: {account.GetUncommittedEvents().Count}");
+    }
+
+    public void ReplayAccountHistory()
+    {
+        // Create account from existing events (simulating event replay)
+        var account = new Account("ACC-2024-002");
+
+        // Simulate loading from event history
+        var events = new DomainEvent[]
+        {
+            new AccountCreatedEvent(
+                aggregateId: "ACC-2024-002",
+                accountNumber: "ACC-2024-002",
+                accountHolder: "Jane Smith",
+                currency: "EUR",
+                initialBalance: 5000.00m
+            ),
+            new MoneyDepositedEvent(
+                aggregateId: "ACC-2024-002",
+                amount: 1500.00m,
+                reference: "Bonus payment",
+                aggregateVersion: 2
+            ),
+            new MoneyWithdrawnEvent(
+                aggregateId: "ACC-2024-002",
+                amount: 800.00m,
+                reference: "Groceries",
+                aggregateVersion: 3
+            )
+        };
+
+        // Replay events to reconstruct state
+        account.ReplayEvents(events);
+
+        Console.WriteLine("Replayed account state:");
+        Console.WriteLine(account.ToString());
+        Console.WriteLine($"Current balance: {account.Balance.CurrentAmount}");
+        Console.WriteLine($"Transaction count: {account.Transactions.Count}");
+    }
+
+    public void CheckAccountStatus()
+    {
+        var account = new Account("ACC-2024-003");
+        account.CreateAccount("ACC-2024-003", "Bob Johnson", "GBP", 2500.00m);
+
+        // Use convenience properties
+        Console.WriteLine($"Account holder name: {account.AccountHolderName}");
+        Console.WriteLine($"Is account closed: {account.IsClosed}");
+        Console.WriteLine($"Account status: {account.Status}");
+
+        // Perform operations
+        account.Deposit(1000.00m, "Freelance work");
+        account.Withdraw(300.00m, "Utilities");
+
+        // Display final state
+        Console.WriteLine($"\nFinal account state: {account}");
+    }
+}
+```
+
 ## AggregateRoot
 
 `AggregateRoot` is the base class for all aggregate roots in the CQRS + Event Sourcing framework. It provides the foundation for implementing domain-driven aggregates by managing event sourcing, state reconstruction, and version tracking. Aggregate roots are the only objects in the domain layer that can raise domain events, ensuring that all state changes are captured as a sequence of immutable events.
