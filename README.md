@@ -520,6 +520,114 @@ public class EventEnvelopeExample
 }
 ```
 
+## DomainEvent
+
+`DomainEvent` is the abstract base class for all domain events in the CQRS + Event Sourcing framework. Domain events represent state changes in aggregates and serve as the single source of truth for the system's evolution. Each event carries metadata about the aggregate it belongs to, the user who triggered the change, correlation IDs for tracing across services, and extensible metadata storage for additional context.
+
+Events are immutable once created and typically raised by aggregate roots during command processing. The framework provides automatic metadata population including timestamps, aggregate version tracking, and correlation management through the `PopulateMetadata` method.
+
+Example usage:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetCqrsEventSourcing.Domain;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class AccountCreatedEvent : DomainEvent
+{
+    public string AccountNumber { get; }
+    public string AccountHolder { get; }
+    public string Currency { get; }
+    public decimal InitialBalance { get; }
+
+    public AccountCreatedEvent(
+        string aggregateId,
+        string accountNumber,
+        string accountHolder,
+        string currency,
+        decimal initialBalance)
+        : base(aggregateId)
+    {
+        AccountNumber = accountNumber;
+        AccountHolder = accountHolder;
+        Currency = currency;
+        InitialBalance = initialBalance;
+    }
+
+    public override string GetEventType() => nameof(AccountCreatedEvent);
+}
+
+public class DomainEventExample
+{
+    public void CreateAndProcessDomainEvent()
+    {
+        // Create a domain event with required aggregate context
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-0001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m)
+        {
+            // Optional metadata properties
+            UserId = "user-456",
+            CorrelationId = "corr-789",
+            TenantId = "tenant-abc"
+        };
+
+        // Populate automatic metadata
+        accountCreatedEvent.PopulateMetadata();
+
+        // Access event properties
+        Console.WriteLine($"Event ID: {accountCreatedEvent.EventId}");
+        Console.WriteLine($"Aggregate: {accountCreatedEvent.AggregateId} ({accountCreatedEvent.AggregateType}) v{accountCreatedEvent.AggregateVersion}");
+        Console.WriteLine($"Occurred at: {accountCreatedEvent.OccurredAt:u}");
+        Console.WriteLine($"User: {accountCreatedEvent.UserId}");
+        Console.WriteLine($"Correlation: {accountCreatedEvent.CorrelationId}");
+        Console.WriteLine($"Tenant: {accountCreatedEvent.TenantId}");
+        Console.WriteLine($"Event type: {accountCreatedEvent.GetEventType()}");
+        Console.WriteLine($"Metadata count: {accountCreatedEvent.Metadata.Count}");
+
+        // Access custom metadata
+        if (accountCreatedEvent.Metadata.TryGetValue("CustomField", out var customValue))
+        {
+            Console.WriteLine($"Custom metadata: {customValue}");
+        }
+
+        // String representation for debugging
+        Console.WriteLine(accountCreatedEvent.ToString());
+    }
+
+    public void CreateEventWithCustomMetadata()
+    {
+        // Create an event with custom metadata
+        var eventWithMetadata = new AccountCreatedEvent(
+            aggregateId: "agg-456",
+            accountNumber: "ACC-0002",
+            accountHolder: "Jane Smith",
+            currency: "EUR",
+            initialBalance: 500.00m)
+        {
+            UserId = "user-789",
+            CorrelationId = "corr-xyz",
+            TenantId = "tenant-def"
+        };
+
+        // Add custom metadata
+        eventWithMetadata.Metadata["IpAddress"] = "192.168.1.100";
+        eventWithMetadata.Metadata["UserAgent"] = "Mozilla/5.0";
+        eventWithMetadata.Metadata["SourceApplication"] = "WebApp";
+
+        // Populate standard metadata
+        eventWithMetadata.PopulateMetadata();
+
+        Console.WriteLine($"Event with custom metadata: {eventWithMetadata.EventId}");
+        Console.WriteLine($"IP Address: {eventWithMetadata.Metadata["IpAddress"]}");
+    }
+}
+```
+
 ## DeadLetterEntry
 
 `DeadLetterEntry` represents a domain event that could not be processed by a projection runner after all retry attempts were exhausted. It captures the failed event, the projection that failed, the error message, and metadata about retry attempts. This type is used by the dead-letter store to track events that need manual intervention or reprocessing.
