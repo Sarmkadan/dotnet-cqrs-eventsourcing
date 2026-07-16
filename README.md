@@ -1333,6 +1333,106 @@ public class BalanceExample
 }
 ```
 
+## IncrementalSnapshot
+
+`IncrementalSnapshot` represents a lightweight delta snapshot that records only the state changes that occurred since a base `AggregateSnapshot` (or a previous incremental). This approach reduces storage costs and write latency by avoiding repeated serialization of the full aggregate state. Incremental snapshots form chains anchored to a base snapshot, allowing efficient reconstruction of aggregate state through incremental deltas.
+
+**Public members:**
+- `Id` - Unique identifier for this incremental snapshot
+- `AggregateId` - Aggregate identifier this snapshot belongs to
+- `AggregateType` - Fully-qualified type name of the aggregate
+- `Version` - Aggregate version captured by this delta
+- `BaseVersion` - Version of the preceding snapshot this delta is relative to
+- `BaseSnapshotId` - ID of the immediately preceding snapshot
+- `DeltaData` - JSON-serialized dictionary mapping changed field paths to their new values
+- `SequenceNumber` - 1-based position within the incremental chain for this aggregate
+- `IsCompressed` - Whether `DeltaData` has been GZip-compressed
+- `CreatedAt` - UTC timestamp when this incremental snapshot was persisted
+- `Checksum` - SHA-256 checksum for integrity verification
+- `EventDelta` - Number of aggregate versions bridged by this incremental snapshot (Version - BaseVersion)
+
+**Methods:**
+- `Create()` - Factory method that creates an incremental snapshot and computes its checksum
+- `ComputeChecksum()` - Computes and stores a SHA-256 checksum across key fields
+- `VerifyChecksum()` - Verifies the stored checksum; returns false if absent or mismatched
+- `ToString()` - Returns formatted string representation
+
+Example usage:
+
+```csharp
+using System;
+using System.Text.Json;
+using DotNetCqrsEventSourcing.Domain.Snapshots;
+
+public class IncrementalSnapshotExample
+{
+    public void CreateAndUseIncrementalSnapshot()
+    {
+        // Create a base snapshot (typically created after significant state changes)
+        var baseSnapshot = new AggregateSnapshot
+        {
+            Id = Guid.NewGuid().ToString(),
+            AggregateId = "account-123",
+            AggregateType = "Account",
+            Version = 10,
+            SnapshotData = JsonSerializer.Serialize(new { Balance = 1000.50m, Status = "Active" }),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Create an incremental snapshot representing changes from version 10 to 15
+        var incremental1 = IncrementalSnapshot.Create(
+            aggregateId: "account-123",
+            aggregateType: "Account",
+            baseSnapshotId: baseSnapshot.Id,
+            baseVersion: 10,
+            currentVersion: 15,
+            deltaData: JsonSerializer.Serialize(new { Balance = 1500.75m }),
+            sequenceNumber: 1
+        );
+
+        Console.WriteLine($"Created incremental snapshot: {incremental1}");
+        Console.WriteLine($"Aggregate: {incremental1.AggregateId} v{incremental1.Version}");
+        Console.WriteLine($"Base version: {incremental1.BaseVersion}, Delta: {incremental1.EventDelta} events");
+        Console.WriteLine($"Checksum valid: {incremental1.VerifyChecksum()}");
+
+        // Create another incremental representing further changes from version 15 to 20
+        var incremental2 = IncrementalSnapshot.Create(
+            aggregateId: "account-123",
+            aggregateType: "Account",
+            baseSnapshotId: incremental1.Id,
+            baseVersion: 15,
+            currentVersion: 20,
+            deltaData: JsonSerializer.Serialize(new { Status = "Closed", CloseDate = DateTime.UtcNow }),
+            sequenceNumber: 2
+        );
+
+        Console.WriteLine($"\nCreated second incremental: {incremental2}");
+        Console.WriteLine($"Event delta: {incremental2.EventDelta} events");
+
+        // Create a snapshot chain for efficient reconstruction
+        var chain = new IncrementalSnapshotChain(baseSnapshot, new[] { incremental1, incremental2 });
+        Console.WriteLine($"\nSnapshot chain: {chain}");
+        Console.WriteLine($"Total chain length: {chain.Length} (1 base + {chain.Incrementals.Count} incrementals)");
+        Console.WriteLine($"Current version via chain: {chain.CurrentVersion}");
+
+        // Verify chain should collapse when too many incrementals accumulate
+        var longChain = new IncrementalSnapshotChain(baseSnapshot, Enumerable.Range(1, 15)
+            .Select(i => IncrementalSnapshot.Create(
+                aggregateId: "account-123",
+                aggregateType: "Account",
+                baseSnapshotId: i == 1 ? baseSnapshot.Id : $"inc-{i-1}",
+                baseVersion: i == 1 ? 10 : i * 5,
+                currentVersion: (i + 1) * 5,
+                deltaData: JsonSerializer.Serialize(new { Balance = (1000 + (i * 100)).ToString() }),
+                sequenceNumber: i
+            )));
+
+        Console.WriteLine($"\nLong chain should collapse: {longChain.ShouldCollapse()}");
+        Console.WriteLine($"Should collapse with max 5: {longChain.ShouldCollapse(maxIncrementals: 5)}");
+    }
+}
+```
+
 ## Money
 
 Example usage:
