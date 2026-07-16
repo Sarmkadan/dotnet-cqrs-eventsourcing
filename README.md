@@ -25,3 +25,28 @@ public class Program
         // Verify account state...
     }
 }
+```
+
+## AccountServiceTests
+
+The `AccountServiceTests` class contains integration‑style unit tests for the `AccountService` application service. It validates that account creation, deposits, withdrawals, closures, and related error handling work correctly by exercising the service with mocked dependencies.
+
+Example usage:
+```csharp
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Tests.Application;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var tests = new AccountServiceTests();
+
+        // Run a few representative test methods manually
+        await tests.CreateAccountAsync_ValidParameters_ReturnsSuccessWithAccount();
+        await tests.DepositAsync_ValidAccount_SavesAndPublishesEvents();
+        await tests.WithdrawAsync_InsufficientFunds_ReturnsFailure();
+        await tests.CloseAccountAsync_ValidAccount_SucceedsAndPublishesClosedEvent();
+    }
+}
+```
