@@ -109,6 +109,47 @@ public class Program
 }
 ```
 
+## CompactionResult
+
+`CompactionResult` is a data transfer object returned by event store compaction operations. It describes how many events were removed from the event stream and the version boundary that was used as the cut-off point. This result is used to track compaction operations and provide feedback about storage optimization achieved.
+
+**Public members:**
+- `AggregateId` - Identifier of the aggregate whose events were compacted
+- `EventsRemoved` - Number of events removed from the store
+- `CompactedToVersion` - The version up to which (exclusive) events were deleted; events at this version and beyond are retained
+- `CompactedAt` - UTC timestamp when the compaction was performed
+- `ToString()` - Returns formatted string representation
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Application.Services;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Create a compaction result after compacting an event stream
+        var result = new CompactionResult(
+            aggregateId: "account-123",
+            eventsRemoved: 42,
+            compactedToVersion: 100,
+            compactedAt: DateTime.UtcNow
+        );
+
+        Console.WriteLine($"Compaction completed: {result}");
+        Console.WriteLine($"Aggregate: {result.AggregateId}");
+        Console.WriteLine($"Events removed: {result.EventsRemoved}");
+        Console.WriteLine($"Compacted to version: {result.CompactedToVersion}");
+        Console.WriteLine($"Completed at: {result.CompactedAt:u}");
+
+        // String representation
+        Console.WriteLine($"\nFull representation: {result.ToString()}");
+    }
+}
+```
+
 ## EventStoreCompactionServiceTests
 
 The `EventStoreCompactionServiceTests` class provides unit tests for the `EventStoreCompactionService`, which handles event store compaction by removing old events while preserving snapshots. These tests verify compaction behavior under various scenarios including version-based compaction, snapshot-based compaction, and error handling when snapshots are missing.
