@@ -715,6 +715,165 @@ public class DomainEventExample
 }
 ```
 
+## AggregateRoot
+
+`AggregateRoot` is the base class for all aggregate roots in the CQRS + Event Sourcing framework. It provides the foundation for implementing domain-driven aggregates by managing event sourcing, state reconstruction, and version tracking. Aggregate roots are the only objects in the domain layer that can raise domain events, ensuring that all state changes are captured as a sequence of immutable events.
+
+Each aggregate root maintains a list of uncommitted events that are raised during command processing and can be persisted to the event store. The framework automatically tracks aggregate versioning, timestamps, and optional tenant isolation for multi-tenant scenarios.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Domain;
+using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class Account : AggregateRoot
+{
+    public string AccountNumber { get; private set; }
+    public string AccountHolder { get; private set; }
+    public decimal Balance { get; private set; }
+    public bool IsClosed { get; private set; }
+
+    // Create new account aggregate
+    public Account(string accountNumber, string accountHolder, decimal initialBalance)
+    {
+        if (string.IsNullOrEmpty(accountNumber))
+            throw new ArgumentException("Account number is required", nameof(accountNumber));
+        if (string.IsNullOrEmpty(accountHolder))
+            throw new ArgumentException("Account holder is required", nameof(accountHolder));
+        if (initialBalance < 0)
+            throw new ArgumentException("Initial balance cannot be negative", nameof(initialBalance));
+
+        AccountNumber = accountNumber;
+        AccountHolder = accountHolder;
+        Balance = initialBalance;
+
+        // Raise domain event for account creation
+        RaiseEvent(new AccountCreatedEvent(
+            aggregateId: Id,
+            accountNumber: accountNumber,
+            accountHolder: accountHolder,
+            currency: "USD",
+            initialBalance: initialBalance
+        ));
+    }
+
+    // Protected constructor for replay
+    protected Account() { }
+
+    // Apply domain event to state
+    protected override void ApplyEvent(DomainEvent @event, bool isFromHistory)
+    {
+        switch (@event)
+        {
+            case AccountCreatedEvent created:
+                AccountNumber = created.AccountNumber;
+                AccountHolder = created.AccountHolder;
+                Balance = created.InitialBalance;
+                IsClosed = false;
+                break;
+
+            case MoneyDeposited deposited:
+                Balance += deposited.Amount;
+                break;
+
+            case MoneyWithdrawn withdrawn:
+                if (Balance < withdrawn.Amount)
+                    throw new InvalidOperationException("Insufficient funds");
+                Balance -= withdrawn.Amount;
+                break;
+
+            case AccountClosed _:
+                IsClosed = true;
+                break;
+        }
+    }
+
+    // Business operations
+    public void Deposit(decimal amount, string reference)
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Cannot deposit to a closed account");
+        if (amount <= 0)
+            throw new ArgumentException("Deposit amount must be positive", nameof(amount));
+
+        RaiseEvent(new MoneyDeposited(
+            aggregateId: Id,
+            accountNumber: AccountNumber,
+            amount: amount,
+            currency: "USD",
+            reference: reference
+        ));
+    }
+
+    public void Withdraw(decimal amount, string reference)
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Cannot withdraw from a closed account");
+        if (amount <= 0)
+            throw new ArgumentException("Withdrawal amount must be positive", nameof(amount));
+        if (Balance < amount)
+            throw new InvalidOperationException("Insufficient funds");
+
+        RaiseEvent(new MoneyWithdrawn(
+            aggregateId: Id,
+            accountNumber: AccountNumber,
+            amount: amount,
+            currency: "USD",
+            reference: reference
+        ));
+    }
+
+    public void Close()
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Account is already closed");
+
+        RaiseEvent(new AccountClosed(Id));
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        // Create new account aggregate
+        var account = new Account("ACC-001", "John Doe", 1000.00m);
+        
+        Console.WriteLine(account.ToString());
+        Console.WriteLine($"Initial balance: {account.Balance}");
+        Console.WriteLine($"Uncommitted events: {account.GetUncommittedEvents().Count}");
+
+        // Apply business operations
+        account.Deposit(500.00m, "Salary");
+        account.Withdraw(200.00m, "Rent");
+
+        Console.WriteLine($"Balance after transactions: {account.Balance}");
+        Console.WriteLine($"Version: {account.Version}");
+        Console.WriteLine($"Created at: {account.CreatedAt:u}");
+        Console.WriteLine($"Updated at: {account.UpdatedAt:u}");
+
+        // Get uncommitted events for persistence
+        var uncommittedEvents = account.GetUncommittedEvents();
+        Console.WriteLine($"Events to persist: {uncommittedEvents.Count}");
+        
+        // Clear events after persistence
+        account.ClearUncommittedEvents();
+        Console.WriteLine($"Events after clear: {account.GetUncommittedEvents().Count}");
+
+        // Example with tenant isolation
+        var tenantAccount = new Account("ACC-TENANT-001", "Tenant User", 500.00m)
+        {
+            TenantId = "tenant-abc-123"
+        };
+        
+        Console.WriteLine($"Tenant account: {tenantAccount.TenantId}");
+    }
+}
+```
+
 ## DeadLetterEntry
 
 `DeadLetterEntry` represents a domain event that could not be processed by a projection runner after all retry attempts were exhausted. It captures the failed event, the projection that failed, the error message, and metadata about retry attempts. This type is used by the dead-letter store to track events that need manual intervention or reprocessing.
