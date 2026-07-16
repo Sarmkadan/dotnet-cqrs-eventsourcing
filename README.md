@@ -1159,6 +1159,149 @@ public class AccountExample
 }
 ```
 
+## CommandExtensions
+
+`CommandExtensions` provides a fluent API for command processing with validation, correlation tracking, and error handling. It extends the core command processing capabilities with extension methods that simplify command execution, event enrichment, and validation workflows.
+
+This class is particularly useful for:
+- Adding correlation tracking to commands and events
+- Validating command properties before execution
+- Enriching domain events with contextual metadata
+- Executing commands with proper error handling and result propagation
+
+The extension methods follow a fluent pattern that integrates well with the CQRS pattern and Result{T} monad used throughout the framework.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Extensions;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class CommandExtensionsExample
+{
+    public async Task ExecuteValidatedCommandAsync()
+    {
+        // Create a command handler that returns a Result
+        Func<CancellationToken, Task<Result<string>>> commandHandler = async (ct) =>
+        {
+            // Simulate command processing
+            await Task.Delay(100, ct);
+            return Result<string>.Success("Command executed successfully");
+        };
+
+        // Execute the command with built-in error handling
+        var result = await commandHandler.ExecuteCommandAsync();
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($"Success: {result.Value}");
+        }
+        else
+        {
+            Console.WriteLine("Errors:");
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($" - {error}");
+            }
+        }
+    }
+
+    public void AddCorrelationTracking()
+    {
+        // Create a command object
+        var createAccountCommand = new CreateAccountCommand
+        {
+            AccountNumber = "ACC-12345",
+            AccountHolder = "John Doe",
+            InitialBalance = 1000.00m,
+            Currency = "USD"
+        };
+
+        // Get or create correlation ID for tracing
+        var correlationId = createAccountCommand.GetOrCreateCorrelationId();
+        Console.WriteLine($"Correlation ID: {correlationId}");
+
+        // Use correlation ID when creating events
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-12345",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+
+        // Enrich event with correlation tracking
+        accountCreatedEvent = accountCreatedEvent.EnrichEvent(correlationId: correlationId);
+        Console.WriteLine($"Event correlation: {accountCreatedEvent.CorrelationId}");
+    }
+
+    public void ValidateCommandProperties()
+    {
+        // Create a command with validation requirements
+        var command = new CreateAccountCommand
+        {
+            AccountNumber = "", // Invalid - empty
+            AccountHolder = "John Doe",
+            InitialBalance = -100.00m, // Invalid - negative
+            Currency = "USD"
+        };
+
+        // Validate command properties
+        var validationErrors = command.Validate();
+        
+        if (validationErrors.Any())
+        {
+            Console.WriteLine("Validation errors:");
+            foreach (var error in validationErrors)
+            {
+                Console.WriteLine($" - {error}");
+            }
+        }
+    }
+
+    public void CreateEventFromCommand()
+    {
+        // Create a command
+        var depositCommand = new DepositCommand
+        {
+            AccountId = "ACC-12345",
+            Amount = 500.00m,
+            Reference = "Salary payment"
+        };
+
+        // Create event from command using factory pattern
+        var moneyDepositedEvent = depositCommand.CreateEventFromCommand(cmd => new MoneyDepositedEvent(
+            aggregateId: cmd.AccountId,
+            amount: cmd.Amount,
+            reference: cmd.Reference,
+            currency: "USD"
+        ));
+
+        Console.WriteLine($"Created event from command: {moneyDepositedEvent.GetType().Name}");
+        Console.WriteLine($"Event correlation: {moneyDepositedEvent.CorrelationId}");
+    }
+}
+
+// Example command classes
+public class CreateAccountCommand
+{
+    public string AccountNumber { get; set; } = string.Empty;
+    public string AccountHolder { get; set; } = string.Empty;
+    public decimal InitialBalance { get; set; }
+    public string Currency { get; set; } = string.Empty;
+}
+
+public class DepositCommand
+{
+    public string AccountId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Reference { get; set; } = string.Empty;
+}
+```
+
 ## AggregateRoot
 
 `AggregateRoot` is the base class for all aggregate roots in the CQRS + Event Sourcing framework. It provides the foundation for implementing domain-driven aggregates by managing event sourcing, state reconstruction, and version tracking. Aggregate roots are the only objects in the domain layer that can raise domain events, ensuring that all state changes are captured as a sequence of immutable events.
