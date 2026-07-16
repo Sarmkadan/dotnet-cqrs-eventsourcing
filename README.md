@@ -379,6 +379,78 @@ public class ConfigurationExample
 
 The example demonstrates all public members of `ConfigurationException` including the factory methods and custom exception creation with proper error handling.
 
+## TransactionSummary
+
+`TransactionSummary` is an immutable record that represents a single credit or debit transaction entry recorded against an account. It is appended to the `Transactions` collection of an `AccountReadModel` by the `AccountProjector` whenever a `MoneyDeposited` or `MoneyWithdrawn` event is projected.
+
+Each transaction captures the essential details of a financial movement including the event identifier, transaction type (deposit or withdrawal), amount, currency, reference text, and processing timestamp.
+
+**Public members:**
+- `EventId` - Identifier of the domain event that produced this transaction entry
+- `Type` - Direction of the movement: "Deposit" or "Withdrawal"
+- `Amount` - Absolute monetary amount of the transaction (always positive)
+- `Currency` - ISO 4217 currency code inherited from the account (e.g., USD)
+- `Reference` - Human-readable reference text supplied at the time of the transaction
+- `ProcessedAt` - UTC timestamp when the transaction was processed on the command side
+
+**Typical usage**
+
+```csharp
+using System;
+using System.Linq;
+using DotNetCqrsEventSourcing.ReadModels;
+
+public class TransactionExample
+{
+    public void ProcessAccountTransactions(AccountReadModel account)
+    {
+        // Access the transaction history
+        Console.WriteLine($"Account {account.AccountNumber} has {account.TransactionCount} transactions");
+        
+        // Iterate through transactions
+        foreach (var transaction in account.Transactions.OrderBy(t => t.ProcessedAt))
+        {
+            var direction = transaction.Type;
+            var amount = transaction.Amount;
+            var currency = transaction.Currency;
+            var reference = transaction.Reference;
+            var processedAt = transaction.ProcessedAt;
+            
+            Console.WriteLine($"[{processedAt:yyyy-MM-dd HH:mm:ss}] {direction}: {amount} {currency} - {reference}");
+        }
+        
+        // Filter deposits only
+        var deposits = account.Transactions
+            .Where(t => t.Type == "Deposit")
+            .Sum(t => t.Amount);
+        
+        Console.WriteLine($"Total deposits: {deposits}");
+        
+        // Filter withdrawals only
+        var withdrawals = account.Transactions
+            .Where(t => t.Type == "Withdrawal")
+            .Sum(t => t.Amount);
+        
+        Console.WriteLine($"Total withdrawals: {withdrawals}");
+        
+        // Create a new transaction summary (typically done by the projector)
+        var transaction = new TransactionSummary(
+            EventId: Guid.NewGuid().ToString(),
+            Type: "Deposit",
+            Amount: 1000.50m,
+            Currency: "USD",
+            Reference: "Salary payment",
+            ProcessedAt: DateTime.UtcNow
+        );
+        
+        Console.WriteLine($"Created transaction: {transaction.Type} {transaction.Amount} {transaction.Currency}");
+    }
+}
+```
+
+The example demonstrates all public members of `TransactionSummary` with realistic usage patterns for querying and processing account transactions.
+
+
 ## ValidationExtensions
 
 `ValidationExtensions` provides a comprehensive set of guard clause extension methods for validating method parameters and business rules. These extensions follow a fluent, exception-throwing pattern that integrates seamlessly with C# method chaining, making validation code more readable and maintainable.
