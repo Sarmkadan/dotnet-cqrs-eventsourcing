@@ -10,7 +10,7 @@ The full picture - layers, write/read data flow, projection engine, snapshots/co
 - `Application/` - event store, event bus, services, sagas
 - `ReadModels/` - projection engine with retries, checkpointing and dead-lettering
 - `Infrastructure/` - dispatch, workers, middleware, CLI
-- All default stores are in-memory; swap `IEventRepository` / `IReadModelStore<T>` for real persistence.
+- All default stores are in‑memory; swap `IEventRepository` / `IReadModelStore<T>` for real persistence.
 
 ## AccountAggregateTests
 
@@ -155,3 +155,44 @@ public class Program
     }
 }
 ```
+
+## CqrsException
+
+`CqrsException` is the base exception type for all CQRS‑infrastructure errors. It carries an **ErrorCode** that identifies the problem, an optional **CorrelationId** for tracing across services, and the timestamp (**OccurredAt**) when the exception was created. Specific scenarios such as missing aggregates or event‑stream conflicts are represented by the derived `AggregateNotFoundException` and `EventStreamException` types.
+
+**Typical usage**
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Shared.Exceptions;
+
+public class Example
+{
+    public void Run()
+    {
+        try
+        {
+            // Simulate a failure that should be reported as a CQRS error
+            throw new CqrsException(
+                message: "Unable to process command",
+                errorCode: "COMMAND_PROCESSING_FAILED",
+                correlationId: "corr-42");
+        }
+        catch (CqrsException ex)
+        {
+            Console.WriteLine($"ErrorCode: {ex.ErrorCode}");
+            Console.WriteLine($"CorrelationId: {ex.CorrelationId}");
+            Console.WriteLine($"OccurredAt (UTC): {ex.OccurredAt:u}");
+        }
+
+        // Example of a more specific exception
+        throw new AggregateNotFoundException(aggregateId: "agg-123", aggregateType: nameof(Account));
+
+        // Example of an event‑stream concurrency exception
+        var inner = new InvalidOperationException("Version mismatch");
+        throw new EventStreamException("Optimistic concurrency failure", inner);
+    }
+}
+```
+
+The example demonstrates the public members of `CqrsException` and its derived types without relying on any hidden implementation details.
