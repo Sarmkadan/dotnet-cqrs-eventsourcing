@@ -1154,6 +1154,89 @@ public class Program
 }
 ```
 
+## Money
+
+`Money` is an immutable value object that represents a monetary amount with currency information. It provides arithmetic operations, comparison operators, and equality checks for financial calculations while ensuring currency consistency. The type is designed for use in domain models and value objects where monetary values need to be tracked with their currency context.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Domain.ValueObjects;
+
+public class MoneyExample
+{
+    public void CreateAndUseMoneyValues()
+    {
+        // Create money values in different currencies
+        var usdAmount = new Money(1000.50m, "USD");
+        var eurAmount = new Money(750.25m, "EUR");
+        var gbpAmount = new Money(500.00m, "GBP");
+
+        Console.WriteLine($"{usdAmount}");
+        Console.WriteLine($"{eurAmount}");
+        Console.WriteLine($"{gbpAmount}");
+
+        // Access properties
+        Console.WriteLine($"\nAmount: {usdAmount.Amount}");
+        Console.WriteLine($"Currency: {usdAmount.Currency}");
+
+        // Arithmetic operations
+        var total = usdAmount.Add(eurAmount).Add(gbpAmount);
+        Console.WriteLine($"\nTotal of all amounts: {total}");
+
+        var difference = usdAmount.Subtract(new Money(200.75m, "USD"));
+        Console.WriteLine($"USD after subtraction: {difference}");
+
+        // Comparison operations
+        Console.WriteLine($"\nIs {usdAmount} > {eurAmount}? {usdAmount.IsGreaterThan(eurAmount)}");
+        Console.WriteLine($"Is {gbpAmount} < {usdAmount}? {gbpAmount.IsLessThan(usdAmount)}");
+
+        // Equality checks
+        var sameAmount = new Money(1000.50m, "USD");
+        Console.WriteLine($"\nAre amounts equal? {usdAmount.Equals(sameAmount)}");
+        Console.WriteLine($"Hash codes match? {usdAmount.GetHashCode() == sameAmount.GetHashCode()}");
+
+        // Formatting
+        Console.WriteLine($"\nFormatted: {usdAmount.ToString("C", null)}");
+        Console.WriteLine($"Formatted with culture: {usdAmount.ToString("C", new System.Globalization.CultureInfo("fr-FR"))}");
+
+        // Operator overloading
+        var sum = usdAmount + eurAmount;
+        Console.WriteLine($"\nUsing + operator: {sum}");
+
+        var product = usdAmount * 2;
+        Console.WriteLine($"Using * operator: {product}");
+    }
+
+    public void MoneyInDomainOperations()
+    {
+        // Simulate domain operations with Money
+        var initialBalance = new Money(1000.00m, "USD");
+        var deposit = new Money(500.50m, "USD");
+        var withdrawal = new Money(200.75m, "USD");
+
+        // Calculate new balance
+        var balanceAfterDeposit = initialBalance.Add(deposit);
+        Console.WriteLine($"Balance after deposit: {balanceAfterDeposit}");
+
+        var finalBalance = balanceAfterDeposit.Subtract(withdrawal);
+        Console.WriteLine($"Final balance: {finalBalance}");
+
+        // Check if sufficient funds
+        var transferAmount = new Money(300.00m, "USD");
+        if (finalBalance.IsGreaterThan(transferAmount) || finalBalance.Equals(transferAmount))
+        {
+            Console.WriteLine("Sufficient funds for transfer");
+        }
+        else
+        {
+            Console.WriteLine("Insufficient funds for transfer");
+        }
+    }
+}
+```
+
 ## DeadLetterEntry
 
 `DeadLetterEntry` represents a domain event that could not be processed by a projection runner after all retry attempts were exhausted. It captures the failed event, the projection that failed, the error message, and metadata about retry attempts. This type is used by the dead-letter store to track events that need manual intervention or reprocessing.
