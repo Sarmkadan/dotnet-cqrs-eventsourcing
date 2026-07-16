@@ -1,4 +1,16 @@
-// existing content ...
+# dotnet-cqrs-eventsourcing
+
+CQRS + Event Sourcing framework in C# with a banking `Account` aggregate as the reference domain.
+
+## Architecture
+
+The full picture - layers, write/read data flow, projection engine, snapshots/compaction, extension points and known limitations - lives in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Design decisions are recorded as ADRs in [docs/adr/](docs/adr/). Short version:
+
+- `Domain/` - aggregates, events, value objects (no infrastructure dependencies)
+- `Application/` - event store, event bus, services, sagas
+- `ReadModels/` - projection engine with retries, checkpointing and dead-lettering
+- `Infrastructure/` - dispatch, workers, middleware, CLI
+- All default stores are in-memory; swap `IEventRepository` / `IReadModelStore<T>` for real persistence.
 
 ## AccountAggregateTests
 
