@@ -427,6 +427,103 @@ public class Program
 }
 ```
 
+## SnapshotService
+
+`SnapshotService` is the application service responsible for creating, retrieving, updating, and deleting aggregate snapshots in the CQRS + Event Sourcing framework. Snapshots provide performance optimization by storing the complete state of an aggregate at a specific version, allowing quick state reconstruction without replaying the entire event stream.
+
+The service maintains thread-safe in-memory storage of snapshots with version tracking and provides comprehensive error handling through the Result monad pattern. It's particularly useful for aggregates with long event histories where replay performance becomes a concern.
+
+**Public members:**
+- `CreateSnapshotAsync(string, long, string, CancellationToken)` - Creates a new snapshot for an aggregate with the given state data at the specified version
+- `GetLatestSnapshotAsync(string, CancellationToken)` - Retrieves the latest snapshot data and version for an aggregate, returning a tuple of (AggregateData, Version)
+- `DeleteSnapshotAsync(string, CancellationToken)` - Deletes a snapshot for the specified aggregate
+- `HasSnapshotAsync(string, CancellationToken)` - Checks if a snapshot exists for an aggregate, returning a boolean result
+- `GetSnapshotCountAsync(CancellationToken)` - Gets the total number of snapshots stored, returning an integer result
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class SnapshotServiceExample
+{
+    private readonly SnapshotService _snapshotService;
+
+    public SnapshotServiceExample(SnapshotService snapshotService)
+    {
+        _snapshotService = snapshotService;
+    }
+
+    public async Task ManageAccountSnapshotsAsync()
+    {
+        // Create a snapshot for an account aggregate
+        var createResult = await _snapshotService.CreateSnapshotAsync(
+            aggregateId: "account-123",
+            version: 100,
+            aggregateData: "{\"AccountNumber\":\"ACC-2024-001\",\"AccountHolder\":\"John Doe\",\"Balance\":1500.00,\"Status\":\"Active\"}"
+        );
+
+        if (createResult.IsSuccess)
+        {
+            Console.WriteLine("Snapshot created successfully");
+        }
+
+        // Check if a snapshot exists for an aggregate
+        var hasSnapshotResult = await _snapshotService.HasSnapshotAsync("account-123");
+        if (hasSnapshotResult.IsSuccess && hasSnapshotResult.Data)
+        {
+            Console.WriteLine("Snapshot exists for account-123");
+        }
+
+        // Get the latest snapshot for an aggregate
+        var getResult = await _snapshotService.GetLatestSnapshotAsync("account-123");
+        if (getResult.IsSuccess)
+        {
+            var (aggregateData, version) = getResult.Data;
+            Console.WriteLine($"Retrieved snapshot - Version: {version}, Data: {aggregateData}");
+        }
+
+        // Get total snapshot count
+        var countResult = await _snapshotService.GetSnapshotCountAsync();
+        if (countResult.IsSuccess)
+        {
+            Console.WriteLine($"Total snapshots: {countResult.Data}");
+        }
+
+        // Delete a snapshot when it's no longer needed
+        var deleteResult = await _snapshotService.DeleteSnapshotAsync("account-123");
+        if (deleteResult.IsSuccess)
+        {
+            Console.WriteLine("Snapshot deleted successfully");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+
+        // Create snapshot service
+        services.AddSingleton<SnapshotService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var snapshotService = serviceProvider.GetRequiredService<SnapshotService>();
+
+        var example = new SnapshotServiceExample(snapshotService);
+        await example.ManageAccountSnapshotsAsync();
+    }
+}
+```
+
 ## ProjectionService
 
 `ProjectionService` is the core service responsible for building and maintaining read models from domain events in the CQRS + Event Sourcing framework. It provides functionality to update projections incrementally as new events are published, rebuild individual projections from historical events, and rebuild all projections from scratch. The service maintains an in-memory cache of projections that can be queried and supports thread-safe operations through internal locking.
