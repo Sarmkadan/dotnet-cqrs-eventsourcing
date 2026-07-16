@@ -444,3 +444,106 @@ The example demonstrates the key extension methods:
 - `MaxLength` / `MinLength` - validates string length constraints
 - `Ensure` - validates boolean conditions with domain exceptions
 - `ValidateRequired` / `ValidateRange` - validation with result tuples instead of exceptions
+
+## Result
+
+`Result<T>` is a generic result type that represents either a successful operation with a value or a failure with error information. It provides a functional programming approach to error handling, avoiding exceptions for expected error cases and making error handling more explicit and composable.
+
+The type is commonly used throughout the framework for command handlers, repository operations, and service methods to return operation results with proper error information.
+
+**Public members:**
+- `IsSuccess` - Gets whether the result represents a successful operation
+- `Data` - Gets the successful value (null when IsSuccess is false)
+- `ErrorCode` - Gets the error code when the operation failed (null when successful)
+- `ErrorMessage` - Gets the error message when the operation failed (null when successful)
+- `Error` - Convenience property alias for ErrorMessage
+- `Errors` - Gets the collection of error messages for the failure
+- `Success(T data)` - Factory method to create a successful result with data
+- `Failure(string errorCode, string errorMessage)` - Factory method to create a failed result
+- `Failure(string errorCode, string errorMessage, List<string> errors)` - Factory method to create a failed result with multiple errors
+- `AddError(string error)` - Adds an additional error message to the result
+- `Match<TOut>(Func<T, TOut> onSuccess, Func<string?, TOut> onFailure)` - Pattern matching for handling both success and failure cases
+- `Match(Action<T> onSuccess, Action<string?> onFailure)` - Pattern matching for handling both success and failure cases without returning a value
+- `ThrowIfFailure()` - Throws an exception if the result represents a failure
+- `MapSuccess<TOut>(Func<T, TOut> transform)` - Transforms the successful value while preserving failure state
+- `ToString()` - Returns a string representation of the result
+
+**Typical usage**
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class AccountService
+{
+public async Task<Result<Account>> GetAccountAsync(string accountId)
+{
+// Example: Successful retrieval
+var account = await _repository.GetByIdAsync(accountId);
+if (account != null)
+return Result<Account>.Success(account);
+
+// Example: Failed retrieval
+return Result<Account>.Failure("ACCOUNT_NOT_FOUND", "Account not found");
+}
+
+public Result<decimal> CalculateTransferFee(decimal amount)
+{
+if (amount <= 0)
+return Result<decimal>.Failure("INVALID_AMOUNT", "Transfer amount must be positive");
+
+if (amount > 10000)
+return Result<decimal>.Failure("AMOUNT_TOO_LARGE", "Transfer amount exceeds maximum limit",
+new List<string> { "Maximum allowed transfer amount is 10000", "Please contact support for larger transfers" });
+
+return Result<decimal>.Success(amount * 0.01m); // 1% fee
+}
+
+public void ProcessAccountCommand(AccountCommand command)
+{
+// Using Match for handling both success and failure
+var result = ValidateCommand(command);
+result.Match(
+onSuccess: account => ProcessAccount(account, command),
+// Using pattern matching with error information
+onFailure: errorMessage => LogError(result.ErrorCode, result.Errors));
+
+// Using ThrowIfFailure to convert result to exception
+var feeResult = CalculateTransferFee(command.Amount);
+feeResult.ThrowIfFailure();
+var fee = feeResult.Data;
+
+// Using MapSuccess to transform successful results
+var accountResult = _repository.GetByIdAsync(command.AccountId);
+var dtoResult = accountResult.MapSuccess(account => new AccountDto(account));
+if (dtoResult.IsSuccess)
+{
+Console.WriteLine($"Account DTO created: {dtoResult.Data}");
+}
+}
+
+private Result<Account> ValidateCommand(AccountCommand command)
+{
+if (string.IsNullOrEmpty(command.AccountId))
+return Result<Account>.Failure("INVALID_ACCOUNT_ID", "Account ID is required");
+
+if (command.Amount <= 0)
+return Result<Account>.Failure("INVALID_AMOUNT", "Amount must be positive");
+
+// Success case
+return Result<Account>.Success(new Account(command.AccountId));
+}
+
+private void ProcessAccount(Account account, AccountCommand command)
+{
+// Business logic for processing
+account.Deposit(command.Amount, command.Reference);
+}
+
+private void LogError(string? errorCode, List<string> errors)
+{
+Console.WriteLine($"Error [{errorCode}]: {string.Join(", ", errors)}");
+}
+}
+```
