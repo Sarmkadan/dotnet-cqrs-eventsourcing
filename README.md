@@ -650,6 +650,100 @@ public class Program
 }
 ```
 
+## AccountProjectionSummary
+
+`AccountProjectionSummary` is a strongly-typed read model that provides a compact summary of an account's state and transaction history. It is computed by replaying an aggregate's event stream and serves as a convenient data transfer object for reporting scenarios, dashboards, and API responses.
+
+This summary aggregates key financial metrics including current balance, total deposits, total withdrawals, and transaction count, along with the account's lifecycle status and the timestamp of the most recent update.
+
+
+**Public members:**
+- `Status` - Lifecycle status of the account: "Active" or "Closed"
+- `CurrentBalance` - Current balance derived from replaying all monetary events
+- `TotalDeposits` - Sum of all deposited amounts, excluding the initial balance
+- `TotalWithdrawals` - Sum of all withdrawn amounts
+- `TransactionCount` - Number of monetary transactions (deposits and withdrawals)
+- `LastUpdated` - UTC timestamp of the most recent event applied to this summary
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class AccountProjectionSummaryExample
+{
+ private readonly IProjectionService _projectionService;
+
+ public AccountProjectionSummaryExample(IProjectionService projectionService)
+ {
+  _projectionService = projectionService;
+ }
+
+ public async Task GetAccountSummaryAsync()
+ {
+  // Build a strongly-typed account summary from the event stream
+  var summary = await _projectionService.BuildProjectionAsync("account-123");
+
+  Console.WriteLine($"Account Summary for account-123:");
+  Console.WriteLine($"Status: {summary.Status}");
+  Console.WriteLine($"Current Balance: {summary.CurrentBalance:C}");
+  Console.WriteLine($"Total Deposits: {summary.TotalDeposits:C}");
+  Console.WriteLine($"Total Withdrawals: {summary.TotalWithdrawals:C}");
+  Console.WriteLine($"Transaction Count: {summary.TransactionCount}");
+  Console.WriteLine($"Last Updated: {summary.LastUpdated:yyyy-MM-dd HH:mm:ss}");
+ }
+
+ public void CreateSummaryManually()
+ {
+  // Create a summary instance manually for testing or reporting
+  var summary = new AccountProjectionSummary
+  {
+   Status = "Active",
+   CurrentBalance = 1500.75m,
+   TotalDeposits = 2500.50m,
+   TotalWithdrawals = 1000.25m,
+   TransactionCount = 15,
+   LastUpdated = DateTime.UtcNow.AddDays(-1)
+  };
+
+  Console.WriteLine($"\nManually created summary:");
+  Console.WriteLine($"Balance: {summary.CurrentBalance}");
+  Console.WriteLine($"Net Activity: {summary.TotalDeposits - summary.TotalWithdrawals:C}");
+ }
+}
+
+public class Program
+{
+ public static async Task Main(string[] args)
+ {
+  // Setup dependency injection
+  var services = new ServiceCollection();
+  services.AddLogging(configure => configure.AddConsole());
+
+  // Create in-memory event repository for demonstration
+  services.AddSingleton<IEventRepository>(provider =>
+  {
+   var logger = provider.GetRequiredService<ILogger<InMemoryEventRepository>>();
+   return new InMemoryEventRepository(logger);
+  });
+
+  services.AddSingleton<EventStore>();
+  services.AddSingleton<ProjectionService>();
+
+  var serviceProvider = services.BuildServiceProvider();
+  var projectionService = serviceProvider.GetRequiredService<ProjectionService>();
+
+  var example = new AccountProjectionSummaryExample(projectionService);
+  await example.GetAccountSummaryAsync();
+  example.CreateSummaryManually();
+ }
+}
+```
+
 ## EventStoreCompactionServiceTests
 
 The `EventStoreCompactionServiceTests` class provides unit tests for the `EventStoreCompactionService`, which handles event store compaction by removing old events while preserving snapshots. These tests verify compaction behavior under various scenarios including version-based compaction, snapshot-based compaction, and error handling when snapshots are missing.
