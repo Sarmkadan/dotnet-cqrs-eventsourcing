@@ -34,7 +34,7 @@ services.AddCqrsFramework(configuration);
 services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
 services.AddSingleton<CliCommandRegistry>();
 
-var serviceProvider = services.BuildServiceProvider();
+await using var serviceProvider = services.BuildServiceProvider();
 
 // Configure event handlers
 serviceProvider.ConfigureEventHandlers();
@@ -44,7 +44,8 @@ if (args.Length > 0)
 {
     var registry = serviceProvider.GetRequiredService<CliCommandRegistry>();
     var result = await registry.DispatchAsync(args);
-    Environment.Exit(result.IsSuccess ? 0 : 1);
+    // set the exit code instead of Environment.Exit so the provider gets disposed
+    Environment.ExitCode = result.IsSuccess ? 0 : 1;
     return;
 }
 
