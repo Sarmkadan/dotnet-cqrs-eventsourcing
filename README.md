@@ -89,3 +89,57 @@ public class Program
   }
 }
 ```
+
+## TestSaga
+
+The `TestSaga` class is a minimal saga implementation used exclusively for testing purposes. It extends `SagaBase` and demonstrates core saga behavior including state transitions, event handling, and correlation management. The class tracks the number of events processed through the `HandledEvents` property, making it ideal for verifying saga lifecycle and handler logic in unit tests.
+
+Example usage:
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Sagas;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Tests.Application.Sagas;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create a new saga instance
+        var saga = new TestSaga();
+        Console.WriteLine($"Initial state: {{saga.State}}"); // NotStarted
+
+        // Set correlation ID for tracking
+        saga.SetCorrelation("account-123");
+
+        // Handle an event to activate the saga
+        var accountCreatedEvent = new AccountCreatedEvent("agg-1", "ACC-123", "Test User", "USD", 1000m)
+        {
+            CorrelationId = "account-123"
+        };
+
+        saga.Handle(accountCreatedEvent);
+        Console.WriteLine($"After handling event: {{saga.State}}, HandledEvents = {{saga.HandledEvents}}"); // Active, 1
+
+        // Mark saga as completed
+        saga.Finish();
+        Console.WriteLine($"After completion: {{saga.State}}"); // Completed
+
+        // Create saga with correlation ID in constructor
+        var saga2 = new TestSaga("corr-456");
+        Console.WriteLine($"Saga with correlation: {{saga2.CorrelationId}}"); // corr-456
+
+        // Use with saga handler and repository
+        var repository = new InMemorySagaRepository<TestSaga>();
+        var handler = new TestSagaHandler(repository);
+
+        var result = await handler.HandleAsync(accountCreatedEvent);
+        if (result.IsSuccess)
+        {
+            Console.WriteLine("Saga persisted successfully");
+        }
+    }
+}
+```
