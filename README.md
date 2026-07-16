@@ -650,6 +650,94 @@ public class Program
 }
 ```
 
+## AccountsController
+
+`AccountsController` is an ASP.NET Core controller that implements the write-side endpoints for the Account aggregate following the CQRS pattern. It separates command operations (create, deposit, withdraw) from query operations, providing RESTful HTTP endpoints that emit domain events and maintain consistency through the event store.
+
+The controller exposes endpoints for account creation, monetary operations, event sourcing audit trails, and projection rebuilds, with idempotency support for financial transactions and comprehensive error handling for domain validation scenarios.
+
+Example usage:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Presentation.Controllers;
+
+public class AccountsControllerExample
+{
+    private readonly HttpClient _httpClient;
+
+    public AccountsControllerExample(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task DemonstrateAccountOperationsAsync()
+    {
+        // Create a new account
+        var createRequest = new CreateAccountRequest(
+            OwnerName: "John Doe",
+            InitialBalance: 1000.00m,
+            Currency: "USD"
+        );
+
+        var createResponse = await _httpClient.PostAsJsonAsync("/api/accounts", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+        var createResult = await createResponse.Content.ReadFromJsonAsync<dynamic>();
+        var accountId = createResult.accountId;
+        Console.WriteLine($"Account created: {accountId}");
+
+        // Deposit funds
+        var depositRequest = new TransactionRequest(Amount: 500.00m);
+        var depositResponse = await _httpClient.PostAsJsonAsync(
+            $"/api/accounts/{accountId}/deposit", 
+            depositRequest
+        );
+        depositResponse.EnsureSuccessStatusCode();
+        Console.WriteLine("Deposit successful");
+
+        // Withdraw funds
+        var withdrawRequest = new TransactionRequest(Amount: 200.00m);
+        var withdrawResponse = await _httpClient.PostAsJsonAsync(
+            $"/api/accounts/{accountId}/withdraw", 
+            withdrawRequest
+        );
+        withdrawResponse.EnsureSuccessStatusCode();
+        Console.WriteLine("Withdrawal successful");
+
+        // Get account details
+        var getResponse = await _httpClient.GetAsync($"/api/accounts/{accountId}");
+        getResponse.EnsureSuccessStatusCode();
+        var accountData = await getResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Account balance: {accountData.data.Balance}");
+
+        // Get account events (audit trail)
+        var eventsResponse = await _httpClient.GetAsync($"/api/accounts/{accountId}/events");
+        eventsResponse.EnsureSuccessStatusCode();
+        var eventsData = await eventsResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Total events: {eventsData.eventCount}");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // In a real application, use HttpClient with base address
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://localhost:5001")
+        };
+
+        var example = new AccountsControllerExample(httpClient);
+        await example.DemonstrateAccountOperationsAsync();
+    }
+}
+
+```
+
 ## QueriesController
 
 `QueriesController` is an ASP.NET Core controller that provides read-side query endpoints for retrieving account information and statistics. It implements the CQRS pattern by separating read operations from write operations, allowing efficient data retrieval without loading aggregate state. The controller exposes endpoints for listing accounts, searching accounts, retrieving balances, transaction histories, and account statistics, as well as cache invalidation for read model consistency.
