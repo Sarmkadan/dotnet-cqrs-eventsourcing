@@ -196,3 +196,68 @@ public class Example
 ```
 
 The example demonstrates the public members of `CqrsException` and its derived types without relying on any hidden implementation details.
+
+
+
+## ValidationException
+
+`ValidationException` is thrown when input validation fails during command processing or domain validation. It collects validation errors in a `Dictionary<string, string>` where the key is the field name and the value is the error message. This exception is commonly used for validating command parameters, DTOs, and domain entity state before processing operations.
+
+The exception provides several factory methods for common validation scenarios:
+- `InvalidInput` - for validating user input or command parameters
+- `InvalidArgument` - for validating method arguments
+- `AggregateValidationFailed` - for validating aggregate state before applying commands
+
+**Typical usage**
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetCqrsEventSourcing.Shared.Exceptions;
+
+public class Example
+{
+    public void ValidateCreateAccountCommand(CreateAccountCommand command)
+    {
+        if (string.IsNullOrWhiteSpace(command.UserName))
+            throw ValidationException.InvalidInput(nameof(command.UserName), "User name is required");
+        
+        if (command.InitialBalance < 0)
+            throw ValidationException.InvalidInput(nameof(command.InitialBalance), "Initial balance cannot be negative");
+        
+        if (string.IsNullOrWhiteSpace(command.Currency))
+            throw ValidationException.InvalidInput(nameof(command.Currency), "Currency is required");
+    }
+    
+    public void ValidateAccountState(Account account)
+    {
+        if (account.IsClosed)
+            throw ValidationException.AggregateValidationFailed(
+                nameof(Account), 
+                account.Id, 
+                "Cannot perform operations on a closed account");
+        
+        if (account.Balance < 0)
+            throw ValidationException.AggregateValidationFailed(
+                nameof(Account), 
+                account.Id, 
+                "Account balance cannot be negative");
+    }
+    
+    public void ManualValidationErrors()
+    {
+        var exception = new ValidationException("Multiple validation errors occurred");
+        exception.WithError("Email", "Email is not valid");
+        exception.WithError("Password", "Password must be at least 8 characters");
+        exception.WithError("ConfirmPassword", "Passwords do not match");
+        
+        // Access all validation errors
+        foreach (var error in exception.ValidationErrors)
+        {
+            Console.WriteLine($"{error.Key}: {error.Value}");
+        }
+    }
+}
+```
+
+The example demonstrates all public members of `ValidationException`: the `ValidationErrors` dictionary, the base constructors, the `WithError` method, and the factory methods.
