@@ -445,6 +445,58 @@ The example demonstrates the key extension methods:
 - `Ensure` - validates boolean conditions with domain exceptions
 - `ValidateRequired` / `ValidateRange` - validation with result tuples instead of exceptions
 
+## EventStoreBenchmarks
+
+The `EventStoreBenchmarks` class provides comprehensive performance benchmarks for the CQRS + Event Sourcing framework, measuring throughput, latency, and memory allocations for critical operations. These benchmarks help identify performance bottlenecks in event store operations, aggregate replay performance, and service layer operations under realistic workloads.
+
+The benchmarks cover:
+- Event append operations (single events and batches of 100 events)
+- Aggregate root replay performance with varying event counts (100, 1,000, 10,000 events)
+- Event retrieval operations (by aggregate ID, from specific version, version lookup)
+- Complete account lifecycle scenarios including account creation and transaction processing
+
+
+Example usage:
+
+```csharp
+using BenchmarkDotNet.Running;
+using dotnet_cqrs_eventsourcing.Benchmarks.Benchmarks;
+using System.Threading.Tasks;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create benchmark instance and initialize
+        var benchmarks = new EventStoreBenchmarks();
+        benchmarks.GlobalSetup();
+        
+        // Test event append throughput
+        await benchmarks.EventStore_AppendSingleEvent();
+        await benchmarks.EventStore_AppendBatchOf100Events();
+        
+        // Test aggregate replay performance
+        benchmarks.AggregateRoot_Replay100Events();
+        benchmarks.AggregateRoot_Replay1000Events();
+        benchmarks.AggregateRoot_Replay10000Events();
+        
+        // Test event retrieval operations
+        await benchmarks.EventStore_GetEventsByAggregateId();
+        await benchmarks.EventStore_GetEventsFromVersion();
+        await benchmarks.EventStore_GetAggregateVersion();
+        
+        // Test account service operations
+        await benchmarks.AccountService_CreateAccount();
+        await benchmarks.AccountService_CompleteLifecycle();
+        
+        // Cleanup
+        benchmarks.GlobalCleanup();
+        
+        Console.WriteLine("All benchmarks completed successfully!");
+    }
+}
+```
+
 ## Result
 
 `Result<T>` is a generic result type that represents either a successful operation with a value or a failure with error information. It provides a functional programming approach to error handling, avoiding exceptions for expected error cases and making error handling more explicit and composable.
