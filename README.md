@@ -520,6 +520,93 @@ public class EventEnvelopeExample
 }
 ```
 
+## AccountCreatedEvent
+
+`AccountCreatedEvent` represents the domain event that is raised when a new bank account is created in the system. This event serves as the source of truth for account creation and carries all essential information about the new account including the account number, holder details, currency, and initial balance.
+
+The event is typically raised by the `Account` aggregate root during command processing and contains the core account information needed to initialize account state and create corresponding read models.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Domain;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class AccountCreatedEventExample
+{
+    public void CreateAccountAndRaiseEvent()
+    {
+        // Create a new account aggregate
+        var account = new Account("agg-123");
+        
+        // Create and raise the AccountCreatedEvent
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        
+        // Populate automatic metadata
+        accountCreatedEvent.PopulateMetadata();
+        
+        // Access event properties
+        Console.WriteLine($"Event ID: {accountCreatedEvent.EventId}");
+        Console.WriteLine($"Account Number: {accountCreatedEvent.AccountNumber}");
+        Console.WriteLine($"Account Holder: {accountCreatedEvent.AccountHolder}");
+        Console.WriteLine($"Currency: {accountCreatedEvent.Currency}");
+        Console.WriteLine($"Initial Balance: {accountCreatedEvent.InitialBalance:C}");
+        Console.WriteLine($"Event Type: {accountCreatedEvent.GetEventType()}");
+        Console.WriteLine($"Aggregate: {accountCreatedEvent.AggregateId} v{accountCreatedEvent.AggregateVersion}");
+    }
+    
+    public void CreateAccountWithCustomMetadata()
+    {
+        // Create event with additional metadata
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-456",
+            accountNumber: "ACC-2024-002",
+            accountHolder: "Jane Smith",
+            currency: "EUR",
+            initialBalance: 5000.00m,
+            occurredAt: DateTime.UtcNow.AddDays(-1)
+        );
+        
+        // Add custom metadata
+        accountCreatedEvent.UserId = "user-789";
+        accountCreatedEvent.CorrelationId = "corr-xyz-123";
+        accountCreatedEvent.TenantId = "tenant-abc";
+        accountCreatedEvent.Metadata["IpAddress"] = "192.168.1.100";
+        accountCreatedEvent.Metadata["SourceApplication"] = "WebPortal";
+        
+        // Populate standard metadata
+        accountCreatedEvent.PopulateMetadata();
+        
+        Console.WriteLine($"Account created with metadata: {accountCreatedEvent.AccountNumber}");
+        Console.WriteLine($"Created by user: {accountCreatedEvent.UserId}");
+        Console.WriteLine($"Correlation ID: {accountCreatedEvent.CorrelationId}");
+    }
+    
+    public void UseAccountHolderNameProperty()
+    {
+        // The AccountHolderName property provides convenient access to AccountHolder
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-789",
+            accountNumber: "ACC-2024-003",
+            accountHolder: "Robert Johnson",
+            currency: "GBP",
+            initialBalance: 750.50m
+        );
+        
+        // Both properties reference the same value
+        Console.WriteLine($"Account Holder: {accountCreatedEvent.AccountHolder}");
+        Console.WriteLine($"Account Holder Name: {accountCreatedEvent.AccountHolderName}");
+    }
+}
+```
+
 ## DomainEvent
 
 `DomainEvent` is the abstract base class for all domain events in the CQRS + Event Sourcing framework. Domain events represent state changes in aggregates and serve as the single source of truth for the system's evolution. Each event carries metadata about the aggregate it belongs to, the user who triggered the change, correlation IDs for tracing across services, and extensible metadata storage for additional context.
