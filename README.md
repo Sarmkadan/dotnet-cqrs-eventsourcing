@@ -738,6 +738,91 @@ public class Program
 
 ```
 
+## DiagnosticsController
+
+`DiagnosticsController` is an ASP.NET Core controller that provides diagnostic and observability endpoints for system monitoring, debugging, and performance tracking. It exposes endpoints for accessing performance metrics, cache statistics, system information, and health summaries, making it essential for operations teams to diagnose issues and monitor system health.
+
+The controller includes endpoints for retrieving performance metrics across all operations, specific operation metrics, cache statistics, system information, and a comprehensive health summary. It also provides administrative functions for clearing cache and resetting performance metrics.
+
+Example usage:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Presentation.Controllers;
+
+public class DiagnosticsControllerExample
+{
+    private readonly HttpClient _httpClient;
+
+    public DiagnosticsControllerExample(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task MonitorSystemHealthAsync()
+    {
+        // Get comprehensive health summary
+        var summaryResponse = await _httpClient.GetAsync("/api/diagnostics/summary");
+        summaryResponse.EnsureSuccessStatusCode();
+        var summary = await summaryResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Overall success rate: {summary.health.overallSuccessRate}");
+        Console.WriteLine($"Operations monitored: {summary.health.operationsMonitored}");
+        Console.WriteLine($"Slowest operation: {summary.health.slowestOperation} ({summary.health.slowestOperationMs}ms)");
+
+        // Get all performance metrics
+        var performanceResponse = await _httpClient.GetAsync("/api/diagnostics/performance");
+        performanceResponse.EnsureSuccessStatusCode();
+        var performanceData = await performanceResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Performance metrics retrieved: {performanceData.operationCount} operations");
+
+        // Get metrics for a specific operation
+        var operationMetricsResponse = await _httpClient.GetAsync("/api/diagnostics/performance/AccountService.CreateAccountAsync");
+        operationMetricsResponse.EnsureSuccessStatusCode();
+        var operationMetrics = await operationMetricsResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"CreateAccountAsync metrics: {operationMetrics.statistics.invocations} invocations");
+
+        // Get cache statistics
+        var cacheResponse = await _httpClient.GetAsync("/api/diagnostics/cache");
+        cacheResponse.EnsureSuccessStatusCode();
+        var cacheData = await cacheResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Cache entries: {cacheData.statistics.totalEntries}");
+        Console.WriteLine($"Cache hit rate: {cacheData.statistics.hitRate:P2}");
+
+        // Get system information
+        var systemResponse = await _httpClient.GetAsync("/api/diagnostics/system");
+        systemResponse.EnsureSuccessStatusCode();
+        var systemData = await systemResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Runtime: {systemData.system.runtime}");
+        Console.WriteLine($"OS: {systemData.system.osVersion}");
+        Console.WriteLine($"Process ID: {systemData.process.id}");
+
+        // Reset performance metrics for a fresh measurement period
+        var clearMetricsResponse = await _httpClient.PostAsync("/api/diagnostics/performance/clear", null);
+        clearMetricsResponse.EnsureSuccessStatusCode();
+        Console.WriteLine("Performance metrics cleared");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // In a real application, use HttpClient with base address
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://localhost:5001")
+        };
+
+        var example = new DiagnosticsControllerExample(httpClient);
+        await example.MonitorSystemHealthAsync();
+    }
+}
+
+```
+
 ## QueriesController
 
 `QueriesController` is an ASP.NET Core controller that provides read-side query endpoints for retrieving account information and statistics. It implements the CQRS pattern by separating read operations from write operations, allowing efficient data retrieval without loading aggregate state. The controller exposes endpoints for listing accounts, searching accounts, retrieving balances, transaction histories, and account statistics, as well as cache invalidation for read model consistency.
