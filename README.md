@@ -928,6 +928,83 @@ public class Program
 }
 ```
 
+## EventsController
+
+`EventsController` is an ASP.NET Core controller that provides HTTP API endpoints for event stream management and inspection. It offers read-only access to domain events for auditing, debugging, and data analysis purposes. The controller exposes endpoints for retrieving complete event histories, counting events, exporting events in various formats, analyzing event types, and viewing chronological timelines of aggregate events.
+
+
+Example usage:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Presentation.Controllers;
+
+public class EventsControllerExample
+{
+    private readonly HttpClient _httpClient;
+
+    public EventsControllerExample(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task DemonstrateEventOperationsAsync()
+    {
+        // Get all events for an aggregate
+        var eventsResponse = await _httpClient.GetAsync("/api/events/agg-account-123");
+        eventsResponse.EnsureSuccessStatusCode();
+        var eventsData = await eventsResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Total events: {eventsData.totalCount}");
+
+        // Get event count for monitoring
+        var countResponse = await _httpClient.GetAsync("/api/events/agg-account-123/count");
+        countResponse.EnsureSuccessStatusCode();
+        var countData = await countResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Event count: {countData.eventCount}");
+
+        // Export events as JSON
+        var jsonExportResponse = await _httpClient.GetAsync("/api/events/agg-account-123/export?format=json");
+        jsonExportResponse.EnsureSuccessStatusCode();
+        Console.WriteLine("Events exported as JSON");
+
+        // Export events as CSV
+        var csvExportResponse = await _httpClient.GetAsync("/api/events/agg-account-123/export?format=csv");
+        csvExportResponse.EnsureSuccessStatusCode();
+        Console.WriteLine("Events exported as CSV");
+
+        // Get unique event types for an aggregate
+        var typesResponse = await _httpClient.GetAsync("/api/events/agg-account-123/types");
+        typesResponse.EnsureSuccessStatusCode();
+        var typesData = await typesResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Unique event types: {typesData.uniqueTypeCount}");
+
+        // Get chronological timeline of events
+        var timelineResponse = await _httpClient.GetAsync("/api/events/agg-account-123/timeline");
+        timelineResponse.EnsureSuccessStatusCode();
+        var timelineData = await timelineResponse.Content.ReadFromJsonAsync<dynamic>();
+        Console.WriteLine($"Timeline spans: {timelineData.timeSpan.TotalDays} days");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // In a real application, use HttpClient with base address
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://localhost:5001")
+        };
+
+        var example = new EventsControllerExample(httpClient);
+        await example.DemonstrateEventOperationsAsync();
+    }
+}
+```
+
 ## AccountProjectionSummary
 
 `AccountProjectionSummary` is a strongly-typed read model that provides a compact summary of an account's state and transaction history. It is computed by replaying an aggregate's event stream and serves as a convenient data transfer object for reporting scenarios, dashboards, and API responses.
