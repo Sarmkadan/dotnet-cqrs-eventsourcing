@@ -1547,6 +1547,189 @@ public class BalanceExample
 }
 ```
 
+## SagaOrchestrator
+
+`SagaOrchestrator` is the central coordinator that routes domain events to registered saga handlers, processes saga state transitions, and publishes outbox events produced by sagas. It acts as the bridge between the event bus and saga handlers, ensuring that all saga-related operations are properly managed and tracked.
+
+The orchestrator maintains a collection of saga handler wrappers, dispatches events to capable handlers based on event type matching, and handles the publication of any events that sagas raise during processing. It also provides comprehensive logging and error handling to ensure saga execution is observable and resilient.
+
+**Key responsibilities:**
+- Event routing to saga handlers based on event type compatibility
+- Managing saga lifecycle and state transitions
+- Collecting and publishing outbox events from sagas
+- Error handling and logging for saga processing failures
+- Supporting saga handler registration via dependency injection
+
+
+
+
+**Public members:**
+- `DispatchAsync(DomainEvent, CancellationToken)` - Routes an event to all capable saga handlers and publishes their outbox events
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Sagas;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Domain.Sagas;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Define a custom saga that handles account creation events
+public class AccountWelcomeSaga : SagaBase
+{
+    public override string SagaName => "AccountWelcomeSaga";
+    
+    public string AccountId { get; private set; }
+    public string UserEmail { get; private set; }
+    
+    public AccountWelcomeSaga() { }
+    
+    public AccountWelcomeSaga(string accountId, string userEmail)
+    {
+        AccountId = accountId ?? throw new ArgumentNullException(nameof(accountId));
+        UserEmail = userEmail ?? throw new ArgumentNullException(nameof(userEmail));
+        CorrelationId = $"welcome-{accountId}";
+    }
+    
+    // Handle AccountCreatedEvent to send welcome email
+    public void Handle(AccountCreatedEvent @event)
+    {
+        if (State == SagaState.NotStarted)
+        {
+            Activate();
+            
+            // Raise an event to trigger welcome email service
+            RaiseEvent(new WelcomeEmailSent(
+                aggregateId: @event.AggregateId,
+                email: UserEmail,
+                accountId: @event.AccountNumber,
+                initialBalance: @event.InitialBalance
+            ));
+            
+            Complete(); // Saga completed successfully
+        }
+    }
+}
+
+// Define a saga handler interface
+public interface IAccountWelcomeSagaHandler : ISagaHandler<AccountWelcomeSaga, AccountCreatedEvent> { }
+
+// Implement the saga handler
+public class AccountWelcomeSagaHandler : IAccountWelcomeSagaHandler
+{
+    private readonly ILogger<AccountWelcomeSagaHandler> _logger;
+    
+    public AccountWelcomeSagaHandler(ILogger<AccountWelcomeSagaHandler> logger)
+    {
+        _logger = logger;
+    }
+    
+    public async Task<Result> HandleAsync(AccountCreatedEvent @event, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Processing account welcome saga for account {AccountNumber}", @event.AccountNumber);
+        
+        // In a real application, this would send an actual email
+        // For now, just log and return success
+        await Task.Delay(100, cancellationToken);
+        
+        Console.WriteLine($"Welcome saga completed for account: {@event.AccountNumber}");
+        return Result.Success();
+    }
+}
+
+// Setup and usage in application
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup DI container
+        var services = new ServiceCollection();
+        
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IEventBus, InMemoryEventBus>();
+        services.AddSingleton<IAccountWelcomeSagaHandler, AccountWelcomeSagaHandler>();
+        
+        // Register saga handler wrapper
+        services.AddSingleton<ISagaHandlerWrapper>(provider => 
+            new SagaHandlerWrapper<AccountWelcomeSaga, AccountCreatedEvent>(
+                provider.GetRequiredService<IAccountWelcomeSagaHandler>()
+            )
+        );
+        
+        // Build service provider
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Get orchestrator and event bus
+        var orchestrator = new SagaOrchestrator(
+            handlers: new[] { serviceProvider.GetRequiredService<ISagaHandlerWrapper>() },
+            eventBus: serviceProvider.GetRequiredService<IEventBus>(),
+            logger: serviceProvider.GetRequiredService<ILogger<SagaOrchestrator>>()
+        );
+        
+        var eventBus = serviceProvider.GetRequiredService<IEventBus>();
+        
+        // Create and dispatch an account created event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "agg-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+        
+        Console.WriteLine("Dispatching account created event to saga orchestrator...");
+        
+        // Dispatch the event
+        var result = await orchestrator.DispatchAsync(accountCreatedEvent);
+        
+        if (result.IsSuccess)
+        {
+            Console.WriteLine("Saga processing completed successfully!");
+        }
+        else
+        {
+            Console.WriteLine($"Saga processing failed: {result.ErrorMessage}");
+        }
+        
+        // Check for any outbox events that were produced
+        var wrapper = serviceProvider.GetRequiredService<ISagaHandlerWrapper>() as SagaHandlerWrapper<AccountWelcomeSaga, AccountCreatedEvent>;
+        var outboxEvents = wrapper?.DrainOutboxEvents();
+        
+        if (outboxEvents != null && outboxEvents.Count > 0)
+        {
+            Console.WriteLine($"Saga produced {outboxEvents.Count} outbox event(s):");
+            foreach (var @event in outboxEvents)
+            {
+                Console.WriteLine($" - {@event.GetType().Name}");
+            }
+        }
+    }
+}
+
+// Supporting domain event for welcome saga
+public class WelcomeEmailSent : DomainEvent
+{
+    public string Email { get; }
+    public string AccountId { get; }
+    public decimal InitialBalance { get; }
+    
+    public WelcomeEmailSent(string aggregateId, string email, string accountId, decimal initialBalance)
+        : base(aggregateId)
+    {
+        Email = email;
+        AccountId = accountId;
+        InitialBalance = initialBalance;
+    }
+    
+    public override string GetEventType() => nameof(WelcomeEmailSent);
+}
+```
+
 ## EventHandlers
 
 `EventHandlers` is the central event handling coordinator in the CQRS + Event Sourcing framework. It manages the registration of domain event handlers and coordinates event processing across the system. The class provides a centralized location for subscribing to domain events and delegating their processing to appropriate handlers.
