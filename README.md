@@ -451,6 +451,82 @@ public class TransactionExample
 The example demonstrates all public members of `TransactionSummary` with realistic usage patterns for querying and processing account transactions.
 
 
+## DeadLetterEntry
+
+`DeadLetterEntry` represents a domain event that could not be processed by a projection runner after all retry attempts were exhausted. It captures the failed event, the projection that failed, the error message, and metadata about retry attempts. This type is used by the dead-letter store to track events that need manual intervention or reprocessing.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.ReadModels;
+
+public class DeadLetterExample
+{
+    public async Task CreateDeadLetterEntry()
+    {
+        // Create a domain event that failed processing
+        var failedEvent = new MoneyDeposited("agg-123", "ACC-0001", 1000.50m, "USD", "DEP-001")
+        {
+            CorrelationId = "corr-456",
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Create a dead-letter entry for the failed event
+        var deadLetter = new DeadLetterEntry
+        {
+            Event = failedEvent,
+            ProjectionName = "AccountReadModel",
+            ErrorMessage = "Concurrency conflict: event version already processed",
+            AttemptCount = 3,
+            FailedAt = DateTime.UtcNow
+        };
+
+        Console.WriteLine($"Created dead-letter entry: {deadLetter.Id}");
+        Console.WriteLine($"Failed projection: {deadLetter.ProjectionName}");
+        Console.WriteLine($"Error: {deadLetter.ErrorMessage}");
+        Console.WriteLine($"Attempts: {deadLetter.AttemptCount}");
+        Console.WriteLine($"Failed at: {deadLetter.FailedAt:u}");
+
+        // Mark as reprocessed when successfully handled
+        deadLetter.MarkReprocessed();
+        Console.WriteLine($"Reprocessed at: {deadLetter.ReprocessedAt?.ToString("u") ?? "null"}");
+    }
+
+    public async Task ProcessDeadLetterQueue(IDeadLetterStore store)
+    {
+        // Retrieve all unprocessed dead-letter entries for a projection
+        var entries = await store.GetByProjectionAsync("AccountReadModel");
+        
+        foreach (var entry in entries)
+        {
+            Console.WriteLine($"Processing dead-letter: {entry.Id}");
+            Console.WriteLine($"Event: {entry.Event.GetType().Name}");
+            Console.WriteLine($"Error: {entry.ErrorMessage}");
+            
+            // Attempt to reprocess the event
+            var success = await TryReprocessEvent(entry.Event);
+            
+            if (success)
+            {
+                // Mark as successfully reprocessed
+                await store.MarkReprocessedAsync(entry.Id);
+                Console.WriteLine("Successfully reprocessed dead-letter entry");
+            }
+        }
+    }
+
+    private async Task<bool> TryReprocessEvent(DomainEvent @event)
+    {
+        // Implementation-specific reprocessing logic
+        await Task.Delay(100); // Simulate work
+        return true;
+    }
+}
+```
+
 ## IAccountReadModelQueryService
 
 `IAccountReadModelQueryService` provides domain-oriented queries over the `AccountReadModel` store, hiding low-level key lookups behind business-meaningful method signatures. It serves as the primary read-side interface for querying account data in the CQRS + Event Sourcing framework.
