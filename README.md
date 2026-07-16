@@ -527,6 +527,95 @@ public class DeadLetterExample
 }
 ```
 
+## InMemoryDeadLetterStore
+
+`InMemoryDeadLetterStore` is a thread-safe, in-memory implementation of `IDeadLetterStore` that stores failed projection events for later reprocessing. It's designed for development and testing scenarios where persistence requirements are minimal. For production workloads, replace this with a durable store implementation.
+
+The store provides basic CRUD operations for dead-letter entries including querying by projection name, aggregate ID, or retrieving all entries. It also supports marking entries as reprocessed and counting active dead-letter entries.
+
+**Public members:**
+- `WriteAsync(DeadLetterEntry entry, CancellationToken cancellationToken)` - Writes a dead-letter entry to the store
+- `GetByProjectionAsync(string projectionName, CancellationToken cancellationToken)` - Gets all unprocessed dead-letter entries for a specific projection
+- `GetByAggregateAsync(string aggregateId, CancellationToken cancellationToken)` - Gets all unprocessed dead-letter entries for a specific aggregate
+- `GetAllAsync(bool includeReprocessed, CancellationToken cancellationToken)` - Gets all dead-letter entries, optionally including reprocessed ones
+- `MarkReprocessedAsync(string entryId, CancellationToken cancellationToken)` - Marks a dead-letter entry as successfully reprocessed
+- `GetCountAsync(CancellationToken cancellationToken)` - Gets the count of unprocessed dead-letter entries
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.ReadModels;
+using Microsoft.Extensions.Logging;
+
+public class InMemoryDeadLetterStoreExample
+{
+    private readonly InMemoryDeadLetterStore _store;
+    
+    public InMemoryDeadLetterStoreExample()
+    {
+        // Create store with logger (typically injected in real applications)
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var logger = loggerFactory.CreateLogger<InMemoryDeadLetterStore>();
+        _store = new InMemoryDeadLetterStore(logger);
+    }
+    
+    public async Task ManageDeadLetterEntries()
+    {
+        // Create a failed domain event
+        var failedEvent = new MoneyDeposited("agg-123", "ACC-0001", 1000.50m, "USD", "DEP-001")
+        {
+            CorrelationId = "corr-456",
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Create a dead-letter entry
+        var deadLetter = new DeadLetterEntry
+        {
+            Event = failedEvent,
+            ProjectionName = "AccountReadModel",
+            ErrorMessage = "Concurrency conflict: event version already processed",
+            AttemptCount = 3,
+            FailedAt = DateTime.UtcNow
+        };
+        
+        // Write the dead-letter entry
+        await _store.WriteAsync(deadLetter);
+        Console.WriteLine($"Dead-letter entry created: {deadLetter.Id}");
+        
+        // Get all unprocessed dead-letter entries for a projection
+        var projectionEntries = await _store.GetByProjectionAsync("AccountReadModel");
+        Console.WriteLine($"Found {projectionEntries.Count} entries for AccountReadModel projection");
+        
+        // Get all unprocessed dead-letter entries for an aggregate
+        var aggregateEntries = await _store.GetByAggregateAsync("agg-123");
+        Console.WriteLine($"Found {aggregateEntries.Count} entries for aggregate agg-123");
+        
+        // Get total count of unprocessed entries
+        var count = await _store.GetCountAsync();
+        Console.WriteLine($"Total unprocessed dead-letter entries: {count}");
+        
+        // Mark entry as reprocessed when successfully handled
+        if (projectionEntries.Any())
+        {
+            var entryId = projectionEntries.First().Id;
+            var markResult = await _store.MarkReprocessedAsync(entryId);
+            if (markResult.IsSuccess)
+            {
+                Console.WriteLine($"Successfully marked entry {entryId} as reprocessed");
+            }
+        }
+        
+        // Get all entries including reprocessed ones
+        var allEntries = await _store.GetAllAsync(includeReprocessed: true);
+        Console.WriteLine($"Total entries (including reprocessed): {allEntries.Count}");
+    }
+}
+```
+
 ## IAccountReadModelQueryService
 
 `IAccountReadModelQueryService` provides domain-oriented queries over the `AccountReadModel` store, hiding low-level key lookups behind business-meaningful method signatures. It serves as the primary read-side interface for querying account data in the CQRS + Event Sourcing framework.
