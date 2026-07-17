@@ -1548,6 +1548,126 @@ public class Program
 }
 ```
 
+## LoggingDecoratorValidation
+
+`LoggingDecoratorValidation` is a static utility class that provides validation helpers for the `LoggingDecorator` class. It ensures that method arguments passed to logging operations are valid before performing any logging actions, preventing null reference exceptions and invalid data from being logged.
+
+The class offers validation methods for various logging scenarios including event validation, aggregate operation logging, concurrency conflict detection, snapshot creation logging, and projection rebuild logging. Each validation method returns a list of human-readable validation problems or throws an `ArgumentException` when validation fails.
+
+**Public members:**
+- `Validate(LoggingDecorator?)` - Validates a logging decorator instance
+- `Validate(DomainEvent?)` - Validates a domain event for event publishing
+- `Validate(DomainEvent?, long)` - Validates a domain event with elapsed time for event processing
+- `Validate(DomainEvent?, Exception?, long)` - Validates a domain event with exception and elapsed time for error logging
+- `Validate(string?, string?, string?, string?)` - Validates arguments for aggregate operation logging
+- `Validate(string?, long, long)` - Validates arguments for concurrency conflict logging
+- `Validate(string?, long)` - Validates arguments for snapshot creation logging
+- `Validate(string?, int, long)` - Validates arguments for projection rebuild logging
+- `IsValid(LoggingDecorator?)` - Checks if a logging decorator instance is valid
+- `EnsureValid(LoggingDecorator?)` - Throws if a logging decorator instance is invalid
+- `EnsureValid(DomainEvent?)` - Throws if a domain event is invalid
+- `EnsureValid(DomainEvent?, long)` - Throws if domain event with elapsed time is invalid
+- `EnsureValid(DomainEvent?, Exception?, long)` - Throws if domain event with exception and elapsed time is invalid
+- `EnsureValid(string?, string?, string?, string?)` - Throws if aggregate operation arguments are invalid
+- `EnsureValid(string?, long, long)` - Throws if concurrency conflict arguments are invalid
+- `EnsureValid(string?, long)` - Throws if snapshot creation arguments are invalid
+- `EnsureValid(string?, int, long)` - Throws if projection rebuild arguments are invalid
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Application.Decorators;
+using DotNetCqrsEventSourcing.Domain.Events;
+
+public class LoggingDecoratorValidationExample
+{
+    public void ValidateLoggingOperations()
+    {
+        // Validate a logging decorator instance
+        var decorator = new LoggingDecorator(null, null);
+        var decoratorProblems = decorator.Validate();
+        Console.WriteLine($"Decorator validation problems: {decoratorProblems.Count}");
+
+        // Validate a domain event for publishing
+        var accountEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountEvent.PopulateMetadata();
+
+        var eventProblems = accountEvent.Validate();
+        Console.WriteLine($"Event validation problems: {eventProblems.Count}");
+        
+        // Validate domain event with elapsed time for processing
+        var processingProblems = accountEvent.Validate(elapsedMilliseconds: 150);
+        Console.WriteLine($"Processing validation problems: {processingProblems.Count}");
+
+        // Validate aggregate operation logging arguments
+        var operationProblems = LoggingDecoratorValidation.Validate(
+            operationName: "CreateAccount",
+            aggregateId: "account-123",
+            aggregateType: "Account",
+            correlationId: "corr-456"
+        );
+        Console.WriteLine($"Operation validation problems: {operationProblems.Count}");
+
+        // Validate concurrency conflict logging arguments
+        var conflictProblems = LoggingDecoratorValidation.Validate(
+            aggregateId: "account-123",
+            expectedVersion: 5,
+            actualVersion: 3
+        );
+        Console.WriteLine($"Conflict validation problems: {conflictProblems.Count}");
+
+        // Validate snapshot creation logging arguments
+        var snapshotProblems = LoggingDecoratorValidation.Validate(
+            aggregateId: "account-123",
+            version: 100
+        );
+        Console.WriteLine($"Snapshot validation problems: {snapshotProblems.Count}");
+
+        // Validate projection rebuild logging arguments
+        var rebuildProblems = LoggingDecoratorValidation.Validate(
+            aggregateId: "account-123",
+            eventCount: 50,
+            elapsedMilliseconds: 2500
+        );
+        Console.WriteLine($"Rebuild validation problems: {rebuildProblems.Count}");
+
+        // Use EnsureValid to throw exceptions on invalid data
+        try
+        {
+            LoggingDecoratorValidation.EnsureValid(
+                operationName: null,
+                aggregateId: "account-123",
+                aggregateType: "Account"
+            );
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Validation threw: {ex.Message}");
+        }
+
+        // Use IsValid to check without throwing
+        bool isValid = new LoggingDecorator(null, null).IsValid();
+        Console.WriteLine($"Is decorator valid: {isValid}");
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var example = new LoggingDecoratorValidationExample();
+        example.ValidateLoggingOperations();
+    }
+}
+```
+
 ## RateLimitingMiddlewareJsonExtensions
 
 `RateLimitingMiddlewareJsonExtensions` provides System.Text.Json serialization and deserialization helpers for rate limiting state management. It enables serialization of rate limiting configuration and bucket state for debugging, monitoring, and persistence scenarios. The extension methods work with the underlying `RateLimitingState` data structure that contains rate limit options and token bucket state.
