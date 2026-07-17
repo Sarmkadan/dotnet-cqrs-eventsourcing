@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
@@ -22,6 +21,16 @@ public static class DeadLetterEntryValidation
     /// <param name="value">The entry to validate.</param>
     /// <returns>A read-only list of validation problems; empty if valid.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
+    /// <remarks>
+    /// Checks the following aspects:
+    /// - Id must be a valid GUID format
+    /// - Event must not be null
+    /// - ProjectionName must not be null, empty, or whitespace
+    /// - ErrorMessage must not be null, empty, or whitespace
+    /// - AttemptCount must be a non-negative integer
+    /// - FailedAt must be a valid UTC timestamp in the past
+    /// - ReprocessedAt must be consistent with IsReprocessed flag and FailedAt
+    /// </remarks>
     public static IReadOnlyList<string> Validate(this DeadLetterEntry? value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -85,22 +94,21 @@ public static class DeadLetterEntryValidation
         {
             problems.Add("If IsReprocessed is false, ReprocessedAt must be null.");
         }
-
-        if (value.ReprocessedAt.HasValue)
+        else if (value.ReprocessedAt is { } reprocessedAt)
         {
-            if (value.ReprocessedAt.Value == default)
+            if (reprocessedAt == default)
             {
                 problems.Add("ReprocessedAt must be a valid UTC timestamp (cannot be default DateTime).");
             }
-            else if (value.ReprocessedAt.Value.Kind != DateTimeKind.Utc)
+            else if (reprocessedAt.Kind != DateTimeKind.Utc)
             {
                 problems.Add("ReprocessedAt must be in UTC timezone.");
             }
-            else if (value.ReprocessedAt.Value > DateTime.UtcNow.AddMinutes(5))
+            else if (reprocessedAt > DateTime.UtcNow.AddMinutes(5))
             {
                 problems.Add("ReprocessedAt cannot be in the future.");
             }
-            else if (value.ReprocessedAt.Value < value.FailedAt)
+            else if (reprocessedAt < value.FailedAt)
             {
                 problems.Add("ReprocessedAt cannot be earlier than FailedAt.");
             }
@@ -117,7 +125,7 @@ public static class DeadLetterEntryValidation
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static bool IsValid(this DeadLetterEntry? value)
     {
-        return value is not null && Validate(value).Count == 0;
+        return value is { } && Validate(value).Count == 0;
     }
 
     /// <summary>
@@ -145,8 +153,5 @@ public static class DeadLetterEntryValidation
     /// </summary>
     /// <param name="input">The string to check.</param>
     /// <returns>True if valid GUID format; otherwise, false.</returns>
-    private static bool IsValidGuidFormat(string input)
-    {
-        return Guid.TryParse(input, out _);
-    }
+    private static bool IsValidGuidFormat(string input) => Guid.TryParse(input, out _);
 }
