@@ -12,6 +12,61 @@ The full picture - layers, write/read data flow, projection engine, snapshots/co
 - `Infrastructure/` - dispatch, workers, middleware, CLI
 - All default stores are in‑memory; swap `IEventRepository` / `IReadModelStore<T>` for real persistence.
 
+## DotnetCqrsEventsourcingOptions
+
+`DotnetCqrsEventsourcingOptions` is the configuration class that provides centralized settings for the CQRS + Event Sourcing framework. It controls connection strings, caching behavior, event processing parameters, snapshot management, and retention policies, allowing you to customize the framework's behavior for your specific deployment environment and performance requirements.
+
+This class is typically bound from `appsettings.json` using the `SectionName` constant (`DotnetCqrsEventsourcing`) and registered as a configuration option in your dependency injection container.
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Setup configuration
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+
+        // Configure services with options
+        var services = new ServiceCollection();
+        
+        services.Configure<DotnetCqrsEventsourcingOptions>(
+            configuration.GetSection(DotnetCqrsEventsourcingOptions.SectionName));
+
+        // Register as singleton for direct access
+        services.AddSingleton(sp => 
+            sp.GetRequiredService<IOptions<DotnetCqrsEventsourcingOptions>>().Value);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<DotnetCqrsEventsourcingOptions>();
+
+        Console.WriteLine("CQRS Event Sourcing Configuration:");
+        Console.WriteLine($"Event Store: {options.EventStoreConnectionString.Substring(0, Math.Min(20, options.EventStoreConnectionString.Length))}...");
+        Console.WriteLine($"Projection Store: {options.ProjectionStoreConnectionString.Substring(0, Math.Min(20, options.ProjectionStoreConnectionString.Length))}...");
+        Console.WriteLine($"Snapshot Store: {options.SnapshotStoreConnectionString.Substring(0, Math.Min(20, options.SnapshotStoreConnectionString.Length))}...");
+        Console.WriteLine($"Max Events Cached: {options.MaxEventsCached}");
+        Console.WriteLine($"Cache Expiration: {options.CacheExpirationSeconds}s");
+        Console.WriteLine($"Enable Compression: {options.EnableEventCompression}");
+        Console.WriteLine($"Batch Write Size: {options.BatchWriteSize}");
+        Console.WriteLine($"Parallel Readers: {options.ParallelReaderCount}");
+        Console.WriteLine($"Auto Snapshots: {options.AutoCreateSnapshots}");
+        Console.WriteLine($"Snapshot Frequency: {options.SnapshotFrequency}");
+        Console.WriteLine($"Min Snapshot Version: {options.MinVersionForSnapshot}");
+        Console.WriteLine($"Verify Checksums: {options.VerifyEventChecksums}");
+        Console.WriteLine($"Retention Policy: {options.RetentionPolicy}");
+        Console.WriteLine($"Retention Days: {options.RetentionDays}");
+    }
+}
+```
+
 ## CreateAccountCommand
 
 `CreateAccountCommand` is a command object used to initiate the creation of a new bank account in the system. This command carries all the essential information required to open a new account including the account number, holder details, currency, and initial balance. It also includes correlation tracking for distributed tracing and timestamping for audit purposes.
