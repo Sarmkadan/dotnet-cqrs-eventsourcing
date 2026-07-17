@@ -19,6 +19,7 @@ public static class LoggingDecoratorValidation
     /// </summary>
     /// <param name="value">The logging decorator instance to validate.</param>
     /// <returns>A list of human-readable validation problems; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/>.</exception>
     public static IReadOnlyList<string> Validate(this LoggingDecorator? value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -31,6 +32,7 @@ public static class LoggingDecoratorValidation
     /// </summary>
     /// <param name="event">The domain event to validate.</param>
     /// <returns>A list of human-readable validation problems; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static IReadOnlyList<string> Validate(this DomainEvent? @event)
     {
         ArgumentNullException.ThrowIfNull(@event);
@@ -57,6 +59,11 @@ public static class LoggingDecoratorValidation
             problems.Add("OccurredAt cannot be the default DateTime value.");
         }
 
+        if (@event.AggregateType is null)
+        {
+            problems.Add("AggregateType cannot be null.");
+        }
+
         return problems.AsReadOnly();
     }
 
@@ -66,8 +73,11 @@ public static class LoggingDecoratorValidation
     /// <param name="event">The domain event to validate.</param>
     /// <param name="elapsedMilliseconds">The elapsed time in milliseconds.</param>
     /// <returns>A list of human-readable validation problems; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static IReadOnlyList<string> Validate(this DomainEvent? @event, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         var problems = new List<string>(Validate(@event));
 
         if (elapsedMilliseconds < 0)
@@ -85,8 +95,11 @@ public static class LoggingDecoratorValidation
     /// <param name="ex">The exception that occurred.</param>
     /// <param name="elapsedMilliseconds">The elapsed time in milliseconds.</param>
     /// <returns>A list of human-readable validation problems; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static IReadOnlyList<string> Validate(this DomainEvent? @event, Exception? ex, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         var problems = new List<string>(Validate(@event, elapsedMilliseconds));
 
         if (ex is null)
@@ -220,6 +233,7 @@ public static class LoggingDecoratorValidation
     /// </summary>
     /// <param name="value">The logging decorator instance to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/>.</exception>
     public static bool IsValid(this LoggingDecorator? value)
     {
         try
@@ -237,7 +251,7 @@ public static class LoggingDecoratorValidation
     /// Ensures that the specified <see cref="LoggingDecorator"/> instance is valid, throwing an <see cref="ArgumentException"/> if not.
     /// </summary>
     /// <param name="value">The logging decorator instance to validate.</param>
-    /// <exception cref="ArgumentException">Thrown if the instance is not valid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/>.</exception>
     public static void EnsureValid(this LoggingDecorator? value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -248,6 +262,7 @@ public static class LoggingDecoratorValidation
     /// </summary>
     /// <param name="event">The domain event to validate.</param>
     /// <exception cref="ArgumentException">Thrown if the event is not valid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static void EnsureValid(this DomainEvent? @event)
     {
         ArgumentNullException.ThrowIfNull(@event);
@@ -268,8 +283,11 @@ public static class LoggingDecoratorValidation
     /// <param name="event">The domain event to validate.</param>
     /// <param name="elapsedMilliseconds">The elapsed time in milliseconds.</param>
     /// <exception cref="ArgumentException">Thrown if the arguments are not valid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static void EnsureValid(this DomainEvent? @event, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         var problems = Validate(@event, elapsedMilliseconds);
         if (problems.Count > 0)
         {
@@ -287,8 +305,11 @@ public static class LoggingDecoratorValidation
     /// <param name="ex">The exception that occurred.</param>
     /// <param name="elapsedMilliseconds">The elapsed time in milliseconds.</param>
     /// <exception cref="ArgumentException">Thrown if the arguments are not valid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="event"/> is <see langword="null"/>.</exception>
     public static void EnsureValid(this DomainEvent? @event, Exception? ex, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         var problems = Validate(@event, ex, elapsedMilliseconds);
         if (problems.Count > 0)
         {
