@@ -1920,6 +1920,92 @@ public class Program
 }
 ```
 
+## InMemoryEventRepositoryValidation
+
+`InMemoryEventRepositoryValidation` is a static utility class that provides validation helpers for `InMemoryEventRepository` instances. It ensures that in-memory event repositories are in a valid state before performing operations, preventing corrupted state that could lead to incorrect event ordering, concurrency issues, or retrieval failures.
+
+The validation methods check for internal state consistency by attempting to retrieve all events and verifying that the repository's observable behavior matches expectations. This is particularly important for testing scenarios where the in-memory repository might be manipulated directly or where state corruption could occur.
+
+**Public members:**
+- `Validate(InMemoryEventRepository)` - Validates a repository instance and returns a list of validation problems
+- `IsValid(InMemoryEventRepository)` - Checks if a repository instance is valid
+- `EnsureValid(InMemoryEventRepository)` - Throws if a repository instance has validation problems
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Data.Repositories;
+using DotNetCqrsEventSourcing.Domain.Events;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class InMemoryEventRepositoryValidationExample
+{
+    private readonly InMemoryEventRepository _repository;
+
+    public InMemoryEventRepositoryValidationExample(InMemoryEventRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task ValidateRepositoryOperationsAsync()
+    {
+        // Create repository with logging
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<InMemoryEventRepository>();
+        var serviceProvider = services.BuildServiceProvider();
+        var repository = serviceProvider.GetRequiredService<InMemoryEventRepository>();
+
+        // Validate the repository is in a valid initial state
+        var validationProblems = repository.Validate();
+        Console.WriteLine($"Initial validation problems: {validationProblems.Count}");
+        
+        // Add some events to the repository
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        await _repository.SaveEventAsync(accountCreatedEvent);
+
+        // Validate repository after adding events
+        var problemsAfterAdd = repository.Validate();
+        Console.WriteLine($"Validation problems after adding events: {problemsAfterAdd.Count}");
+        
+        // Check if repository is valid
+        bool isValid = repository.IsValid();
+        Console.WriteLine($"Repository is valid: {isValid}");
+        
+        // Use EnsureValid to throw if repository is invalid
+        try
+        {
+            repository.EnsureValid();
+            Console.WriteLine("Repository passed validation");
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Validation threw: {ex.Message}");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var example = new InMemoryEventRepositoryValidationExample(null!);
+        await example.ValidateRepositoryOperationsAsync();
+    }
+}
+```
+
 ## InMemorySagaRepository
 
 `InMemorySagaRepository<TSaga>` is a thread-safe, in-memory implementation of `ISagaRepository<TSaga>` that stores saga instances in a concurrent dictionary. This repository is ideal for development, testing scenarios, and single-instance deployments where persistence requirements are minimal. It provides fast, deterministic access to saga state without external dependencies.
