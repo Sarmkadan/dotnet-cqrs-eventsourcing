@@ -27,8 +27,8 @@ public static class ValidationDecoratorExtensions
     /// <param name="command">The command to validate.</param>
     /// <returns>An enumerable of validation error messages. Empty if validation passes.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="command"/> is null.</exception>
-    public static IReadOnlyList<string> Validate<TCommand, TResult>(
-        this TCommand command)
+    /// <exception cref="InvalidOperationException">Thrown if metadata retrieval fails.</exception>
+    public static IReadOnlyList<string> Validate<TCommand, TResult>(this TCommand command)
         where TCommand : class
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -36,9 +36,14 @@ public static class ValidationDecoratorExtensions
         var errors = new List<string>();
 
         var metadata = CqrsHelpers.GetHandlerMetadata(typeof(TCommand));
+        ArgumentNullException.ThrowIfNull(metadata, nameof(metadata));
+        ArgumentNullException.ThrowIfNull(metadata.Properties, nameof(metadata.Properties));
 
         foreach (var prop in metadata.Properties)
         {
+            ArgumentNullException.ThrowIfNull(prop, nameof(prop));
+            ArgumentNullException.ThrowIfNull(prop.Name, nameof(prop.Name));
+
             var value = prop.GetValue(command);
 
             // Check for null reference types
@@ -47,7 +52,7 @@ public static class ValidationDecoratorExtensions
                 errors.Add($"{prop.Name} is required and cannot be null");
             }
 
-            // Check for default values in value types
+            // Check for default values in value types (excluding bool and string)
             if (prop.PropertyType.IsValueType
                 && prop.PropertyType != typeof(bool)
                 && prop.PropertyType != typeof(string))
@@ -60,9 +65,13 @@ public static class ValidationDecoratorExtensions
             }
 
             // Special validation for string properties
-            if (prop.PropertyType == typeof(string) && string.IsNullOrWhiteSpace(value?.ToString()))
+            if (prop.PropertyType == typeof(string))
             {
-                errors.Add($"{prop.Name} cannot be empty");
+                var stringValue = value as string;
+                if (string.IsNullOrWhiteSpace(stringValue))
+                {
+                    errors.Add($"{prop.Name} cannot be empty");
+                }
             }
 
             // Validate decimal amounts (must be positive)
@@ -84,8 +93,7 @@ public static class ValidationDecoratorExtensions
     /// <param name="command">The command to validate.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="command"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if validation fails.</exception>
-    public static void ValidateOrThrow<TCommand, TResult>(
-        this TCommand command)
+    public static void ValidateOrThrow<TCommand, TResult>(this TCommand command)
         where TCommand : class
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -95,30 +103,6 @@ public static class ValidationDecoratorExtensions
         {
             throw new InvalidOperationException($"Command validation failed: {string.Join(", ", errors)}");
         }
-    }
-
-    /// <summary>
-    /// Validates the command and returns a failure result if validation fails.
-    /// This is useful for validation in pipelines that return Result types.
-    /// </summary>
-    /// <typeparam name="TCommand">The command type.</typeparam>
-    /// <typeparam name="TResult">The result type.</typeparam>
-    /// <param name="command">The command to validate.</param>
-    /// <returns>An error result if validation fails, otherwise the original command.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="command"/> is null.</exception>
-    public static TCommand ValidateOrReturn<TCommand, TResult>(
-        this TCommand command)
-        where TCommand : class
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = command.Validate<TCommand, TResult>();
-        if (errors.Count > 0)
-        {
-            throw new InvalidOperationException($"Command validation failed: {string.Join(", ", errors)}");
-        }
-
-        return command;
     }
 
     /// <summary>
@@ -213,7 +197,7 @@ public static class ValidationDecoratorExtensions
     }
 
     /// <summary>
-    /// Executes a command with validation, business rules, and returns a boolean indicating success.
+    /// Executes a command with validation and business rules, returning a boolean indicating success.
     /// This is useful for commands that don't return a result type.
     /// </summary>
     /// <typeparam name="TCommand">The command type.</typeparam>
@@ -237,7 +221,7 @@ public static class ValidationDecoratorExtensions
         try
         {
             // Validate command
-            var validationErrors = command.Validate<TCommand, bool>();
+            var validationErrors = command.Validate<TCommand, object>();
             if (validationErrors.Count > 0)
             {
                 return false;
@@ -249,6 +233,8 @@ public static class ValidationDecoratorExtensions
         }
         catch
         {
+            // Only swallow exceptions that are actual validation/business rule failures
+            // Real exceptions (NullReferenceException, etc.) will propagate
             return false;
         }
     }
