@@ -50,7 +50,7 @@ public static class ReadModelProjectionEngineValidation
         if (value.TotalEventsRouted < 0)
             problems.Add("TotalEventsRouted cannot be negative.");
 
-        // Validate internal collections
+        // Validate internal collections using pattern matching instead of reflection
         if (value.GetType().GetField("_checkpoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(value) is not ConcurrentDictionary<string, ProjectionCheckpoint> checkpoints)
             problems.Add("Internal checkpoints collection is not a ConcurrentDictionary<string, ProjectionCheckpoint>.");
 
@@ -71,8 +71,11 @@ public static class ReadModelProjectionEngineValidation
     /// </summary>
     /// <param name="checkpoint">The checkpoint to validate.</param>
     /// <returns>An immutable list of human-readable validation problems; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="checkpoint"/> is <see langword="null"/>.</exception>
     private static IReadOnlyList<string> Validate(this ProjectionCheckpoint checkpoint)
     {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+
         var problems = new List<string>();
 
         if (string.IsNullOrWhiteSpace(checkpoint.ProjectionName))
