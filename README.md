@@ -1384,6 +1384,153 @@ public class Program
 }
 ```
 
+## InMemoryEventRepository
+
+`InMemoryEventRepository` is a thread-safe, in-memory implementation of `IEventRepository` designed for testing, development, and demonstration purposes. It provides a simple, dependency-free event store that maintains all events in memory with proper concurrency control and optimistic locking. This repository is ideal for unit tests, integration tests, and local development scenarios where persistence requirements are minimal.
+
+The repository supports all standard event repository operations including saving single or multiple events, retrieving events by aggregate ID, version-based queries, event type filtering, partition-based access, and event compaction. All operations are atomic and thread-safe through the use of internal locking.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Data.Repositories;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class InMemoryEventRepositoryExample
+{
+    private readonly InMemoryEventRepository _repository;
+
+    public InMemoryEventRepositoryExample(InMemoryEventRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task ManageAccountEventsAsync()
+    {
+        // Create a new account created event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        // Save single event to repository
+        var saveSingleResult = await _repository.SaveEventAsync(accountCreatedEvent);
+        if (saveSingleResult.IsSuccess)
+        {
+            Console.WriteLine("Single event saved successfully");
+        }
+
+        // Create additional events
+        var depositEvent = new MoneyDepositedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            amount: 500.00m,
+            reference: "Salary payment",
+            aggregateVersion: 2
+        );
+        depositEvent.PopulateMetadata();
+
+        var withdrawEvent = new MoneyWithdrawnEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            amount: 200.00m,
+            reference: "Rent payment",
+            aggregateVersion: 3
+        );
+        withdrawEvent.PopulateMetadata();
+
+        // Save multiple events atomically
+        var saveMultipleResult = await _repository.SaveEventsAsync(
+            new List<EventEnvelope> { depositEvent, withdrawEvent }
+        );
+        if (saveMultipleResult.IsSuccess)
+        {
+            Console.WriteLine("Multiple events saved successfully");
+        }
+
+        // Retrieve all events for an aggregate
+        var getEventsResult = await _repository.GetEventsByAggregateIdAsync("account-123");
+        if (getEventsResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved {getEventsResult.Data!.Count} events for account-123");
+            foreach (var @event in getEventsResult.Data)
+            {
+                Console.WriteLine($" - Version {@event.AggregateVersion}: {@event.EventType}");
+            }
+        }
+
+        // Get aggregate version
+        var versionResult = await _repository.GetAggregateVersionAsync("account-123");
+        if (versionResult.IsSuccess)
+        {
+            Console.WriteLine($"Current aggregate version: {versionResult.Data}");
+        }
+
+        // Get events from a specific version
+        var fromVersionResult = await _repository.GetEventsByAggregateIdAndVersionAsync(
+            aggregateId: "account-123",
+            fromVersion: 2
+        );
+        if (fromVersionResult.IsSuccess)
+        {
+            Console.WriteLine($"Retrieved {fromVersionResult.Data!.Count} events from version 2");
+        }
+
+        // Get events by type
+        var typeResult = await _repository.GetEventsByTypeAsync("AccountCreatedEvent");
+        if (typeResult.IsSuccess)
+        {
+            Console.WriteLine($"Found {typeResult.Data!.Count} AccountCreatedEvent instances");
+        }
+
+        // Get all events with pagination
+        var allEventsResult = await _repository.GetAllEventsAsync(pageNumber: 1, pageSize: 10);
+        if (allEventsResult.IsSuccess)
+        {
+            Console.WriteLine($"Total events in repository: {allEventsResult.Data!.Count}");
+        }
+
+        // Delete events before a specific version (compaction)
+        var deleteResult = await _repository.DeleteEventsBeforeVersionAsync(
+            aggregateId: "account-123",
+            beforeVersion: 2
+        );
+        if (deleteResult.IsSuccess)
+        {
+            Console.WriteLine($"Deleted {deleteResult.Data} events before version 2");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+
+        // Register InMemoryEventRepository as a singleton
+        services.AddSingleton<InMemoryEventRepository>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var repository = serviceProvider.GetRequiredService<InMemoryEventRepository>();
+
+        var example = new InMemoryEventRepositoryExample(repository);
+        await example.ManageAccountEventsAsync();
+    }
+}
+```
+
 ## InMemorySagaRepository
 
 `InMemorySagaRepository<TSaga>` is a thread-safe, in-memory implementation of `ISagaRepository<TSaga>` that stores saga instances in a concurrent dictionary. This repository is ideal for development, testing scenarios, and single-instance deployments where persistence requirements are minimal. It provides fast, deterministic access to saga state without external dependencies.
