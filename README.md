@@ -2071,6 +2071,131 @@ public class Program
 }
 ```
 
+## ValidationDecoratorExtensions
+
+`ValidationDecoratorExtensions` provides extension methods for validating commands and executing them with built-in validation. These methods eliminate boilerplate validation code by combining property validation, null checks, and business rule validation into convenient one-line calls. The extension methods support both synchronous and asynchronous execution patterns, making them ideal for command handlers and API controllers.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Commands;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Infrastructure.Decorators;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class ValidationDecoratorExample
+{
+    private readonly IAccountService _accountService;
+
+    public ValidationDecoratorExample(IAccountService accountService)
+    {
+        _accountService = accountService;
+    }
+
+    public async Task ProcessAccountCommandAsync(CreateAccountCommand command)
+    {
+        // Validate command and get errors
+        var validationErrors = command.Validate<CreateAccountCommand, Result<Account>>();
+        
+        if (validationErrors.Count > 0)
+        {
+            Console.WriteLine("Validation failed:");
+            foreach (var error in validationErrors)
+            {
+                Console.WriteLine($" - {error}");
+            }
+        }
+        
+        // Or use fail-fast validation that throws on failure
+        command.ValidateOrThrow<CreateAccountCommand, Result<Account>>();
+        
+        // Execute command with validation in one call (returns Result<T>)
+        var handler = new Func<CreateAccountCommand, CancellationToken, Task<Result<Account>>>(
+            async (cmd, ct) => Result<Account>.Success(new Account())));
+        
+        var result = await command.ExecuteWithValidationAsync(
+            handler,
+            CancellationToken.None
+        );
+        
+        if (result.IsSuccess)
+        {
+            Console.WriteLine("Command executed successfully");
+        }
+        else
+        {
+            Console.WriteLine("Command failed:");
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($" - {error}");
+            }
+        }
+        
+        // For commands requiring business rules (like account existence checks)
+        var depositCommand = new DepositCommand(
+            accountId: "account-123",
+            amount: 100.50m,
+            reference: "Salary payment"
+        );
+        
+        var businessResult = await depositCommand.ExecuteValidatedAsync(
+            async (cmd, ct) => Result.Success(),
+            _accountService,
+            CancellationToken.None
+        );
+        
+        // For void commands that return bool success
+        var transferCommand = new TransferCommand(
+            fromAccountId: "account-1",
+            toAccountId: "account-2",
+            amount: 50.25m
+        );
+        
+        var success = await transferCommand.TryExecuteAsync(
+            async (cmd, ct) => { /* business logic */ },
+            _accountService,
+            CancellationToken.None
+        );
+        
+        Console.WriteLine(success ? "Transfer succeeded" : "Transfer failed");
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        
+        // Create account service (simplified for example)
+        services.AddSingleton<IAccountService>(provider => 
+        {
+            var logger = provider.GetRequiredService<ILogger<AccountService>>();
+            var repository = new InMemoryRepository<Account>();
+            var eventBus = new EventBus(logger);
+            return new AccountService(repository, eventBus, logger);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var accountService = serviceProvider.GetRequiredService<IAccountService>();
+        
+        var example = new ValidationDecoratorExample(accountService);
+        await example.ProcessAccountCommandAsync(new CreateAccountCommand(
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        ));
+    }
+}
+```
+
 ## ValidationException
 
 `ValidationException` is thrown when input validation fails during command processing or domain validation. It collects validation errors in a `Dictionary<string, string>` where the key is the field name and the value is the error message. This exception is commonly used for validating command parameters, DTOs, and domain entity state before processing operations.
