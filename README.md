@@ -650,11 +650,18 @@ public class Program
 }
 ```
 
-## AccountsController
+## AccountRepository
 
-`AccountsController` is an ASP.NET Core controller that implements the write-side endpoints for the Account aggregate following the CQRS pattern. It separates command operations (create, deposit, withdraw) from query operations, providing RESTful HTTP endpoints that emit domain events and maintain consistency through the event store.
+`AccountRepository` is the repository implementation for `Account` aggregates using the event sourcing pattern. It provides CRUD operations that work with the event store to persist and retrieve aggregate state by replaying domain events, ensuring consistency with the CQRS pattern.
 
-The controller exposes endpoints for account creation, monetary operations, event sourcing audit trails, and projection rebuilds, with idempotency support for financial transactions and comprehensive error handling for domain validation scenarios.
+The repository maintains an in-memory cache of loaded accounts for performance optimization and handles event serialization/deserialization between domain events and the event store format.
+
+**Public members:**
+- `GetByIdAsync(string, CancellationToken)` - Retrieves an account by ID by replaying its event stream
+- `SaveAsync(Account, CancellationToken)` - Persists uncommitted events to the event store
+- `DeleteAsync(string, CancellationToken)` - Removes account from cache (events remain in event store)
+- `GetAllAsync(CancellationToken)` - Retrieves all accounts by querying the event store for aggregate IDs
+- `ExistsAsync(string, CancellationToken)` - Checks if an account exists by attempting to retrieve it
 
 Example usage:
 
@@ -733,6 +740,107 @@ public class Program
 
         var example = new AccountsControllerExample(httpClient);
         await example.DemonstrateAccountOperationsAsync();
+    }
+}
+
+```
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Data.Repositories;
+using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class AccountRepositoryExample
+{
+    private readonly AccountRepository _repository;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public AccountRepositoryExample(AccountRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task ManageAccountOperationsAsync()
+    {
+        // Create a new account aggregate
+        var account = new Account("ACC-2024-001");
+        account.Create("John Doe", "USD", 1000.00m);
+
+        // Save the account to event store
+        var saveResult = await _repository.SaveAsync(account);
+        if (saveResult.IsSuccess)
+        {
+            Console.WriteLine("Account saved successfully");
+        }
+
+        // Retrieve the account by ID
+        var getResult = await _repository.GetByIdAsync("ACC-2024-001");
+        if (getResult.IsSuccess)
+        {
+            var retrievedAccount = getResult.Data!;
+            Console.WriteLine($"Retrieved account: {retrievedAccount.AccountNumber}");
+            Console.WriteLine($"Account holder: {retrievedAccount.AccountHolder}");
+            Console.WriteLine($"Current balance: {retrievedAccount.Balance.CurrentAmount}");
+        }
+
+        // Check if account exists
+        var existsResult = await _repository.ExistsAsync("ACC-2024-001");
+        Console.WriteLine($"Account exists: {existsResult.Data}");
+
+        // Get all accounts
+        var allResult = await _repository.GetAllAsync();
+        if (allResult.IsSuccess)
+        {
+            Console.WriteLine($"Total accounts: {allResult.Data?.Count}");
+        }
+
+        // Deposit funds to the account
+        account.Deposit(500.00m, "Salary payment");
+        await _repository.SaveAsync(account);
+
+        // Withdraw funds from the account
+        account.Withdraw(200.00m, "Rent payment");
+        await _repository.SaveAsync(account);
+
+        // Verify updated balance
+        var updatedAccount = (await _repository.GetByIdAsync("ACC-2024-001")).Data!;
+        Console.WriteLine($"Updated balance: {updatedAccount.Balance.CurrentAmount}");
+
+        // Delete account from cache (events remain in event store)
+        var deleteResult = await _repository.DeleteAsync("ACC-2024-001");
+        if (deleteResult.IsSuccess)
+        {
+            Console.WriteLine("Account removed from cache");
+        }
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+
+        // Create in-memory event repository for demonstration
+        services.AddSingleton<IEventRepository>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<InMemoryEventRepository>>();
+            return new InMemoryEventRepository(logger);
+        });
+
+        services.AddSingleton<AccountRepository>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var repository = serviceProvider.GetRequiredService<AccountRepository>();
+
+        var example = new AccountRepositoryExample(repository);
+        await example.ManageAccountOperationsAsync();
     }
 }
 
