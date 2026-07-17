@@ -4,8 +4,6 @@
 // CTO & Software Architect
 // =====================================================================
 
-using System.Globalization;
-
 namespace DotNetCqrsEventSourcing.Presentation.Controllers;
 
 /// <summary>
@@ -22,11 +20,14 @@ public static class QueriesControllerValidation
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this QueriesController? value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        if (value is null)
+    {
+        throw new ArgumentNullException(nameof(value));
+    }
 
         var problems = new List<string>();
 
-        // Validate injected services
+        // Validate injected services are not null
         if (value._projectionService is null)
         {
             problems.Add("ProjectionService is null");
@@ -52,7 +53,7 @@ public static class QueriesControllerValidation
     /// <returns>True if the controller is valid; otherwise, false.</returns>
     public static bool IsValid(this QueriesController? value)
     {
-        return value?.Validate().Count == 0;
+        return value is not null && value.Validate().Count == 0;
     }
 
     /// <summary>
@@ -64,7 +65,10 @@ public static class QueriesControllerValidation
     /// <exception cref="ArgumentException">Thrown when the controller has validation problems.</exception>
     public static void EnsureValid(this QueriesController? value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        if (value is null)
+    {
+        throw new ArgumentNullException(nameof(value));
+    }
 
         var problems = value.Validate();
         if (problems.Count == 0)
