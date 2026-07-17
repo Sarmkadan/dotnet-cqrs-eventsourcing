@@ -1385,6 +1385,71 @@ public class Program
 }
 ```
 
+## ResultValidation
+
+`ResultValidation` is a static utility class that provides validation helpers for `Result` and `Result<T>` types. It helps ensure that result objects meet expected invariants by validating their state and providing detailed error messages when validation fails.
+
+The class offers methods to validate results, check validity, and throw exceptions when invalid results are encountered, making it useful for defensive programming and ensuring consistent error handling patterns throughout the application.
+
+**Public members:**
+- `Validate(Result)` - Returns validation problems for a non-generic result
+- `Validate<T>(Result<T>)` - Returns validation problems for a generic result
+- `IsValid(Result)` - Checks if a non-generic result is valid
+- `IsValid<T>(Result<T>)` - Checks if a generic result is valid
+- `EnsureValid(Result)` - Throws if a non-generic result is invalid
+- `EnsureValid<T>(Result<T>)` - Throws if a generic result is invalid
+
+Example usage:
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class Program
+{
+    public static void Main()
+    {
+        // Create a successful result
+        var successResult = Result.Success();
+        Console.WriteLine($"Success result is valid: {successResult.IsValid()}");
+        
+        // Create a failed result with proper error information
+        var failedResult = Result.Failure("INVALID_DATA", "Data validation failed");
+        Console.WriteLine($"Failed result is valid: {failedResult.IsValid()}");
+        
+        // Validate and get detailed problems
+        var problems = failedResult.Validate();
+        Console.WriteLine($"Validation problems count: {problems.Count}");
+        foreach (var problem in problems)
+        {
+            Console.WriteLine($" - {problem}");
+        }
+        
+        // Use EnsureValid to throw if invalid
+        try
+        {
+            failedResult.EnsureValid();
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"EnsureValid threw: {ex.Message}");
+        }
+        
+        // Example with generic Result<T>
+        var successGeneric = Result.Success<string>("Hello, World!");
+        Console.WriteLine($"Generic success is valid: {successGeneric.IsValid()}");
+        Console.WriteLine($"Generic success data: {successGeneric.Data}");
+        
+        var failedGeneric = Result.Failure<string>("NULL_DATA", "Data was null");
+        Console.WriteLine($"Generic failure is valid: {failedGeneric.IsValid()}");
+        
+        // Validate generic result
+        var genericProblems = failedGeneric.Validate();
+        Console.WriteLine($"Generic validation problems: {genericProblems.Count}");
+    }
+}
+```
+
 ## PagedResultExtensions
 
 `PagedResultExtensions` provides a collection of extension methods for `PagedResult<T>` that simplify common pagination operations including conversion, filtering, projection, and null-safety checks. These methods enable fluent, readable code when working with paginated results from repositories, APIs, or database queries.
