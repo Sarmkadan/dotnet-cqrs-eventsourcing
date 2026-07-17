@@ -43,7 +43,7 @@ public static class ResultValidation
         {
             problems.Add("Errors collection must not be null.");
         }
-        else if (value.Errors.Any(e => string.IsNullOrWhiteSpace(e)))
+        else if (value.Errors.Exists(e => string.IsNullOrWhiteSpace(e)))
         {
             problems.Add("Errors collection must not contain null or whitespace entries.");
         }
@@ -78,10 +78,10 @@ public static class ResultValidation
         }
         else
         {
-            // Validate success case: Data should not be null for value types, but can be null for reference types
-            if (value.Data is null && default(T) != null)
+            // Validate success case: Data should not be null when result is successful
+            if (value.Data is null)
             {
-                problems.Add("Successful result with non-nullable type must have non-null Data.");
+                problems.Add("Successful result must have non-null Data.");
             }
         }
 
@@ -90,7 +90,7 @@ public static class ResultValidation
         {
             problems.Add("Errors collection must not be null.");
         }
-        else if (value.Errors.Any(e => string.IsNullOrWhiteSpace(e)))
+        else if (value.Errors.Exists(e => string.IsNullOrWhiteSpace(e)))
         {
             problems.Add("Errors collection must not contain null or whitespace entries.");
         }
@@ -127,14 +127,16 @@ public static class ResultValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var problems = Validate(value);
-        if (problems.Count > 0)
+        if (problems.Count == 0)
         {
-            throw new ArgumentException(
-                $"Result validation failed:{Environment.NewLine}- {
-                    string.Join($"{Environment.NewLine}- ", problems)
-                }",
-                nameof(value));
+            return;
         }
+
+        throw new ArgumentException(
+            $"Result validation failed:{Environment.NewLine}- {
+                string.Join($"{Environment.NewLine}- ", problems)
+            }",
+            nameof(value));
     }
 
     /// <summary>
@@ -150,13 +152,15 @@ public static class ResultValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var problems = Validate(value);
-        if (problems.Count > 0)
+        if (problems.Count == 0)
         {
-            throw new ArgumentException(
-                $"Result<T> validation failed:{Environment.NewLine}- {
-                    string.Join($"{Environment.NewLine}- ", problems)
-                }",
-                nameof(value));
+            return;
         }
+
+        throw new ArgumentException(
+            $"Result<T> validation failed:{Environment.NewLine}- {
+                string.Join($"{Environment.NewLine}- ", problems)
+            }",
+            nameof(value));
     }
 }
