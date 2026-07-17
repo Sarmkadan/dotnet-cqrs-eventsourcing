@@ -1385,6 +1385,104 @@ public class Program
 }
 ```
 
+## PagedResultExtensions
+
+`PagedResultExtensions` provides a collection of extension methods for `PagedResult<T>` that simplify common pagination operations including conversion, filtering, projection, and null-safety checks. These methods enable fluent, readable code when working with paginated results from repositories, APIs, or database queries.
+
+The extension methods work with the `PagedResult<T>` type which contains:
+- `Items` - The collection of items for the current page
+- `PageNumber` - The current page number (1-based)
+- `PageSize` - The maximum number of items per page
+- `TotalCount` - The total number of items across all pages
+
+Example usage:
+
+```csharp
+using System;
+using System.Linq;
+using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using DotNetCqrsEventSourcing.Shared.Results;
+
+public class Program
+{
+    public static void Main()
+    {
+        // Create a paged result with sample data
+        var allAccounts = new[] {
+            new { Id = "ACC-001", Name = "Primary Account", Balance = 1000.00m },
+            new { Id = "ACC-002", Name = "Savings Account", Balance = 5000.00m },
+            new { Id = "ACC-003", Name = "Investment Account", Balance = 15000.00m },
+            new { Id = "ACC-004", Name = "Credit Card", Balance = -2500.00m },
+            new { Id = "ACC-005", Name = "Business Account", Balance = 25000.00m }
+        };
+        
+        // Simulate pagination (page 1, 3 items per page)
+        var pagedResult = new PagedResult<dynamic>
+        {
+            Items = allAccounts.Take(3).ToList(),
+            PageNumber = 1,
+            PageSize = 3,
+            TotalCount = allAccounts.Length
+        };
+        
+        // Use extension methods for common operations
+        
+        // Check if page has items
+        if (pagedResult.HasItems())
+        {
+            Console.WriteLine($"Page {pagedResult.PageNumber} contains {pagedResult.Items.Count} items");
+        }
+        
+        // Get first item
+        var firstAccount = pagedResult.FirstOrDefault();
+        Console.WriteLine($"First account: {firstAccount?.Name ?? "None"}");
+        
+        // Get last item
+        var lastAccount = pagedResult.LastOrDefault();
+        Console.WriteLine($"Last account: {lastAccount?.Name ?? "None"}");
+        
+        // Convert to array
+        var accountArray = pagedResult.ToArray();
+        Console.WriteLine($"Items as array: {accountArray.Length} items");
+        
+        // Convert to list
+        var accountList = pagedResult.ToList();
+        Console.WriteLine($"Items as list: {accountList.Count} items");
+        
+        // Convert to read-only collection
+        var readOnlyAccounts = pagedResult.AsReadOnly();
+        Console.WriteLine($"Items as read-only: {readOnlyAccounts.Count} items");
+        
+        // Check if empty
+        var emptyResult = new PagedResult<dynamic> { Items = new List<dynamic>(), PageNumber = 1, PageSize = 10, TotalCount = 0 };
+        Console.WriteLine($"Is empty result empty? {emptyResult.IsEmpty()}");
+        
+        // Get items as span (efficient, no allocation)
+        var span = pagedResult.AsSpan();
+        Console.WriteLine($"Items as span: {span.Length} items");
+        
+        // Filter items using Where
+        var highBalanceAccounts = pagedResult.Where(x => x.Balance > 1000);
+        Console.WriteLine($"High balance accounts: {highBalanceAccounts.Items.Count}");
+        
+        // Project items using Select
+        var accountSummaries = pagedResult.Select(x => new {
+            AccountId = x.Id,
+            DisplayName = $"{x.Name} (Balance: {x.Balance:C})"
+        });
+        Console.WriteLine($"Account summaries created: {accountSummaries.Items.Count}");
+        
+        // Chain multiple operations fluently
+        var activeHighValueAccounts = pagedResult
+            .Where(x => x.Balance > 0)
+            .Select(x => new { x.Id, x.Name, x.Balance })
+            .ToList();
+        
+        Console.WriteLine($"Active high-value accounts: {activeHighValueAccounts.Count}");
+    }
+}
+```
+
 ## RateLimitingMiddlewareJsonExtensions
 
 `RateLimitingMiddlewareJsonExtensions` provides System.Text.Json serialization and deserialization helpers for rate limiting state management. It enables serialization of rate limiting configuration and bucket state for debugging, monitoring, and persistence scenarios. The extension methods work with the underlying `RateLimitingState` data structure that contains rate limit options and token bucket state.
