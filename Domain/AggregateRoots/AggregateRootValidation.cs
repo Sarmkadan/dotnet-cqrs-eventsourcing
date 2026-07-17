@@ -8,7 +8,6 @@ namespace DotNetCqrsEventSourcing.Domain.AggregateRoots;
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 /// <summary>
 /// Provides validation helpers for <see cref="AggregateRoot"/> instances.
@@ -21,7 +20,7 @@ public static class AggregateRootValidation
     /// <param name="value">The aggregate root to validate.</param>
     /// <returns>A list of validation problems (empty if valid).</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
-    public static IReadOnlyList<string> Validate(this AggregateRoot value)
+    public static IReadOnlyList<string> Validate(this AggregateRoot? value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -99,10 +98,8 @@ public static class AggregateRootValidation
     /// <param name="value">The aggregate root to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
-    public static bool IsValid(this AggregateRoot value)
-    {
-        return Validate(value).Count == 0;
-    }
+    public static bool IsValid(this AggregateRoot? value)
+        => Validate(value).Count == 0;
 
     /// <summary>
     /// Ensures that the specified aggregate root is valid, throwing an exception if not.
@@ -110,7 +107,7 @@ public static class AggregateRootValidation
     /// <param name="value">The aggregate root to validate.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when the aggregate root is invalid, containing a list of validation problems.</exception>
-    public static void EnsureValid(this AggregateRoot value)
+    public static void EnsureValid(this AggregateRoot? value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
