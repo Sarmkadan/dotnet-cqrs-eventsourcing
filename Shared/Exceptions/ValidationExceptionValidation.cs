@@ -24,6 +24,10 @@ public static class ValidationExceptionValidation
         {
             problems.Add("ValidationErrors dictionary is null.");
         }
+        else if (value.ValidationErrors.Count == 0)
+        {
+            problems.Add("ValidationErrors dictionary is empty.");
+        }
         else
         {
             foreach (var kvp in value.ValidationErrors)
@@ -50,7 +54,10 @@ public static class ValidationExceptionValidation
     /// <returns>True if valid; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this ValidationException value)
-        => Validate(value).Count == 0;
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return Validate(value).Count == 0;
+    }
 
     /// <summary>
     /// Ensures that the <see cref="ValidationException"/> instance is valid, throwing an <see cref="ArgumentException"/>
