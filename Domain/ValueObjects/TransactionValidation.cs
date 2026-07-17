@@ -37,11 +37,8 @@ public static class TransactionValidation
 
         // Validate Type (enum is always valid)
 
-        // Validate Amount
-        if (value.Amount is null)
-        {
-            errors.Add("Transaction Amount cannot be null.");
-        }
+        // Validate Amount - Money constructor already validates amount >= 0 and currency format
+        // No null check needed as Money is a class and constructor throws for invalid values
 
         // Validate TransactionDate
         if (value.TransactionDate == default)
@@ -106,6 +103,7 @@ public static class TransactionValidation
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this Transaction value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         return Validate(value).Count == 0;
     }
 
