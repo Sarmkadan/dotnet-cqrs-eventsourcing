@@ -34,13 +34,11 @@ public static class GetAccountQueryValidation
         }
 
         // Validate CorrelationId
-        if (string.IsNullOrWhiteSpace(value.CorrelationId))
+        ArgumentException.ThrowIfNullOrEmpty(value.CorrelationId);
+
+        if (!Guid.TryParseExact(value.CorrelationId, "D", out _))
         {
-            errors.Add("CorrelationId cannot be null or whitespace.");
-        }
-        else if (!Guid.TryParse(value.CorrelationId, out _))
-        {
-            errors.Add("CorrelationId must be a valid GUID.");
+            errors.Add("CorrelationId must be a valid GUID in the format '00000000-0000-0000-0000-000000000000'.");
         }
 
         // Validate IssuedAt
@@ -65,6 +63,7 @@ public static class GetAccountQueryValidation
     /// </summary>
     /// <param name="value">The query to validate.</param>
     /// <returns>True if valid; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this GetAccountQuery value)
         => value.Validate().Count == 0;
 
@@ -79,12 +78,10 @@ public static class GetAccountQueryValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var errors = value.Validate();
-        if (errors.Count == 0)
+        if (errors.Count > 0)
         {
-            return;
+            throw new ArgumentException(
+                $"GetAccountQuery validation failed:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}");
         }
-
-        throw new ArgumentException(
-            $"GetAccountQuery validation failed:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}");
     }
 }
