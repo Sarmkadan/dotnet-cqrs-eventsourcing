@@ -1385,6 +1385,57 @@ public class Program
 }
 ```
 
+## RateLimitingMiddlewareJsonExtensions
+
+`RateLimitingMiddlewareJsonExtensions` provides System.Text.Json serialization and deserialization helpers for rate limiting state management. It enables serialization of rate limiting configuration and bucket state for debugging, monitoring, and persistence scenarios. The extension methods work with the underlying `RateLimitingState` data structure that contains rate limit options and token bucket state.
+
+This is particularly useful for:
+- Exporting rate limiting state for debugging
+- Persisting rate limit configuration between application restarts
+- Monitoring token bucket state across distributed instances
+- Analyzing rate limiting behavior over time
+
+Example usage:
+
+```csharp
+using System;
+using System.Text.Json;
+using DotNetCqrsEventSourcing.Infrastructure.Middleware;
+
+public class Program
+{
+    public static void Main()
+    {
+        // Create middleware with rate limiting options
+        var middleware = new RateLimitingMiddleware(new RateLimitOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromSeconds(60),
+            TokenLimit = 100,
+            TokenAcquisitionTimeout = TimeSpan.FromSeconds(5)
+        });
+
+        // Serialize rate limiting state to JSON
+        string jsonState = middleware.ToJson();
+        Console.WriteLine("Serialized rate limiting state:");
+        Console.WriteLine(jsonState);
+
+        // Deserialize from JSON
+        var deserializedState = RateLimitingMiddlewareJsonExtensions.FromJson(jsonState);
+        Console.WriteLine($"\nDeserialized options: {deserializedState?.Options?.PermitLimit} permits per window");
+
+        // Try to deserialize with error handling
+        bool success = RateLimitingMiddlewareJsonExtensions.TryFromJson(jsonState, out var state);
+        Console.WriteLine($"\nDeserialization successful: {success}");
+
+        // Serialize with indentation for readability
+        string prettyJson = middleware.ToJson(indented: true);
+        Console.WriteLine("\nPretty-printed JSON:");
+        Console.WriteLine(prettyJson);
+    }
+}
+```
+
 ## TestSaga
 
 The `TestSaga` class is a minimal saga implementation used exclusively for testing purposes. It extends `SagaBase` and demonstrates core saga behavior including state transitions, event handling, and correlation management. The class tracks the number of events processed through the `HandledEvents` property, making it ideal for verifying saga lifecycle and handler logic in unit tests.
