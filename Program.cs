@@ -32,6 +32,7 @@ services.AddCqrsFramework(configuration);
 
 // Register CLI commands
 services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
+services.AddSingleton<ICliCommand, EventStoreStatsCommand>();
 services.AddSingleton<CliCommandRegistry>();
 
 await using var serviceProvider = services.BuildServiceProvider();
