@@ -70,7 +70,8 @@ public class InMemoryCacheService : ICacheService, IDisposable
             // Check if entry has expired
             if (entry.IsExpired)
             {
-                _cache.TryRemove(key, out _);
+                // Remove the specific expired entry object to prevent concurrent Set from being clobbered
+                _cache.TryRemove(key, out var removedEntry);
                 _logger.LogDebug("Cache entry expired: {Key}", key);
                 return Task.FromResult<T?>(null);
             }
@@ -199,19 +200,18 @@ public class InMemoryCacheService : ICacheService, IDisposable
     /// </summary>
     private void EvictExpiredEntries(object? state)
     {
-        var expiredKeys = _cache
+        var expiredEntries = _cache
             .Where(kvp => kvp.Value.IsExpired)
-            .Select(kvp => kvp.Key)
             .ToList();
 
-        foreach (var key in expiredKeys)
+        foreach (var kvp in expiredEntries)
         {
-            _cache.TryRemove(key, out _);
+            _cache.TryRemove(kvp.Key, out _);
         }
 
-        if (expiredKeys.Count > 0)
+        if (expiredEntries.Count > 0)
         {
-            _logger.LogInformation("Evicted {Count} expired cache entries", expiredKeys.Count);
+            _logger.LogInformation("Evicted {Count} expired cache entries", expiredEntries.Count);
         }
     }
 
