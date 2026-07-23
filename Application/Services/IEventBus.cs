@@ -18,6 +18,11 @@ using Exceptions;
 /// Event bus interface for publishing and subscribing to domain events in an
 /// event-sourced CQRS architecture. Supports both fire-and-forget publishing
 /// and transactional publish-and-persist to an event store.
+/// <para>
+/// Per-aggregate ordering guarantee: Events with the same <see cref="Domain.Events.DomainEvent.AggregateId"/>
+/// are processed sequentially in the order they were published, while events with
+/// different aggregate IDs can be processed in parallel.
+/// </para>
 /// </summary>
 public interface IEventBus
 {

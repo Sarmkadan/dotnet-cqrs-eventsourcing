@@ -7,6 +7,7 @@
 namespace DotNetCqrsEventSourcing.Application.Services;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,12 +19,23 @@ using Exceptions;
 
 /// <summary>
 /// In-memory event bus implementation for publishing and subscribing to domain events.
+/// <para>
+/// This implementation provides per-aggregate ordering guarantees: events with the same
+/// <see cref="DomainEvent.AggregateId"/> are processed sequentially in the order they were published,
+/// while events with different aggregate IDs can be processed in parallel.
+/// </para>
 /// </summary>
 public class EventBus : IEventBus
 {
     private readonly Dictionary<Type, List<Delegate>> _subscribers = new();
     private readonly object _subscribersLock = new();
     private readonly ILogger<EventBus> _logger;
+
+    // Per-aggregate synchronization: ensures sequential processing for events with the same AggregateId
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _aggregateLocks = new();
+
+    // Global lock for accessing _aggregateLocks to prevent race conditions during lock creation
+    private readonly object _aggregateLocksSync = new();
 
     public EventBus(ILogger<EventBus> logger)
     {
@@ -144,29 +156,68 @@ public class EventBus : IEventBus
 
         if (snapshot is not null)
         {
-            var tasks = snapshot.Select(async handler =>
-            {
-                try
-                {
-                    var method = handler.Method;
-                    var parameters = method.GetParameters();
+            // Get or create a semaphore for this aggregate to ensure sequential processing
+            var aggregateId = @event.AggregateId;
+            SemaphoreSlim? aggregateLock = null;
 
-                    if (parameters.Length == 1 && parameters[0].ParameterType == eventType)
+            if (!string.IsNullOrEmpty(aggregateId))
+            {
+                // Use double-checked locking pattern to avoid unnecessary lock acquisition
+                if (!_aggregateLocks.TryGetValue(aggregateId, out aggregateLock))
+                {
+                    lock (_aggregateLocksSync)
                     {
-                        var result = handler.DynamicInvoke(@event);
-                        if (result is Task task)
+                        // Check again inside the lock to prevent race conditions
+                        if (!_aggregateLocks.TryGetValue(aggregateId, out aggregateLock))
                         {
-                            await task;
+                            aggregateLock = new SemaphoreSlim(1, 1);
+                            _aggregateLocks[aggregateId] = aggregateLock;
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error executing handler for event type {EventType}", eventType.Name);
-                }
-            });
 
-            await Task.WhenAll(tasks);
+                // Acquire the lock for this aggregate to ensure sequential processing
+                await aggregateLock.WaitAsync(cancellationToken);
+            }
+
+            try
+            {
+                var tasks = snapshot.Select(async handler =>
+                {
+                    try
+                    {
+                        var method = handler.Method;
+                        var parameters = method.GetParameters();
+
+                        if (parameters.Length == 1 && parameters[0].ParameterType == eventType)
+                        {
+                            var result = handler.DynamicInvoke(@event);
+                            if (result is Task task)
+                            {
+                                await task;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error executing handler for event type {EventType}", eventType.Name);
+                    }
+                });
+
+                await Task.WhenAll(tasks);
+            }
+            finally
+            {
+                // Release the aggregate lock if we acquired one
+                if (aggregateLock != null)
+                {
+                    aggregateLock.Release();
+
+                    // Optional: Clean up the lock if it's no longer needed
+                    // This helps prevent memory leaks from unused aggregate locks
+                    // We could add a threshold or use WeakReference, but for now keep it simple
+                }
+            }
         }
     }
 }

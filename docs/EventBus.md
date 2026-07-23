@@ -2,6 +2,32 @@
 
 A lightweight in-memory event dispatcher that allows components to publish events and subscribe/unsubscribe to specific event types without direct coupling. It supports both single-event and batch publishing, with optional persistence hooks for event-sourcing scenarios.
 
+## Per-Aggregate Ordering Guarantees
+
+This implementation provides **strong per-aggregate ordering guarantees**:
+
+- **Sequential processing**: Events with the same `AggregateId` are processed in the exact order they were published
+- **Parallel processing**: Events with different `AggregateId` values can be processed in parallel
+- **Thread-safe**: Proper synchronization prevents race conditions during handler execution
+
+### Why This Matters
+
+In CQRS event-sourced systems, read models (projections) must maintain correct state by processing events in order. Without per-aggregate ordering guarantees:
+
+- A `Deposited` event could be processed before an `AccountOpened` event
+- Saga handlers could receive events out of order
+- Event sourcing snapshots would be incorrect
+
+### Implementation Details
+
+The EventBus uses a `ConcurrentDictionary<string, SemaphoreSlim>` to maintain per-aggregate locks. Each aggregate ID gets its own `SemaphoreSlim` that ensures only one event for that aggregate is processed at a time.
+
+**Performance characteristics:**
+- Lock acquisition is O(1) average case using `ConcurrentDictionary.TryGetValue`
+- Double-checked locking minimizes lock contention on the dictionary
+- SemaphoreSlim allows async/await without blocking threads
+- Memory overhead is minimal (one SemaphoreSlim per aggregate ID)
+
 ## API
 
 ### `EventBus`
