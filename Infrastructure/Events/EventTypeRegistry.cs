@@ -22,16 +22,16 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Events;
 /// <para>
 /// Usage:
 /// <list type="bullet">
-///   <item><description>
-///     Decorate every event class with <c>[EventName("MyEventName")]</c>.
-///   </description></item>
-///   <item><description>
-///     Call <see cref="ScanAssembly"/> once at startup (or add it to DI via
-///     <see cref="DotNetCqrsEventSourcing.Configuration.DependencyInjection"/>).
-///   </description></item>
-///   <item><description>
-///     Use <see cref="Resolve"/> inside deserialization instead of <c>Type.GetType()</c>.
-///   </description></item>
+/// <item><description>
+/// Decorate every event class with <c>[EventName("MyEventName")]</c>.
+/// </description></item>
+/// <item><description>
+/// Call <see cref="ScanAssembly"/> once at startup (or add it to DI via
+/// <see cref="DotNetCqrsEventSourcing.Configuration.DependencyInjection"/>).
+/// </description></item>
+/// <item><description>
+/// Use <see cref="Resolve"/> inside deserialization instead of <c>Type.GetType()</c>.
+/// </description></item>
 /// </list>
 /// </para>
 /// </summary>
@@ -54,7 +54,7 @@ public sealed class EventTypeRegistry
     /// </summary>
     /// <typeparam name="T">Concrete domain-event type to register.</typeparam>
     /// <param name="eventName">
-    /// Stable event name string.  Must match what is stored in the event envelope's
+    /// Stable event name string. Must match what is stored in the event envelope's
     /// <c>EventType</c> field.
     /// </param>
     /// <exception cref="ArgumentException">
@@ -94,16 +94,24 @@ public sealed class EventTypeRegistry
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns the <see cref="Type"/> registered under <paramref name="eventName"/>,
-    /// or <see langword="null"/> when the name is unknown.
+    /// Returns the <see cref="Type"/> registered under <paramref name="eventName"/>.
     /// </summary>
-    public Type? Resolve(string eventName)
+    /// <param name="eventName">The event type name to resolve.</param>
+    /// <returns>The resolved <see cref="Type"/>.</returns>
+    /// <exception cref="UnknownEventTypeException">
+    /// Thrown when <paramref name="eventName"/> is not registered in the allow-list.
+    /// </exception>
+    public Type Resolve(string eventName)
     {
         if (string.IsNullOrEmpty(eventName))
-            return null;
+        {
+            throw new UnknownEventTypeException("unknown", "Event type name cannot be null or empty.");
+        }
 
-        _registry.TryGetValue(eventName, out var type);
-        return type;
+        if (_registry.TryGetValue(eventName, out var type) && type is not null)
+            return type;
+
+        throw new UnknownEventTypeException(eventName);
     }
 
     /// <summary>
@@ -111,10 +119,21 @@ public sealed class EventTypeRegistry
     /// <paramref name="eventName"/> is registered; otherwise returns
     /// <see langword="false"/>.
     /// </summary>
+    /// <param name="eventName">The event type name to resolve.</param>
+    /// <param name="type">Receives the resolved type if successful.</param>
+    /// <returns><see langword="true"/> if the event type is registered; otherwise <see langword="false"/>.</returns>
     public bool TryResolve(string eventName, out Type? type)
     {
-        type = Resolve(eventName);
-        return type is not null;
+        try
+        {
+            type = Resolve(eventName);
+            return true;
+        }
+        catch (UnknownEventTypeException)
+        {
+            type = null;
+            return false;
+        }
     }
 
     /// <summary>

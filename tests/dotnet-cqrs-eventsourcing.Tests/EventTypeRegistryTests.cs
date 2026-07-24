@@ -1,5 +1,4 @@
 #nullable enable
-
 using DotNetCqrsEventSourcing.Domain.Events;
 using DotNetCqrsEventSourcing.Infrastructure.Events;
 using FluentAssertions;
@@ -36,46 +35,42 @@ public class EventTypeRegistryTests
     }
 
     [Fact]
-    public void Resolve_ShouldReturnNull_WhenEventNameIsUnknown()
+    public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsUnknown()
     {
         // Arrange
         const string unknownEventName = "NonExistentEvent";
 
-        // Act
-        var resolvedType = _registry.Resolve(unknownEventName);
-
-        // Assert
-        resolvedType.Should().BeNull();
+        // Act & Assert
+        var act = () => _registry.Resolve(unknownEventName);
+        act.Should().Throw<UnknownEventTypeException>()
+            .Where(ex => ex.EventTypeName == unknownEventName);
     }
 
     [Fact]
-    public void Resolve_ShouldReturnNull_WhenEventNameIsNull()
+    public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsNull()
     {
-        // Act
-        var resolvedType = _registry.Resolve(null!);
-
-        // Assert
-        resolvedType.Should().BeNull();
+        // Act & Assert
+        var act = () => _registry.Resolve(null!);
+        act.Should().Throw<UnknownEventTypeException>()
+            .WithMessage("*cannot be null or empty*");
     }
 
     [Fact]
-    public void Resolve_ShouldReturnNull_WhenEventNameIsEmpty()
+    public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsEmpty()
     {
-        // Act
-        var resolvedType = _registry.Resolve(string.Empty);
-
-        // Assert
-        resolvedType.Should().BeNull();
+        // Act & Assert
+        var act = () => _registry.Resolve(string.Empty);
+        act.Should().Throw<UnknownEventTypeException>()
+            .WithMessage("*cannot be null or empty*");
     }
 
     [Fact]
-    public void Resolve_ShouldReturnNull_WhenEventNameIsWhitespace()
+    public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsWhitespace()
     {
-        // Act
-        var resolvedType = _registry.Resolve("   ");
-
-        // Assert
-        resolvedType.Should().BeNull();
+        // Act & Assert
+        var act = () => _registry.Resolve(" ");
+        act.Should().Throw<UnknownEventTypeException>()
+            .Where(ex => ex.EventTypeName == " ");
     }
 
     [Fact]
@@ -143,7 +138,7 @@ public class EventTypeRegistryTests
     public void Register_ShouldThrowArgumentException_WhenEventNameIsWhitespace()
     {
         // Act & Assert
-        var act = () => _registry.Register<TestEvent>("   ");
+        var act = () => _registry.Register<TestEvent>(" ");
         act.Should().Throw<ArgumentException>()
             .WithMessage("Event name must not be null or whitespace. (Parameter 'eventName')");
     }
@@ -173,8 +168,8 @@ public class EventTypeRegistryTests
         _registry.ScanAssembly(assembly);
 
         // Assert - TestEventWithoutAttribute should not be registered
-        var resolvedType = _registry.Resolve("TestEventWithoutAttribute");
-        resolvedType.Should().BeNull();
+        var act = () => _registry.Resolve("TestEventWithoutAttribute");
+        act.Should().Throw<UnknownEventTypeException>();
     }
 
     [Fact]
@@ -240,14 +235,14 @@ public class EventTypeRegistryTests
         resolvedType.Should().NotBeNull();
 
         // Act & Assert - different case should not work
-        resolvedType = _registry.Resolve("testevent");
-        resolvedType.Should().BeNull();
+        var act = () => _registry.Resolve("testevent");
+        act.Should().Throw<UnknownEventTypeException>();
 
-        resolvedType = _registry.Resolve("TESTEVENT");
-        resolvedType.Should().BeNull();
+        act = () => _registry.Resolve("TESTEVENT");
+        act.Should().Throw<UnknownEventTypeException>();
 
-        resolvedType = _registry.Resolve("Testevent");
-        resolvedType.Should().BeNull();
+        act = () => _registry.Resolve("Testevent");
+        act.Should().Throw<UnknownEventTypeException>();
     }
 
     [Fact]
@@ -267,6 +262,21 @@ public class EventTypeRegistryTests
 
         resolvedType1.Should().Be(typeof(TestEvent));
         resolvedType2.Should().Be(typeof(TestEvent));
+    }
+
+    [Fact]
+    public void Resolve_ShouldThrowUnknownEventTypeException_WithDescriptiveMessage()
+    {
+        // Arrange
+        const string maliciousTypeName = "System.Diagnostics.Process, System.Diagnostics.Process";
+
+        // Act & Assert
+        var act = () => _registry.Resolve(maliciousTypeName);
+        var exception = act.Should().Throw<UnknownEventTypeException>().Which;
+
+        exception.EventTypeName.Should().Be(maliciousTypeName);
+        exception.Message.Should().Contain(maliciousTypeName);
+        exception.Message.Should().Contain("Only explicitly registered event types can be deserialized");
     }
 
     // Test event classes

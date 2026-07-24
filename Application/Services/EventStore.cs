@@ -263,24 +263,22 @@ public class EventStore : IEventStore
     {
         try
         {
-            // Prefer registry-based resolution (assembly-rename safe) over the
-            // hard-coded switch which requires manual maintenance.
-            if (_eventTypeRegistry is not null && _eventTypeRegistry.TryResolve(envelope.EventType, out var resolvedType) && resolvedType is not null)
+            // Strict allow-listing: only registered event types can be deserialized.
+            // UnknownEventTypeException is thrown for unregistered types, preventing
+            // deserialization gadget vectors.
+            if (_eventTypeRegistry is null)
             {
-                return (DomainEvent?)System.Text.Json.JsonSerializer.Deserialize(envelope.EventData, resolvedType);
+                _logger.LogWarning("EventTypeRegistry is not configured. Cannot deserialize event type '{EventType}'.", envelope.EventType);
+                return null;
             }
 
-            // Fallback: hard-coded switch retained for backward compatibility when
-            // no registry is injected (e.g. legacy tests or external hosts).
-            return envelope.EventType switch
-            {
-                "AccountCreated" => System.Text.Json.JsonSerializer.Deserialize<AccountCreatedEvent>(envelope.EventData),
-                "MoneyDeposited" => System.Text.Json.JsonSerializer.Deserialize<MoneyDepositedEvent>(envelope.EventData),
-                "MoneyWithdrawn" => System.Text.Json.JsonSerializer.Deserialize<MoneyWithdrawnEvent>(envelope.EventData),
-                "BalanceUpdated" => System.Text.Json.JsonSerializer.Deserialize<BalanceUpdatedEvent>(envelope.EventData),
-                "AccountClosed" => System.Text.Json.JsonSerializer.Deserialize<AccountClosedEvent>(envelope.EventData),
-                _ => null
-            };
+            var resolvedType = _eventTypeRegistry.Resolve(envelope.EventType);
+            return (DomainEvent?)System.Text.Json.JsonSerializer.Deserialize(envelope.EventData, resolvedType);
+        }
+        catch (UnknownEventTypeException ex)
+        {
+            _logger.LogError(ex, "Unknown event type '{EventType}' attempted for deserialization. This is a security violation.", envelope.EventType);
+            return null;
         }
         catch (Exception ex)
         {
