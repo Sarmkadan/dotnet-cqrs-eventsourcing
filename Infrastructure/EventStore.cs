@@ -20,10 +20,13 @@ public interface IEventStore
 
 /// <summary>
 /// Basic in-memory event store implementation.
+/// Thread-safe: appends and reads are synchronized, and readers receive a
+/// snapshot copy of the stream so callers can never mutate internal state.
 /// </summary>
 public class EventStore : IEventStore
 {
     private readonly Dictionary<string, List<DomainEvent>> _eventStreams = new();
+    private readonly object _sync = new();
     private readonly ILogger<EventStore> _logger;
 
     public EventStore(ILogger<EventStore> logger)
@@ -38,13 +41,17 @@ public class EventStore : IEventStore
 
         try
         {
-            if (!_eventStreams.TryGetValue(aggregateId, out var stream))
+            lock (_sync)
             {
-                stream = new List<DomainEvent>();
-                _eventStreams[aggregateId] = stream;
+                if (!_eventStreams.TryGetValue(aggregateId, out var stream))
+                {
+                    stream = new List<DomainEvent>();
+                    _eventStreams[aggregateId] = stream;
+                }
+
+                stream.Add(@event);
             }
 
-            stream.Add(@event);
             _logger.LogInformation("Event appended to stream: {AggregateId} - {EventType} (v{Version})",
                 aggregateId, @event.GetType().Name, @event.AggregateVersion);
 
@@ -63,10 +70,17 @@ public class EventStore : IEventStore
 
         try
         {
-            if (_eventStreams.TryGetValue(aggregateId, out var stream))
+            List<DomainEvent>? snapshot = null;
+            lock (_sync)
             {
-                _logger.LogInformation("Retrieved {EventCount} events for aggregate {AggregateId}", stream.Count, aggregateId);
-                return Task.FromResult(Result<List<DomainEvent>>.Success(stream));
+                if (_eventStreams.TryGetValue(aggregateId, out var stream))
+                    snapshot = new List<DomainEvent>(stream);
+            }
+
+            if (snapshot is not null)
+            {
+                _logger.LogInformation("Retrieved {EventCount} events for aggregate {AggregateId}", snapshot.Count, aggregateId);
+                return Task.FromResult(Result<List<DomainEvent>>.Success(snapshot));
             }
 
             _logger.LogDebug("No events found for aggregate {AggregateId}", aggregateId);

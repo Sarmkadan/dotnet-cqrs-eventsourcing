@@ -18,7 +18,6 @@ using Shared.Results;
 public class AccountRepository : IRepository<Account>
 {
     private readonly IEventRepository _eventRepository;
-    private readonly Dictionary<string, Account> _accounts = new(); // Cache for consistency
 
     public AccountRepository(IEventRepository eventRepository)
     {
@@ -29,9 +28,9 @@ public class AccountRepository : IRepository<Account>
     {
         try
         {
-            // Check cache first
-            if (_accounts.TryGetValue(id, out var cachedAccount))
-                return Result<Account>.Success(cachedAccount);
+            // Always rehydrate from the event stream. Caching aggregate instances here
+            // would hand the same mutable object to concurrent callers and serve stale
+            // state whenever another writer appends events to the stream.
 
             // Get events from event store
             var eventsResult = await _eventRepository.GetEventsByAggregateIdAsync(id, cancellationToken);
@@ -45,7 +44,6 @@ public class AccountRepository : IRepository<Account>
             var domainEvents = DeserializeEvents(eventsResult.Data);
             account.LoadFromHistory(domainEvents);
 
-            _accounts[id] = account;
             return Result<Account>.Success(account);
         }
         catch (Exception ex)
@@ -73,7 +71,6 @@ public class AccountRepository : IRepository<Account>
                 return saveResult;
 
             aggregate.ClearUncommittedEvents();
-            _accounts[aggregate.Id] = aggregate;
 
             return Result.Success();
         }
@@ -83,18 +80,10 @@ public class AccountRepository : IRepository<Account>
         }
     }
 
-    public async Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _accounts.Remove(id);
-            // Note: In event sourcing, we don't delete events; we handle deletion through aggregate logic
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure("DELETE_FAILED", ex.Message);
-        }
+        // Note: In event sourcing, we don't delete events; we handle deletion through aggregate logic
+        return Task.FromResult(Result.Success());
     }
 
     public async Task<Result<List<Account>>> GetAllAsync(CancellationToken cancellationToken = default)

@@ -1,29 +1,53 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Executes a projection by continuously pulling events and invoking a user‑provided
-/// processing delegate. The engine tracks a checkpoint per projection name so that
-/// processing can resume after a restart. The engine follows at‑least‑once semantics:
-/// an event may be delivered more than once, therefore the processing delegate must
-/// be idempotent or implement its own atomic checkpoint handling.
+/// Source of events for a <see cref="ProjectionEngine"/> projection.
+/// Implementations pull the next event after a given checkpoint.
+/// </summary>
+public interface IProjectionEventSource
+{
+    /// <summary>
+    /// Returns the next event for <paramref name="projectionName"/> after
+    /// <paramref name="checkpoint"/>, or <c>null</c> when the projection is
+    /// caught up. The engine polls again after a short delay when <c>null</c>
+    /// is returned.
+    /// </summary>
+    /// <param name="projectionName">Name of the projection asking for events.</param>
+    /// <param name="checkpoint">Last processed event identifier, or <c>null</c> when starting from the beginning.</param>
+    /// <param name="cancellationToken">Token used to cancel the read.</param>
+    Task<string?> GetNextEventAsync(string projectionName, string? checkpoint, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Executes a projection by continuously pulling events from an
+/// <see cref="IProjectionEventSource"/> and invoking a user‑provided processing
+/// delegate. The engine tracks a checkpoint per projection name so that
+/// processing can resume after a restart. The engine follows at‑least‑once
+/// semantics: an event may be delivered more than once, therefore the
+/// processing delegate must be idempotent or implement its own atomic
+/// checkpoint handling.
 /// </summary>
 public sealed class ProjectionEngine
 {
     private readonly ILogger<ProjectionEngine> _logger;
-    private readonly Dictionary<string, ProjectionState> _projections = new();
+    private readonly IProjectionEventSource _eventSource;
+    private readonly ConcurrentDictionary<string, ProjectionState> _projections = new();
 
     /// <summary>
     /// Creates a new <see cref="ProjectionEngine"/>.
     /// </summary>
     /// <param name="logger">Logger used for diagnostics.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> is <c>null</c>.</exception>
-    public ProjectionEngine(ILogger<ProjectionEngine> logger)
+    /// <param name="eventSource">Source the engine pulls events from.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> or <paramref name="eventSource"/> is <c>null</c>.</exception>
+    public ProjectionEngine(ILogger<ProjectionEngine> logger, IProjectionEventSource eventSource)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _eventSource = eventSource ?? throw new ArgumentNullException(nameof(eventSource));
     }
 
     /// <summary>
@@ -38,12 +62,15 @@ public sealed class ProjectionEngine
     /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>null</c> or empty.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="processEvent"/> is <c>null</c>.</exception>
     public Task RunAsync(string projectionName, Func<string, Task> processEvent, CancellationToken cancellationToken = default)
-        => RunAsync(projectionName, async @event =>
+    {
+        ArgumentNullException.ThrowIfNull(processEvent);
+        return RunAsync(projectionName, async @event =>
         {
             await processEvent(@event).ConfigureAwait(false);
             // The original contract always advances the checkpoint after the delegate finishes.
             return true;
         }, cancellationToken);
+    }
 
     /// <summary>
     /// Runs a projection using a delegate that returns a <c>bool</c> indicating whether
@@ -60,20 +87,24 @@ public sealed class ProjectionEngine
     /// <returns>A task that completes when the engine stops (usually never).</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>null</c> or empty.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="processEventAndCheckpoint"/> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the projection is already running.</exception>
     public async Task RunAsync(string projectionName, Func<string, Task<bool>> processEventAndCheckpoint, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(projectionName);
         ArgumentNullException.ThrowIfNull(processEventAndCheckpoint);
 
-        if (_projections.TryGetValue(projectionName, out var projectionState))
+        var projectionState = _projections.GetOrAdd(projectionName, static name => new ProjectionState(name));
+
+        if (Interlocked.CompareExchange(ref projectionState.Running, 1, 0) != 0)
+            throw new InvalidOperationException($"Projection '{projectionName}' is already running.");
+
+        try
         {
             await RunProjectionAsync(projectionState, processEventAndCheckpoint, cancellationToken).ConfigureAwait(false);
         }
-        else
+        finally
         {
-            projectionState = new ProjectionState(projectionName);
-            _projections[projectionName] = projectionState;
-            await RunProjectionAsync(projectionState, processEventAndCheckpoint, cancellationToken).ConfigureAwait(false);
+            Interlocked.Exchange(ref projectionState.Running, 0);
         }
     }
 
@@ -83,7 +114,9 @@ public sealed class ProjectionEngine
         {
             try
             {
-                var @event = await GetNextEventAsync(projectionState, cancellationToken).ConfigureAwait(false);
+                var @event = await _eventSource
+                    .GetNextEventAsync(projectionState.Name, projectionState.Checkpoint, cancellationToken)
+                    .ConfigureAwait(false);
                 if (@event is null)
                 {
                     await Task.Delay(100, cancellationToken).ConfigureAwait(false);
@@ -102,6 +135,10 @@ public sealed class ProjectionEngine
                     // We keep the current checkpoint so the event will be retried.
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing event in projection {ProjectionName}", projectionState.Name);
@@ -110,18 +147,18 @@ public sealed class ProjectionEngine
                 if (projectionState.ConsecutiveFailures >= 5)
                 {
                     _logger.LogInformation("Circuit breaker triggered for projection {ProjectionName}. Pausing projection.", projectionState.Name);
-                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
                     projectionState.ConsecutiveFailures = 0;
                 }
             }
         }
-    }
-
-    private async Task<string?> GetNextEventAsync(ProjectionState projectionState, CancellationToken cancellationToken)
-    {
-        // Implement logic to get the next event for the projection.
-        // For demonstration purposes, assume this method returns a string representing the event.
-        return await Task.FromResult("Event").ConfigureAwait(false);
     }
 
     private sealed class ProjectionState
@@ -140,6 +177,11 @@ public sealed class ProjectionEngine
         /// Number of consecutive failures; used for circuit‑breaker logic.
         /// </summary>
         public int ConsecutiveFailures { get; set; }
+
+        /// <summary>
+        /// 1 while a RunAsync loop owns this projection; guards against concurrent runs.
+        /// </summary>
+        public int Running;
 
         public ProjectionState(string name)
         {
