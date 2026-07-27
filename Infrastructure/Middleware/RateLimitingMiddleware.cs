@@ -6,6 +6,7 @@
 
 using System.Collections.Concurrent;
 using System.Net;
+using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Middleware;
 

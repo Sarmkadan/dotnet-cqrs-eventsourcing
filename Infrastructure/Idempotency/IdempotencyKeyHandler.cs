@@ -7,6 +7,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Idempotency;
 
@@ -66,7 +67,7 @@ public class InMemoryIdempotencyKeyHandler : IIdempotencyKeyHandler
             // Check if entry has expired
             if (DateTime.UtcNow - stored.RecordedAt > _retentionPeriod)
             {
-                _store.TryRemove(idempotencyKey, out _);
+                _store.TryRemoveEntry(idempotencyKey, stored);
                 _logger.LogDebug("Idempotency key expired: {IdempotencyKey}", idempotencyKey);
                 return Task.FromResult<IdempotencyResult?>(null);
             }

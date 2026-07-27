@@ -71,7 +71,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
             if (entry.IsExpired)
             {
                 // Remove the specific expired entry object to prevent concurrent Set from being clobbered
-                _cache.TryRemove(key, out var removedEntry);
+                _cache.TryRemoveEntry(key, entry);
                 _logger.LogDebug("Cache entry expired: {Key}", key);
                 return Task.FromResult<T?>(null);
             }
