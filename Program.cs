@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Infrastructure.Cli;
+using DotNetCqrsEventSourcing.ReadModels;
 
 // Build configuration
 var configuration = new ConfigurationBuilder()
@@ -33,6 +34,8 @@ services.AddCqrsFramework(configuration);
 // Register CLI commands
 services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
 services.AddSingleton<ICliCommand, EventStoreStatsCommand>();
+services.AddSingleton<DeadLetterReplayService>();
+services.AddSingleton<ICliCommand, DeadLetterReplayCommand>();
 services.AddSingleton<CliCommandRegistry>();
 
 await using var serviceProvider = services.BuildServiceProvider();
