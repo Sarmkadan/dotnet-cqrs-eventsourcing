@@ -9,6 +9,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware
         public async Task<HttpResponseMessage> InvokeAsync(HttpRequestMessage request, Func<HttpRequestMessage, Func<CancellationToken, Task<HttpResponseMessage>>, Task<HttpResponseMessage>> next, CancellationToken cancellationToken)
         {
             return await next(request, async (req, ct) => await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+            // TODO: implement idempotency middleware
             // TODO: implement idempotency middleware        }
     }
 }
