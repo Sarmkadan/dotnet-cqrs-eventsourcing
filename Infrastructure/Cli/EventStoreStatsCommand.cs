@@ -69,11 +69,23 @@ public sealed class EventStoreStatsCommand : ICliCommand
             }
         }
 
+        var limitIndex = Array.IndexOf(args, "--limit");
+        int limit = 1000;
+        if (limitIndex >= 0)
+        {
+            if (limitIndex + 1 >= args.Length || !int.TryParse(args[limitIndex + 1], out var parsedLimit))
+            {
+                return Result.Failure("INVALID_ARGUMENT", "Limit must be a valid integer after --limit");
+            }
+            limit = Math.Clamp(parsedLimit, 1, 10000);
+        }
+
         try
         {
             if (aggregateId is not null)
             {
-                return await GetAggregateStatsAsync(aggregateId, cancellationToken);
+                ValidateAggregateId(aggregateId);
+                return await GetAggregateStatsAsync(aggregateId, limit, cancellationToken);
             }
 
             return await GetOverallStatsAsync(cancellationToken);
@@ -86,6 +98,14 @@ public sealed class EventStoreStatsCommand : ICliCommand
         }
     }
 
+    private static void ValidateAggregateId(string aggregateId)
+    {
+        if (string.IsNullOrWhiteSpace(aggregateId))
+            throw new ArgumentException("Aggregate ID cannot be null, empty, or whitespace.");
+        if (aggregateId.Length > 100)
+            throw new ArgumentException("Aggregate ID length exceeds 100 characters.");
+    }
+
     /// <inheritdoc/>
     public void PrintUsage()
     {
@@ -94,10 +114,11 @@ public sealed class EventStoreStatsCommand : ICliCommand
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine(" --aggregate <id> Show statistics for a specific aggregate stream.");
+        Console.WriteLine(" --limit <n>      Limit the number of events to load (default: 1000, max: 10000).");
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.WriteLine(" dotnet run -- event-store-stats");
-        Console.WriteLine(" dotnet run -- event-store-stats --aggregate ACC-001");
+        Console.WriteLine(" dotnet run -- event-store-stats --aggregate ACC-001 --limit 500");
         Console.WriteLine();
     }
 
@@ -125,9 +146,9 @@ public sealed class EventStoreStatsCommand : ICliCommand
         return Result.Success();
     }
 
-    private async Task<Result> GetAggregateStatsAsync(string aggregateId, CancellationToken cancellationToken)
+    private async Task<Result> GetAggregateStatsAsync(string aggregateId, int limit, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Collecting statistics for aggregate '{aggregateId}'...");
+        Console.WriteLine($"Collecting statistics for aggregate '{aggregateId}' (limit: {limit})...");
         Console.WriteLine();
 
         // Get the event stream for the specified aggregate
@@ -139,6 +160,7 @@ public sealed class EventStoreStatsCommand : ICliCommand
         }
 
         var events = streamResult.Data!;
+        var limitedEvents = events.Take(limit).ToList();
 
         // Get the current version
         var versionResult = await _eventStore.GetAggregateVersionAsync(aggregateId, cancellationToken);
@@ -153,7 +175,7 @@ public sealed class EventStoreStatsCommand : ICliCommand
         Console.WriteLine($"Aggregate ID: {aggregateId}");
         Console.WriteLine($"Current Version: {version}");
         Console.WriteLine($"Event Count: {eventCount}");
-        Console.WriteLine($"Events in Memory: {events.Count}");
+        Console.WriteLine($"Events in Memory (limited to {limit}): {limitedEvents.Count}");
         Console.WriteLine();
 
         _logger.LogInformation(
@@ -164,4 +186,5 @@ public sealed class EventStoreStatsCommand : ICliCommand
 
         return Result.Success();
     }
+
 }
