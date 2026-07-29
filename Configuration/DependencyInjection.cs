@@ -48,7 +48,20 @@ public static class DependencyInjection
         // Options registration with validation
         services.AddOptions<DotnetCqrsEventsourcingOptions>()
             .Bind(configuration.GetSection(DotnetCqrsEventsourcingOptions.SectionName))
-            .ValidateDataAnnotations()
+            .Validate(options =>
+            {
+                options.Validate();
+                return true;
+            }, "Invalid configuration")
+            .ValidateOnStart();
+
+        services.AddOptions<OptimisticConcurrencyRetryOptions>()
+            .Bind(configuration.GetSection(OptimisticConcurrencyRetryOptions.SectionName))
+            .Validate(options =>
+            {
+                options.Validate();
+                return true;
+            }, "Invalid configuration")
             .ValidateOnStart();
 
         // Event type registry – scan the domain assembly so every [EventName(...)]-decorated

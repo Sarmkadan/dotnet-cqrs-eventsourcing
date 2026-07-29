@@ -31,7 +31,7 @@ public enum EventRetentionPolicy
 /// <summary>
 /// Configuration options for the CQRS and Event Sourcing framework.
 /// </summary>
-public sealed class DotnetCqrsEventsourcingOptions
+public sealed record DotnetCqrsEventsourcingOptions : IValidatableOptions
 {
     /// <summary>
     /// Configuration section name used when binding from <c>appsettings.json</c>.
@@ -42,98 +42,143 @@ public sealed class DotnetCqrsEventsourcingOptions
     /// Connection string for the event store database.
     /// This is where all domain events are persisted.
     /// </summary>
-    [Required(ErrorMessage = "EventStoreConnectionString is required")]
-    [MinLength(10, ErrorMessage = "EventStoreConnectionString must be at least 10 characters")]
-    public string EventStoreConnectionString { get; set; } = string.Empty;
+    public string EventStoreConnectionString { get; init; } = string.Empty;
 
     /// <summary>
     /// Connection string for the projection store database.
     /// This is where read models are stored for query optimization.
     /// </summary>
-    [Required(ErrorMessage = "ProjectionStoreConnectionString is required")]
-    [MinLength(10, ErrorMessage = "ProjectionStoreConnectionString must be at least 10 characters")]
-    public string ProjectionStoreConnectionString { get; set; } = string.Empty;
+    public string ProjectionStoreConnectionString { get; init; } = string.Empty;
 
     /// <summary>
     /// Connection string for the snapshot store database.
     /// This is where aggregate snapshots are persisted to optimize replay performance.
     /// </summary>
-    [Required(ErrorMessage = "SnapshotStoreConnectionString is required")]
-    [MinLength(10, ErrorMessage = "SnapshotStoreConnectionString must be at least 10 characters")]
-    public string SnapshotStoreConnectionString { get; set; } = string.Empty;
+    public string SnapshotStoreConnectionString { get; init; } = string.Empty;
 
     /// <summary>
     /// Maximum number of events to keep in memory cache.
     /// Higher values improve performance for frequently accessed aggregates but increase memory usage.
     /// </summary>
-    [Range(1, 1000000, ErrorMessage = "MaxEventsCached must be between 1 and 1,000,000")]
-    public int MaxEventsCached { get; set; } = 10000;
+    public int MaxEventsCached { get; init; } = 10000;
 
     /// <summary>
     /// Maximum age of cached events in seconds.
     /// Events older than this will be evicted from cache.
     /// Set to 0 to disable caching.
     /// </summary>
-    [Range(0, 86400, ErrorMessage = "CacheExpirationSeconds must be between 0 and 86400 (24 hours)")]
-    public int CacheExpirationSeconds { get; set; } = 3600;
+    public int CacheExpirationSeconds { get; init; } = 3600;
 
     /// <summary>
     /// Enable event compression for large events.
     /// When enabled, events are compressed before storage to reduce database size.
     /// </summary>
-    public bool EnableEventCompression { get; set; } = false;
+    public bool EnableEventCompression { get; init; } = false;
 
     /// <summary>
     /// Batch size for bulk event writes.
     /// Larger batches improve write performance but increase memory usage during writes.
     /// </summary>
-    [Range(1, 10000, ErrorMessage = "BatchWriteSize must be between 1 and 10,000")]
-    public int BatchWriteSize { get; set; } = 100;
+    public int BatchWriteSize { get; init; } = 100;
 
     /// <summary>
     /// Number of parallel event reader threads.
     /// Controls how many events can be read concurrently for better throughput.
     /// Defaults to the number of available processors.
     /// </summary>
-    [Range(1, 64, ErrorMessage = "ParallelReaderCount must be between 1 and 64")]
-    public int ParallelReaderCount { get; set; } = Environment.ProcessorCount;
+    public int ParallelReaderCount { get; init; } = Environment.ProcessorCount;
 
     /// <summary>
     /// Automatically create snapshots when <see cref="SnapshotFrequency"/> threshold is reached.
     /// When false, snapshots must be created manually.
     /// </summary>
-    public bool AutoCreateSnapshots { get; set; } = true;
+    public bool AutoCreateSnapshots { get; init; } = true;
 
     /// <summary>
     /// Frequency of automatic snapshots (number of events).
     /// After this many events, a snapshot will be automatically created if <see cref="AutoCreateSnapshots"/> is true.
     /// </summary>
-    [Range(1, 1000, ErrorMessage = "SnapshotFrequency must be between 1 and 1,000")]
-    public int SnapshotFrequency { get; set; } = 50;
+    public int SnapshotFrequency { get; init; } = 50;
 
     /// <summary>
     /// Minimum version before creating snapshots.
     /// Snapshots will only be created for aggregates that have reached this version.
     /// </summary>
-    [Range(0, 1000000, ErrorMessage = "MinVersionForSnapshot must be between 0 and 1,000,000")]
-    public long MinVersionForSnapshot { get; set; } = 10;
+    public long MinVersionForSnapshot { get; init; } = 10;
 
     /// <summary>
     /// Verify event checksums on read.
     /// When enabled, validates event integrity to detect data corruption.
     /// Disable only for performance testing.
     /// </summary>
-    public bool VerifyEventChecksums { get; set; } = true;
+    public bool VerifyEventChecksums { get; init; } = true;
 
     /// <summary>
     /// Retention policy for old events.
     /// </summary>
-    public EventRetentionPolicy RetentionPolicy { get; set; } = EventRetentionPolicy.Infinite;
+    public EventRetentionPolicy RetentionPolicy { get; init; } = EventRetentionPolicy.Infinite;
 
     /// <summary>
     /// Days to retain events when <see cref="RetentionPolicy"/> is set to <see cref="EventRetentionPolicy.Limited"/>.
     /// Events older than this will be automatically removed.
     /// </summary>
-    [Range(1, 3650, ErrorMessage = "RetentionDays must be between 1 and 3,650 (10 years)")]
-    public int RetentionDays { get; set; } = 365;
+    public int RetentionDays { get; init; } = 365;
+
+    /// <summary>
+    /// Validates the configuration options.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown if any option is invalid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if any option is out of valid range.</exception>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(EventStoreConnectionString) || EventStoreConnectionString.Length < 10)
+        {
+            throw new ArgumentException("EventStoreConnectionString is required and must be at least 10 characters.", nameof(EventStoreConnectionString));
+        }
+
+        if (string.IsNullOrWhiteSpace(ProjectionStoreConnectionString) || ProjectionStoreConnectionString.Length < 10)
+        {
+            throw new ArgumentException("ProjectionStoreConnectionString is required and must be at least 10 characters.", nameof(ProjectionStoreConnectionString));
+        }
+
+        if (string.IsNullOrWhiteSpace(SnapshotStoreConnectionString) || SnapshotStoreConnectionString.Length < 10)
+        {
+            throw new ArgumentException("SnapshotStoreConnectionString is required and must be at least 10 characters.", nameof(SnapshotStoreConnectionString));
+        }
+
+        if (MaxEventsCached is < 1 or > 1000000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxEventsCached), "MaxEventsCached must be between 1 and 1,000,000.");
+        }
+
+        if (CacheExpirationSeconds is < 0 or > 86400)
+        {
+            throw new ArgumentOutOfRangeException(nameof(CacheExpirationSeconds), "CacheExpirationSeconds must be between 0 and 86400.");
+        }
+
+        if (BatchWriteSize is < 1 or > 10000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(BatchWriteSize), "BatchWriteSize must be between 1 and 10,000.");
+        }
+
+        if (ParallelReaderCount is < 1 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ParallelReaderCount), "ParallelReaderCount must be between 1 and 64.");
+        }
+
+        if (SnapshotFrequency is < 1 or > 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(SnapshotFrequency), "SnapshotFrequency must be between 1 and 1,000.");
+        }
+
+        if (MinVersionForSnapshot is < 0 or > 1000000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MinVersionForSnapshot), "MinVersionForSnapshot must be between 0 and 1,000,000.");
+        }
+
+        if (RetentionDays is < 1 or > 3650)
+        {
+            throw new ArgumentOutOfRangeException(nameof(RetentionDays), "RetentionDays must be between 1 and 3,650.");
+        }
+    }
 }

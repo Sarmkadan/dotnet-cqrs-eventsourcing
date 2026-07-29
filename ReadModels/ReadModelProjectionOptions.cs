@@ -6,13 +6,15 @@
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
+using Configuration;
+
 /// <summary>
 /// Configuration options for the <see cref="ReadModelProjectionEngine"/>.
 /// Bind to the <c>ReadModelProjections</c> section of your application configuration,
 /// or override individual properties when calling
 /// <see cref="ReadModelExtensions.AddReadModelProjections"/>.
 /// </summary>
-public sealed class ReadModelProjectionOptions
+public sealed record ReadModelProjectionOptions : IValidatableOptions
 {
     /// <summary>
     /// Configuration section key used when binding from <c>appsettings.json</c>.
@@ -24,35 +26,35 @@ public sealed class ReadModelProjectionOptions
     /// The first execution counts as attempt zero; retries begin at attempt one.
     /// Defaults to <c>3</c>.
     /// </summary>
-    public int MaxRetryAttempts { get; set; } = 3;
+    public int MaxRetryAttempts { get; init; } = 3;
 
     /// <summary>
     /// Base delay in milliseconds between retry attempts. Each subsequent retry
     /// doubles the delay (binary exponential back-off).
     /// Defaults to <c>100</c> ms.
     /// </summary>
-    public int RetryBaseDelayMilliseconds { get; set; } = 100;
+    public int RetryBaseDelayMilliseconds { get; init; } = 100;
 
     /// <summary>
     /// When <see langword="true"/>, the engine writes a <see cref="ProjectionCheckpoint"/>
     /// every <see cref="CheckpointInterval"/> successfully processed events per projection.
     /// Defaults to <see langword="true"/>.
     /// </summary>
-    public bool EnableCheckpointing { get; set; } = true;
+    public bool EnableCheckpointing { get; init; } = true;
 
     /// <summary>
     /// Number of successfully processed events between checkpoint writes.
     /// Lower values increase durability at the cost of slightly more overhead.
     /// Defaults to <c>10</c>.
     /// </summary>
-    public int CheckpointInterval { get; set; } = 10;
+    public int CheckpointInterval { get; init; } = 10;
 
     /// <summary>
     /// Maximum number of projectors that may execute concurrently for a single incoming event.
     /// Setting this to <c>1</c> serialises all projection work.
     /// Defaults to <c>4</c>.
     /// </summary>
-    public int MaxConcurrentProjectors { get; set; } = 4;
+    public int MaxConcurrentProjectors { get; init; } = 4;
 
     /// <summary>
     /// Per-projector timeout applied to each <see cref="IReadModelProjectionRunner.RunAsync"/> call,
@@ -60,14 +62,14 @@ public sealed class ReadModelProjectionOptions
     /// and triggers the retry policy.
     /// Defaults to <c>30 seconds</c>.
     /// </summary>
-    public TimeSpan ProjectorTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan ProjectorTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// When <see langword="true"/>, all in-memory checkpoints are cleared before a rebuild
     /// initiated via <see cref="ReadModelProjectionEngine.RebuildAllAsync"/> begins.
     /// Defaults to <see langword="false"/>.
     /// </summary>
-    public bool ClearCheckpointsBeforeRebuild { get; set; } = false;
+    public bool ClearCheckpointsBeforeRebuild { get; init; } = false;
 
     /// <summary>
     /// When <see langword="true"/>, events that exhaust all retry attempts are written to
@@ -75,7 +77,39 @@ public sealed class ReadModelProjectionOptions
     /// Requires an <see cref="IDeadLetterStore"/> to be registered in the DI container.
     /// Defaults to <see langword="true"/>.
     /// </summary>
-    public bool EnableDeadLetterStore { get; set; } = true;
+    public bool EnableDeadLetterStore { get; init; } = true;
+
+    /// <summary>
+    /// Validates the configuration options.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if any option is out of valid range.</exception>
+    public void Validate()
+    {
+        if (MaxRetryAttempts < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxRetryAttempts), "MaxRetryAttempts cannot be negative.");
+        }
+
+        if (RetryBaseDelayMilliseconds < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(RetryBaseDelayMilliseconds), "RetryBaseDelayMilliseconds cannot be negative.");
+        }
+
+        if (CheckpointInterval <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(CheckpointInterval), "CheckpointInterval must be greater than zero.");
+        }
+
+        if (MaxConcurrentProjectors <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxConcurrentProjectors), "MaxConcurrentProjectors must be greater than zero.");
+        }
+        
+        if (ProjectorTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ProjectorTimeout), "ProjectorTimeout must be greater than zero.");
+        }
+    }
 }
 
 /// <summary>
