@@ -36,21 +36,6 @@ public class SnapshotCompressionServiceTests
     }
 
     [Fact]
-    public async Task CompressAsync_WithEmptyData_ReturnsFailureResult()
-    {
-        // Arrange
-        var snapshot = new AggregateSnapshot("agg-1", "TestAggregate", 1, "");
-
-        // Act
-        var result = await _service.CompressAsync(snapshot);
-
-        // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorCode.Should().Be("EMPTY_DATA");
-        result.ErrorMessage.Should().Contain("no data to compress");
-    }
-
-    [Fact]
     public async Task CompressAsync_WithWhitespaceData_ReturnsFailureResult()
     {
         // Arrange
@@ -62,6 +47,54 @@ public class SnapshotCompressionServiceTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("EMPTY_DATA");
+        result.ErrorMessage.Should().Contain("only whitespace");
+    }
+
+    [Fact]
+    public async Task CompressAsync_WithEmptyString_AllowsCompression()
+    {
+        // Arrange
+        var snapshot = new AggregateSnapshot("agg-1", "TestAggregate", 1, "");
+        snapshot.AggregateData = ""; // Explicitly empty
+
+        // Act
+        var result = await _service.CompressAsync(snapshot);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data.AggregateData.Should().Be("");
+        result.Data.IsCompressed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DecompressAsync_WithUncompressedData_PassesThrough()
+    {
+        // Arrange
+        var originalData = "{\"Name\":\"Test\"}";
+        var snapshot = new AggregateSnapshot("agg-1", "Test", 1, originalData);
+        snapshot.IsCompressed = false;
+
+        // Act
+        var result = await _service.DecompressAsync(snapshot);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().Be(originalData);
+    }
+
+    [Fact]
+    public async Task DecompressAsync_WithCorruptedData_ReturnsDecompressionFailed()
+    {
+        // Arrange
+        var snapshot = new AggregateSnapshot("agg-1", "Test", 1, "corrupted");
+        snapshot.MarkCompressed(10); // Pretend it's compressed
+
+        // Act
+        var result = await _service.DecompressAsync(snapshot);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("DECOMPRESSION_FAILED");
     }
 
     [Fact]

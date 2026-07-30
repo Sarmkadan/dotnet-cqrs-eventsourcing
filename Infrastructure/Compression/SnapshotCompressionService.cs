@@ -70,8 +70,11 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
         if (snapshot.IsCompressed)
             return Result<AggregateSnapshot>.Success(snapshot);
 
-        if (string.IsNullOrWhiteSpace(snapshot.AggregateData))
+        if (snapshot.AggregateData == null)
             return Result<AggregateSnapshot>.Failure("EMPTY_DATA", "Snapshot contains no data to compress");
+        
+        if (string.IsNullOrWhiteSpace(snapshot.AggregateData) && snapshot.AggregateData != "")
+            return Result<AggregateSnapshot>.Failure("EMPTY_DATA", "Snapshot contains only whitespace");
 
         try
         {
