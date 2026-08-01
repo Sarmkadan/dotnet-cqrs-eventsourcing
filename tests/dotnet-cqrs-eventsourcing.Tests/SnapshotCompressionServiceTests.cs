@@ -10,17 +10,27 @@ using Xunit;
 
 namespace DotNetCqrsEventSourcing.Tests;
 
+/// <summary>
+/// Tests for the <see cref="T:DotNetCqrsEventSourcing.Infrastructure.Compression.SnapshotCompressionService"/> class.
+/// </summary>
 public class SnapshotCompressionServiceTests
 {
     private readonly ILogger<SnapshotCompressionService> _logger;
     private readonly SnapshotCompressionService _service;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="T:DotNetCqrsEventSourcing.Tests.SnapshotCompressionServiceTests"/> class.
+    /// Initializes the logger and the snapshot compression service.
+    /// </summary>
     public SnapshotCompressionServiceTests()
     {
         _logger = new NullLogger<SnapshotCompressionService>();
         _service = new SnapshotCompressionService(_logger);
     }
 
+    /// <summary>
+    /// Verifies that compressing a null snapshot throws an ArgumentNullException.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithNullSnapshot_ThrowsArgumentNullException()
     {
@@ -28,6 +38,9 @@ public class SnapshotCompressionServiceTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => _service.CompressAsync(null!));
     }
 
+    /// <summary>
+    /// Verifies that decompressing a null snapshot throws an ArgumentNullException.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithNullSnapshot_ThrowsArgumentNullException()
     {
@@ -35,6 +48,9 @@ public class SnapshotCompressionServiceTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => _service.DecompressAsync(null!));
     }
 
+    /// <summary>
+    /// Verifies that compressing a snapshot with only whitespace data returns a failure result.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithWhitespaceData_ReturnsFailureResult()
     {
@@ -50,6 +66,9 @@ public class SnapshotCompressionServiceTests
         result.ErrorMessage.Should().Contain("only whitespace");
     }
 
+    /// <summary>
+    /// Verifies that compressing a snapshot with an empty string succeeds and marks the snapshot as compressed.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithEmptyString_AllowsCompression()
     {
@@ -66,6 +85,9 @@ public class SnapshotCompressionServiceTests
         result.Data.IsCompressed.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that decompressing an uncompressed snapshot returns the original data.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithUncompressedData_PassesThrough()
     {
@@ -82,6 +104,9 @@ public class SnapshotCompressionServiceTests
         result.Data.Should().Be(originalData);
     }
 
+    /// <summary>
+    /// Verifies that decompressing a snapshot with corrupted compressed data returns a failure result.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithCorruptedData_ReturnsDecompressionFailed()
     {
@@ -97,6 +122,9 @@ public class SnapshotCompressionServiceTests
         result.ErrorCode.Should().Be("DECOMPRESSION_FAILED");
     }
 
+    /// <summary>
+    /// Verifies that compressing a snapshot with small data returns a success result with compressed data.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithSmallData_ReturnsSuccessWithCompressedData()
     {
@@ -119,6 +147,9 @@ public class SnapshotCompressionServiceTests
         result.Data.CompressedSize.Should().BeGreaterThanOrEqualTo(0);
     }
 
+    /// <summary>
+    /// Verifies that compressing an already compressed snapshot returns the same snapshot without recompression.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithAlreadyCompressedData_ReturnsSuccessWithoutRecompressing()
     {
@@ -143,6 +174,9 @@ public class SnapshotCompressionServiceTests
         secondResult.Data.IsCompressed.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that decompressing an uncompressed snapshot returns the original data.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithUncompressedData_ReturnsOriginalData()
     {
@@ -158,6 +192,9 @@ public class SnapshotCompressionServiceTests
         result.Data.Should().Be(originalData);
     }
 
+    /// <summary>
+    /// Verifies that decompressing a snapshot with empty compressed data returns a failure result.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithEmptyCompressedData_ReturnsFailureResult()
     {
@@ -174,6 +211,9 @@ public class SnapshotCompressionServiceTests
         result.ErrorMessage.Should().Contain("no compressed data");
     }
 
+    /// <summary>
+    /// Verifies that round-trip compression and decompression of JSON data returns the original data.
+    /// </summary>
     [Fact]
     public async Task RoundTripCompression_WithJsonData_ReturnsOriginalData()
     {
@@ -199,6 +239,9 @@ public class SnapshotCompressionServiceTests
         compressedSnapshot.CompressedSize.Should().BeGreaterThan(0);
     }
 
+    /// <summary>
+    /// Verifies that round-trip compression and decompression of large repetitive data actually shrinks the data.
+    /// </summary>
     [Fact]
     public async Task RoundTripCompression_WithLargeRepetitiveData_ActuallyShrinks()
     {
@@ -234,6 +277,9 @@ public class SnapshotCompressionServiceTests
         decompressResult.Data.Should().Be(repetitiveData);
     }
 
+    /// <summary>
+    /// Verifies that round-trip compression and decompression of very large data (1MB+) handles correctly.
+    /// </summary>
     [Fact]
     public async Task RoundTripCompression_WithVeryLargeData_HandlesCorrectly()
     {
@@ -262,6 +308,9 @@ public class SnapshotCompressionServiceTests
         decompressResult.Data.Should().Be(largeData);
     }
 
+    /// <summary>
+    /// Verifies that decompressing a snapshot with invalid Base64 data returns a failure result.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithInvalidBase64Data_ReturnsFailureResult()
     {
@@ -278,6 +327,9 @@ public class SnapshotCompressionServiceTests
         result.Error.Should().NotBeNullOrEmpty();
     }
 
+    /// <summary>
+    /// Verifies that decompressing a snapshot with invalid Base64 data returns a failure result.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithInvalidBase64_ReturnsFailureResult()
     {
@@ -294,6 +346,9 @@ public class SnapshotCompressionServiceTests
         result.Error.Should().NotBeNullOrEmpty();
     }
 
+    /// <summary>
+    /// Verifies that the statistics report zero values when no operations have been performed.
+    /// </summary>
     [Fact]
     public void GetStats_WithNoOperations_ReturnsZeroStats()
     {
@@ -307,6 +362,9 @@ public class SnapshotCompressionServiceTests
         stats.OverallCompressionRatio.Should().Be(0);
     }
 
+    /// <summary>
+    /// Verifies that the statistics are updated correctly after compression operations.
+    /// </summary>
     [Fact]
     public async Task GetStats_AfterCompression_UpdatesCorrectly()
     {
@@ -331,6 +389,9 @@ public class SnapshotCompressionServiceTests
         stats.OverallCompressionRatio.Should().BeGreaterThan(0);
     }
 
+    /// <summary>
+    /// Verifies that compression with a cancellation token completes successfully.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithCancellationToken_CompletesSuccessfully()
     {
@@ -344,6 +405,9 @@ public class SnapshotCompressionServiceTests
         result.IsSuccess.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that decompression with a cancellation token completes successfully.
+    /// </summary>
     [Fact]
     public async Task DecompressAsync_WithCancellationToken_CompletesSuccessfully()
     {
@@ -361,6 +425,9 @@ public class SnapshotCompressionServiceTests
         result.IsSuccess.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that compression with different compression levels completes successfully.
+    /// </summary>
     [Fact]
     public async Task CompressAsync_WithDifferentCompressionLevels_ProducesDifferentSizes()
     {
@@ -382,6 +449,9 @@ public class SnapshotCompressionServiceTests
         // We just verify they all work
     }
 
+    /// <summary>
+    /// Verifies that round-trip compression and decompression preserves data integrity including checksum.
+    /// </summary>
     [Fact]
     public async Task RoundTrip_PreservesDataIntegrity()
     {
