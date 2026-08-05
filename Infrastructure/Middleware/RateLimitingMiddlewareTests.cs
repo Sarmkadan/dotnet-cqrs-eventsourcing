@@ -10,8 +10,16 @@ using System;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Middleware.Tests
 {
+    /// <summary>
+    /// Contains unit tests for the <see cref="RateLimitingMiddleware"/> class.
+    /// </summary>
     public class RateLimitingMiddlewareTests
     {
+        /// <summary>
+        /// Verifies that a request made while the token bucket has available tokens
+        /// passes through the middleware and returns the response from the next component.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the test finishes.</returns>
         [Fact]
         public async Task RequestsUnderLimitPassThrough()
         {
@@ -28,6 +36,11 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware.Tests
             Assert.Equal(response, result);
         }
 
+        /// <summary>
+        /// Verifies that a request made when the token bucket is empty
+        /// is rejected with the <see cref="HttpStatusCode.TooManyRequests"/> status code.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the test finishes.</returns>
         [Fact]
         public async Task RequestOverLimitGetsRejectionStatusCode()
         {
@@ -44,6 +57,11 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware.Tests
             Assert.Equal(response, result);
         }
 
+        /// <summary>
+        /// Verifies that after the token bucket refill interval elapses,
+        /// the middleware again allows requests to pass through.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the test finishes.</returns>
         [Fact]
         public async Task WindowResetAllowsRequestsAgain()
         {
@@ -62,6 +80,11 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Middleware.Tests
             Assert.Equal(response, result);
         }
 
+        /// <summary>
+        /// Verifies that distinct client request keys are throttled independently,
+        /// allowing each client to make a request within its own token bucket limits.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the test finishes.</returns>
         [Fact]
         public async Task DistinctClientKeysAreLimitedIndependently()
         {
