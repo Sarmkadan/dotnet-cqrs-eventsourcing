@@ -4,7 +4,9 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using DotNetCqrsEventSourcing.Domain.Events;
+using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
@@ -46,15 +48,37 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     public string ProjectionName => "account-v1";
 
     /// <inheritdoc />
-    public bool CanProject(DomainEvent @event) => @event is
-        AccountCreatedEvent or
-        MoneyDepositedEvent or
-        MoneyWithdrawnEvent or
-        BalanceUpdatedEvent or
-        AccountClosedEvent;
+    public bool CanProject(DomainEvent @event)
+    {
+        _logger.LogInformation(
+            "CanProject called for event {EventId} of type {EventType}",
+            @event.EventId,
+            @event.GetType().Name);
+
+        var result = @event is
+            AccountCreatedEvent or
+            MoneyDepositedEvent or
+            MoneyWithdrawnEvent or
+            BalanceUpdatedEvent or
+            AccountClosedEvent;
+
+        _logger.LogInformation(
+            "CanProject result for event {EventId}: {Result}",
+            @event.EventId,
+            result);
+
+        return result;
+    }
 
     /// <inheritdoc />
-    public string GetKey(DomainEvent @event) => @event.AggregateId;
+    public string GetKey(DomainEvent @event)
+    {
+        _logger.LogInformation(
+            "GetKey called for event {EventId}",
+            @event.EventId);
+
+        return @event.AggregateId;
+    }
 
     /// <inheritdoc />
     /// <remarks>
@@ -68,34 +92,67 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
         AccountReadModel? current,
         CancellationToken cancellationToken = default)
     {
-        if (current is not null && @event.AggregateVersion <= current.ProjectedVersion)
-        {
-            _logger.LogDebug(
-                "Skipping stale event {EventId} (v{EventVersion}) for account {AccountId}; " +
-                "read model is already at v{CurrentVersion}.",
-                @event.EventId, @event.AggregateVersion,
-                @event.AggregateId, current.ProjectedVersion);
+        _logger.LogInformation(
+            "ProjectAsync called for event {EventId} of type {EventType} on aggregate {AggregateId} version {Version}",
+            @event.EventId,
+            @event.GetType().Name,
+            @event.AggregateId,
+            @event.AggregateVersion);
 
-            return Task.FromResult<AccountReadModel?>(current);
+        try
+        {
+            if (current is not null && @event.AggregateVersion <= current.ProjectedVersion)
+            {
+                _logger.LogDebug(
+                    "Skipping stale event {EventId} (v{EventVersion}) for account {AccountId}; " +
+                    "read model is already at v{CurrentVersion}.",
+                    @event.EventId, @event.AggregateVersion,
+                    @event.AggregateId, current.ProjectedVersion);
+
+                return Task.FromResult<AccountReadModel?>(current);
+            }
+
+            var updated = @event switch
+            {
+                AccountCreatedEvent  e => ApplyCreated(e),
+                MoneyDepositedEvent  e => ApplyDeposited(current, e),
+                MoneyWithdrawnEvent  e => ApplyWithdrawn(current, e),
+                BalanceUpdatedEvent  e => ApplyBalanceUpdated(current, e),
+                AccountClosedEvent   e => ApplyClosed(current, e),
+                _                      => current
+            };
+
+            if (updated is null)
+            {
+                _logger.LogWarning(
+                    "ProjectAsync could not apply event {EventId} of type {EventType} for aggregate {AggregateId}",
+                    @event.EventId,
+                    @event.GetType().Name,
+                    @event.AggregateId);
+            }
+            else
+            {
+                updated.ProjectedVersion = @event.AggregateVersion;
+                updated.LastUpdatedAt    = DateTime.UtcNow;
+            }
+
+            _logger.LogInformation(
+                "ProjectAsync completed for aggregate {AggregateId} version {Version}",
+                @event.AggregateId,
+                @event.AggregateVersion);
+
+            return Task.FromResult(updated);
         }
-
-        var updated = @event switch
+        catch (Exception ex)
         {
-            AccountCreatedEvent  e => ApplyCreated(e),
-            MoneyDepositedEvent  e => ApplyDeposited(current, e),
-            MoneyWithdrawnEvent  e => ApplyWithdrawn(current, e),
-            BalanceUpdatedEvent  e => ApplyBalanceUpdated(current, e),
-            AccountClosedEvent   e => ApplyClosed(current, e),
-            _                      => current
-        };
-
-        if (updated is not null)
-        {
-            updated.ProjectedVersion = @event.AggregateVersion;
-            updated.LastUpdatedAt    = DateTime.UtcNow;
+            _logger.LogError(
+                ex,
+                "Error processing event {EventId} of type {EventType} for aggregate {AggregateId}",
+                @event.EventId,
+                @event.GetType().Name,
+                @event.AggregateId);
+            throw;
         }
-
-        return Task.FromResult(updated);
     }
 
     // -------------------------------------------------------------------------
