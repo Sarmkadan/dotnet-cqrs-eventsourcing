@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using DotNetCqrsEventSourcing.Infrastructure.Caching;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -6,15 +7,33 @@ using Xunit;
 
 namespace DotNetCqrsEventSourcing.Tests.Infrastructure;
 
+/// <summary>
+/// Contains unit tests for <see cref="InMemoryCacheService"/> that verify
+/// correct handling of expiration, eviction, and concurrent set/get operations.
+/// </summary>
 public class CacheServiceTests
 {
     private readonly InMemoryCacheService _cacheService;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="CacheServiceTests"/>.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="InMemoryCacheService"/> is created with a <c>NullLogger</c>
+    /// to avoid logging output during test execution.
+    /// </remarks>
     public CacheServiceTests()
     {
         _cacheService = new InMemoryCacheService(NullLogger<InMemoryCacheService>.Instance);
     }
 
+    /// <summary>
+    /// Verifies that a value whose expiration has elapsed is not returned
+    /// by <see cref="InMemoryCacheService.GetAsync{T}(string)"/>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task"/> that completes when the assertion has been performed.
+    /// </returns>
     [Fact]
     public async Task GetAsync_ShouldNotReturnExpiredValue_DueToRaceCondition()
     {
@@ -35,6 +54,13 @@ public class CacheServiceTests
         Assert.Null(result);
     }
 
+    /// <summary>
+    /// Ensures that an expired cache entry is removed on the first retrieval
+    /// and that subsequent retrievals also return <c>null</c>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task"/> that completes when the assertions have been performed.
+    /// </returns>
     [Fact]
     public async Task GetAsync_ShouldRemoveExpiredEntry_WhenFound()
     {
@@ -57,6 +83,13 @@ public class CacheServiceTests
         Assert.Null(result2);
     }
 
+    /// <summary>
+    /// Tests that the internal eviction logic removes only the exact expired entry
+    /// without affecting other valid entries.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task"/> that completes when the eviction and subsequent retrievals are verified.
+    /// </returns>
     [Fact]
     public async Task EvictExpiredEntries_ShouldRemoveExactExpiredEntryObject()
     {
@@ -88,6 +121,13 @@ public class CacheServiceTests
         Assert.Equal(value2, result2);
     }
 
+    /// <summary>
+    /// Confirms that a concurrent <c>SetAsync</c> operation is not overwritten
+    /// by the removal of an expired entry when <c>GetAsync</c> is called.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task"/> that completes after the concurrent operations and verification.
+    /// </returns>
     [Fact]
     public async Task GetAsync_ShouldNotClobberConcurrentSet_WhenEntryIsExpired()
     {
@@ -118,6 +158,13 @@ public class CacheServiceTests
         Assert.Equal(newValue, result);
     }
 
+    /// <summary>
+    /// Validates that <c>GetOrCreateAsync</c> correctly invokes the factory
+    /// when the cached entry has expired, and that the newly created value is stored.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task"/> that completes after the factory invocation and result verification.
+    /// </returns>
     [Fact]
     public async Task GetOrCreateAsync_ShouldHandleExpiredEntryCorrectly()
     {
