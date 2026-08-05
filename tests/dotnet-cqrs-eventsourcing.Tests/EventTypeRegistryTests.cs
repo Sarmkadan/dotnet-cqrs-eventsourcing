@@ -8,17 +8,26 @@ using Xunit;
 
 namespace DotNetCqrsEventSourcing.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="EventTypeRegistry"/> class.
+/// </summary>
 public class EventTypeRegistryTests
 {
     private readonly EventTypeRegistry _registry;
     private readonly ILogger<EventTypeRegistry> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventTypeRegistryTests"/> class.
+    /// </summary>
     public EventTypeRegistryTests()
     {
         _logger = NullLogger<EventTypeRegistry>.Instance;
         _registry = new EventTypeRegistry(_logger);
     }
 
+    /// <summary>
+    /// Verifies that registering a type maps it to the specified event name and can be resolved correctly.
+    /// </summary>
     [Fact]
     public void Register_ShouldMapTypeToEventName()
     {
@@ -34,6 +43,9 @@ public class EventTypeRegistryTests
         resolvedType.Should().Be(typeof(TestEvent));
     }
 
+    /// <summary>
+    /// Verifies that resolving an unknown event name throws an <see cref="UnknownEventTypeException"/>.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsUnknown()
     {
@@ -46,6 +58,9 @@ public class EventTypeRegistryTests
             .Where(ex => ex.EventTypeName == unknownEventName);
     }
 
+    /// <summary>
+    /// Verifies that resolving a null event name throws an <see cref="UnknownEventTypeException"/> with a message indicating the name cannot be null or empty.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsNull()
     {
@@ -55,6 +70,9 @@ public class EventTypeRegistryTests
             .WithMessage("*cannot be null or empty*");
     }
 
+    /// <summary>
+    /// Verifies that resolving an empty event name throws an <see cref="UnknownEventTypeException"/> with a message indicating the name cannot be null or empty.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsEmpty()
     {
@@ -64,6 +82,9 @@ public class EventTypeRegistryTests
             .WithMessage("*cannot be null or empty*");
     }
 
+    /// <summary>
+    /// Verifies that resolving a whitespace-only event name throws an <see cref="UnknownEventTypeException"/> with the event name set to the whitespace string.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrowUnknownEventTypeException_WhenEventNameIsWhitespace()
     {
@@ -73,6 +94,9 @@ public class EventTypeRegistryTests
             .Where(ex => ex.EventTypeName == " ");
     }
 
+    /// <summary>
+    /// Verifies that trying to resolve an unknown event name returns false and a null output type.
+    /// </summary>
     [Fact]
     public void TryResolve_ShouldReturnFalse_WhenEventNameIsUnknown()
     {
@@ -87,6 +111,9 @@ public class EventTypeRegistryTests
         resolvedType.Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies that trying to resolve a known event name returns true and the correct registered type.
+    /// </summary>
     [Fact]
     public void TryResolve_ShouldReturnTrueAndType_WhenEventNameIsKnown()
     {
@@ -103,6 +130,9 @@ public class EventTypeRegistryTests
         resolvedType.Should().Be(typeof(TestEvent));
     }
 
+    /// <summary>
+    /// Verifies that registering a duplicate event name throws an <see cref="InvalidOperationException"/> with a descriptive message.
+    /// </summary>
     [Fact]
     public void Register_ShouldThrowInvalidOperationException_WhenDuplicateEventName()
     {
@@ -116,6 +146,9 @@ public class EventTypeRegistryTests
             .WithMessage($"Event name '{eventName}' is already registered to '{typeof(TestEvent).FullName}'. Cannot re-register it to '{typeof(AnotherTestEvent).FullName}'.");
     }
 
+    /// <summary>
+    /// Verifies that registering a null event name throws an <see cref="ArgumentException"/> with a message indicating the name must not be null or whitespace.
+    /// </summary>
     [Fact]
     public void Register_ShouldThrowArgumentException_WhenEventNameIsNull()
     {
@@ -125,6 +158,9 @@ public class EventTypeRegistryTests
             .WithMessage("Event name must not be null or whitespace. (Parameter 'eventName')");
     }
 
+    /// <summary>
+    /// Verifies that registering an empty event name throws an <see cref="ArgumentException"/> with a message indicating the name must not be null or whitespace.
+    /// </summary>
     [Fact]
     public void Register_ShouldThrowArgumentException_WhenEventNameIsEmpty()
     {
@@ -134,6 +170,9 @@ public class EventTypeRegistryTests
             .WithMessage("Event name must not be null or whitespace. (Parameter 'eventName')");
     }
 
+    /// <summary>
+    /// Verifies that registering a whitespace-only event name throws an <see cref="ArgumentException"/> with a message indicating the name must not be null or whitespace.
+    /// </summary>
     [Fact]
     public void Register_ShouldThrowArgumentException_WhenEventNameIsWhitespace()
     {
@@ -143,6 +182,9 @@ public class EventTypeRegistryTests
             .WithMessage("Event name must not be null or whitespace. (Parameter 'eventName')");
     }
 
+    /// <summary>
+    /// Verifies that scanning an assembly registers types decorated with the <see cref="EventNameAttribute"/>.
+    /// </summary>
     [Fact]
     public void ScanAssembly_ShouldRegisterTypesWithEventNameAttribute()
     {
@@ -158,6 +200,9 @@ public class EventTypeRegistryTests
         resolvedType.Should().Be(typeof(TestEvent));
     }
 
+    /// <summary>
+    /// Verifies that scanning an assembly does not register types that lack the <see cref="EventNameAttribute"/>.
+    /// </summary>
     [Fact]
     public void ScanAssembly_ShouldNotRegisterTypesWithoutEventNameAttribute()
     {
@@ -172,6 +217,9 @@ public class EventTypeRegistryTests
         act.Should().Throw<UnknownEventTypeException>();
     }
 
+    /// <summary>
+    /// Verifies that getting all registrations returns a dictionary containing all registered event name to type mappings.
+    /// </summary>
     [Fact]
     public void GetAllRegistrations_ShouldReturnAllRegisteredMappings()
     {
@@ -190,6 +238,9 @@ public class EventTypeRegistryTests
         registrations["AnotherTestEvent"].Should().Be(typeof(AnotherTestEvent));
     }
 
+    /// <summary>
+    /// Verifies that getting all registrations returns an empty dictionary when no registrations have been made.
+    /// </summary>
     [Fact]
     public void GetAllRegistrations_ShouldReturnEmptyDictionary_WhenNoRegistrations()
     {
@@ -200,6 +251,9 @@ public class EventTypeRegistryTests
         registrations.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that scanning an assembly with no attributed types does not throw an exception.
+    /// </summary>
     [Fact]
     public void ScanAssembly_ShouldHandleEmptyAssembly()
     {
@@ -215,6 +269,9 @@ public class EventTypeRegistryTests
         registrations.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that scanning a null assembly throws an <see cref="ArgumentNullException"/>.
+    /// </summary>
     [Fact]
     public void ScanAssembly_ShouldThrowArgumentNullException_WhenAssemblyIsNull()
     {
@@ -223,6 +280,9 @@ public class EventTypeRegistryTests
         act.Should().Throw<ArgumentNullException>();
     }
 
+    /// <summary>
+    /// Verifies that event name resolution is case-sensitive.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldBeCaseSensitive()
     {
@@ -245,6 +305,9 @@ public class EventTypeRegistryTests
         act.Should().Throw<UnknownEventTypeException>();
     }
 
+    /// <summary>
+    /// Verifies that the same event type can be registered under different names.
+    /// </summary>
     [Fact]
     public void Register_ShouldAllowSameTypeWithDifferentNames()
     {
@@ -264,6 +327,9 @@ public class EventTypeRegistryTests
         resolvedType2.Should().Be(typeof(TestEvent));
     }
 
+    /// <summary>
+    /// Verifies that resolving a malicious event name (containing assembly-qualified type syntax) throws an <see cref="UnknownEventTypeException"/> with a descriptive message.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrowUnknownEventTypeException_WithDescriptiveMessage()
     {
