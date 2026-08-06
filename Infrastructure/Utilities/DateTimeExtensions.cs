@@ -75,6 +75,7 @@ public static class DateTimeExtensions
     /// <returns>A DateTime truncated to the specified precision.</returns>
     public static DateTime TruncateTo(this DateTime dateTime, TimeSpan precision)
     {
+        ArgumentNullException.ThrowIfNull(precision);
         return dateTime.AddTicks(-(dateTime.Ticks % precision.Ticks));
     }
 
