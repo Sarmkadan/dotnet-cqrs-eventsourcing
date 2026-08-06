@@ -26,6 +26,7 @@ public static class CqrsHelpers
     /// </summary>
     public static IEnumerable<Type> GetCommandHandlers(Assembly assembly)
     {
+        ArgumentNullException.ThrowIfNull(assembly);
         return assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract &&
                    t.GetInterfaces().Any(i => i.Name.StartsWith("ICommandHandler")))
@@ -38,6 +39,7 @@ public static class CqrsHelpers
     /// </summary>
     public static IEnumerable<Type> GetEventHandlers(Assembly assembly)
     {
+        ArgumentNullException.ThrowIfNull(assembly);
         return assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract &&
                    t.GetInterfaces().Any(i => i.Name.StartsWith("IEventHandler")))
@@ -50,6 +52,7 @@ public static class CqrsHelpers
     /// </summary>
     public static HandlerMetadata GetHandlerMetadata(Type commandType)
     {
+        ArgumentNullException.ThrowIfNull(commandType);
         return HandlerMetadataCache.GetOrAdd(commandType, type =>
         {
             var displayName = type.Name.Replace("Command", "").Replace("Query", "");
@@ -70,6 +73,7 @@ public static class CqrsHelpers
     /// </summary>
     public static void RegisterEventType(Type eventType)
     {
+        ArgumentNullException.ThrowIfNull(eventType);
         var typeName = eventType.Name;
         EventTypeMap.TryAdd(typeName, eventType);
     }
@@ -80,6 +84,7 @@ public static class CqrsHelpers
     /// </summary>
     public static Type? ResolveEventType(string eventTypeName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(eventTypeName);
         return EventTypeMap.TryGetValue(eventTypeName, out var eventType) ? eventType : null;
     }
 
@@ -105,6 +110,7 @@ public static class CqrsHelpers
     /// </summary>
     public static Type? GetTargetAggregateType(Type commandType)
     {
+        ArgumentNullException.ThrowIfNull(commandType);
         // First check for explicit AggregateType property
         var aggregateTypeProp = commandType.GetProperty("AggregateType");
         if (aggregateTypeProp is not null)
@@ -126,6 +132,7 @@ public static class CqrsHelpers
     /// </summary>
     public static ICollection<string> ValidateCommand(object command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         var errors = new List<string>();
         var type = command.GetType();
         var metadata = GetHandlerMetadata(type);
