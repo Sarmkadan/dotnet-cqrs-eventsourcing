@@ -5216,3 +5216,30 @@ Console.WriteLine($"Error [{errorCode}]: {string.Join(", ", errors)}");
 }
 }
 ```
+## EventTypeRegistryTests
+
+EventTypeRegistryTests is a class containing unit tests for the EventTypeRegistry class. It verifies that registering a type maps it to the specified event name and can be resolved correctly.
+
+Example usage:
+
+
+
+```csharp
+using System;
+using DotNetCqrsEventSourcing.Tests;
+using DotNetCqrsEventSourcing.Domain.Events;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+public class Program
+{
+    public static void Main()
+    {
+        var tests = new EventTypeRegistryTests();
+        tests.Register_ShouldMapTypeToEventName();
+        // Additional test methods can be called similarly
+    }
+}
+```
