@@ -70,7 +70,9 @@ public class JsonFormatter : IJsonFormatter
 
     public string Format<T>(T obj, JsonFormatOptions? options = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(nameof(obj));
+        // Guard clause for reference-type parameter 'obj'
+        ArgumentNullException.ThrowIfNull(obj, nameof(obj));
+
         if (obj is null)
         {
             return "null";
@@ -90,7 +92,9 @@ public class JsonFormatter : IJsonFormatter
 
     public string FormatCollection<T>(IEnumerable<T> items, JsonFormatOptions? options = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(nameof(items));
+        // Guard clause for reference-type parameter 'items'
+        ArgumentNullException.ThrowIfNull(items, nameof(items));
+
         if (items is null)
         {
             return "[]";
@@ -110,7 +114,9 @@ public class JsonFormatter : IJsonFormatter
 
     public T? Parse<T>(string json)
     {
-        ArgumentNullException.ThrowIfNull(nameof(json));
+        // Guard clause for string parameter 'json'
+        ArgumentException.ThrowIfNullOrEmpty(json, nameof(json));
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return default;
