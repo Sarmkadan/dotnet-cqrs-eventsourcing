@@ -5243,3 +5243,33 @@ public class Program
     }
 }
 ```
+
+## SnapshotCompressionServiceTests
+
+The SnapshotCompressionServiceTests class contains tests for the SnapshotCompressionService class.
+
+It tests various scenarios such as compressing and decompressing data, handling null or empty data, and verifying the integrity of the compressed data.
+
+Example usage:
+```csharp
+public SnapshotCompressionServiceTests
+public async Task CompressAsync_WithNullSnapshot_ThrowsArgumentNullException
+public async Task DecompressAsync_WithNullSnapshot_ThrowsArgumentNullException
+public async Task CompressAsync_WithEmptyData_ReturnsFailureResult
+public async Task CompressAsync_WithWhitespaceData_ReturnsFailureResult
+public async Task CompressAsync_WithSmallData_ReturnsSuccessWithCompressedData
+public async Task CompressAsync_WithAlreadyCompressedData_ReturnsSuccessWithoutRecompressing
+public async Task DecompressAsync_WithUncompressedData_ReturnsOriginalData
+public async Task DecompressAsync_WithEmptyCompressedData_ReturnsFailureResult
+public async Task RoundTripCompression_WithJsonData_ReturnsOriginalData
+public async Task RoundTripCompression_WithLargeRepetitiveData_ActuallyShrinks
+public async Task RoundTripCompression_WithVeryLargeData_HandlesCorrectly
+public async Task DecompressAsync_WithInvalidBase64Data_ReturnsFailureResult
+public async Task DecompressAsync_WithInvalidBase64_ReturnsFailureResult
+public void GetStats_WithNoOperations_ReturnsZeroStats
+public async Task GetStats_AfterCompression_UpdatesCorrectly
+public async Task CompressAsync_WithCancellationToken_CompletesSuccessfully
+public async Task DecompressAsync_WithCancellationToken_CompletesSuccessfully
+public async Task CompressAsync_WithDifferentCompressionLevels_ProducesDifferentSizes
+public async Task RoundTrip_PreservesDataIntegrity
+```
