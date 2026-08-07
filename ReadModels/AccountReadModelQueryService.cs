@@ -74,6 +74,8 @@ public interface IAccountReadModelQueryService
     async Task<AccountReadModel?> GetAccountByIdAsync(
         string accountId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(accountId);
+
         var result = await GetByIdAsync(accountId, cancellationToken);
         return result.IsSuccess ? result.Data : null;
     }
@@ -140,7 +142,7 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     public async Task<Result<AccountReadModel>> GetByIdAsync(
         string accountId, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(accountId, nameof(accountId));
+        ArgumentException.ThrowIfNullOrEmpty(accountId);
 
         var result = await _store.GetAsync(accountId, cancellationToken);
 
@@ -154,7 +156,7 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     public async Task<Result<AccountReadModel>> GetByAccountNumberAsync(
         string accountNumber, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(accountNumber, nameof(accountNumber));
+        ArgumentException.ThrowIfNullOrEmpty(accountNumber);
 
         var query = await _store.QueryAsync(
             m => m.AccountNumber.Equals(accountNumber, StringComparison.OrdinalIgnoreCase),
@@ -181,7 +183,7 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     public Task<Result<IReadOnlyList<AccountReadModel>>> GetByAccountHolderAsync(
         string accountHolder, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(accountHolder, nameof(accountHolder));
+        ArgumentException.ThrowIfNullOrEmpty(accountHolder);
 
         return _store.QueryAsync(
             m => m.AccountHolder.Contains(accountHolder, StringComparison.OrdinalIgnoreCase),
@@ -209,14 +211,18 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
     }
 
     /// <inheritdoc />
-    public Task<Result<IReadOnlyList<AccountReadModel>>> GetByBalanceRangeAsync(
-        decimal minBalance, decimal maxBalance, CancellationToken cancellationToken = default) =>
-        _store.QueryAsync(
+    public async Task<Result<IReadOnlyList<AccountReadModel>>> GetByBalanceRangeAsync(
+        decimal minBalance, decimal maxBalance, CancellationToken cancellationToken = default)
+    {
+        GuardClauses.NotNegative(minBalance, nameof(minBalance));
+        GuardClauses.NotNegative(maxBalance, nameof(maxBalance));
+
+        return await _store.QueryAsync(
             m => m.Status == AccountReadModelStatus.Active
               && m.CurrentBalance >= minBalance
               && m.CurrentBalance <= maxBalance,
             cancellationToken);
-
+    }
     /// <inheritdoc />
     public async Task<Result<AccountPortfolioStatistics>> GetPortfolioStatisticsAsync(
         CancellationToken cancellationToken = default)
