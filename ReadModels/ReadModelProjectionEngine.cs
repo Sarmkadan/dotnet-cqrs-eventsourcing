@@ -100,6 +100,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
+        ArgumentNullException.ThrowIfNull(cancellationToken);
 
         _logger.LogInformation("Starting projection rebuild for aggregate {AggregateId}.", aggregateId);
 
@@ -137,7 +138,8 @@ public sealed class ReadModelProjectionEngine : IDisposable
         IEnumerable<string> aggregateIds,
         CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNull(aggregateIds, nameof(aggregateIds));
+        ArgumentNullException.ThrowIfNull(aggregateIds);
+        ArgumentNullException.ThrowIfNull(cancellationToken);
 
         if (_options.ClearCheckpointsBeforeRebuild)
             _checkpoints.Clear();
