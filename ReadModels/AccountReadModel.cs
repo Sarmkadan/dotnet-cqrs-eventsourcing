@@ -28,13 +28,34 @@ public enum AccountReadModelStatus
 /// <param name="Currency">ISO 4217 currency code inherited from the account (e.g. <c>USD</c>).</param>
 /// <param name="Reference">Human-readable reference text supplied at the time of the transaction.</param>
 /// <param name="ProcessedAt">UTC timestamp when the transaction was processed on the command side.</param>
-public sealed record TransactionSummary(
-    string EventId,
-    string Type,
-    decimal Amount,
-    string Currency,
-    string Reference,
-    DateTime ProcessedAt);
+public sealed record TransactionSummary
+{
+    public string EventId { get; init; }
+    public string Type { get; init; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; }
+    public string Reference { get; init; }
+    public DateTime ProcessedAt { get; init; }
+
+    public TransactionSummary(string eventId, string type, decimal amount, string currency, string reference, DateTime processedAt)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(eventId);
+        ArgumentException.ThrowIfNullOrEmpty(type);
+        ArgumentException.ThrowIfNullOrEmpty(currency);
+        ArgumentException.ThrowIfNullOrEmpty(reference);
+        if (amount < 0)
+        {
+            throw new ArgumentException("Amount must be positive.", nameof(amount));
+        }
+
+        EventId = eventId;
+        Type = type;
+        Amount = amount;
+        Currency = currency;
+        Reference = reference;
+        ProcessedAt = processedAt;
+    }
+}
 
 /// <summary>
 /// Eventually consistent materialized view of an <c>Account</c> aggregate.
