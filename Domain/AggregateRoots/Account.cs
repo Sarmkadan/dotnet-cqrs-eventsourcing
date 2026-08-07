@@ -47,6 +47,7 @@ public class Account : AggregateRoot
     /// </summary>
     public Account ReplayEvents(IEnumerable<DomainEvent> events)
     {
+        ArgumentNullException.ThrowIfNull(events);
         LoadFromHistory(events);
         return this;
     }
@@ -74,6 +75,9 @@ public class Account : AggregateRoot
     // Create and open a new account
     public void CreateAccount(string accountNumber, string accountHolder, string currency, decimal initialBalance)
     {
+        ArgumentException.ThrowIfNullOrEmpty(accountNumber);
+        ArgumentException.ThrowIfNullOrEmpty(accountHolder);
+        ArgumentException.ThrowIfNullOrEmpty(currency);
         if (Version != 0)
             throw new DomainException("Account already created.", "ACCOUNT_ALREADY_CREATED");
 
@@ -96,6 +100,7 @@ public class Account : AggregateRoot
     // Deposit funds into the account
     public void Deposit(decimal amount, string reference)
     {
+        ArgumentException.ThrowIfNullOrEmpty(reference);
         if (Status != AggregateStatus.Active)
             throw new DomainException($"Cannot deposit into account with status {Status}.", "INVALID_ACCOUNT_STATUS");
 
@@ -111,6 +116,7 @@ public class Account : AggregateRoot
     // Withdraw funds from the account
     public void Withdraw(decimal amount, string reference)
     {
+        ArgumentException.ThrowIfNullOrEmpty(reference);
         if (Status != AggregateStatus.Active)
             throw new DomainException($"Cannot withdraw from account with status {Status}.", "INVALID_ACCOUNT_STATUS");
 
@@ -130,6 +136,7 @@ public class Account : AggregateRoot
     // Close the account
     public void CloseAccount(string reason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(reason);
         if (Status == AggregateStatus.Closed)
             throw new DomainException("Account is already closed.", "ACCOUNT_ALREADY_CLOSED");
 
