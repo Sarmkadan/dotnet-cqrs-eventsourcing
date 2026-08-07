@@ -31,7 +31,10 @@ public class Result<T>
         Errors = new List<string>();
     }
 
-    public static Result<T> Success(T data) => new Result<T>(true, data);
+    public static Result<T> Success(T data)
+    {
+        return new Result<T>(true, data);
+    }
 
     public static Result<T> Failure(string errorCode, string errorMessage)
         => new Result<T>(false, default, errorCode, errorMessage);
@@ -45,6 +48,8 @@ public class Result<T>
 
     public void AddError(string error)
     {
+        if (error == null)
+            throw new ArgumentNullException(nameof(error));
         Errors.Add(error);
     }
 
@@ -63,6 +68,8 @@ public class Result<T>
     {
         if (!IsSuccess)
             throw new InvalidOperationException(ErrorMessage ?? $"Operation failed with code: {ErrorCode}");
+        if (Data == null)
+            throw new InvalidOperationException("Data is null");
     }
 
     public Result<TOut> MapSuccess<TOut>(Func<T, TOut> transform)
