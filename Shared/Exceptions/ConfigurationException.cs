@@ -14,21 +14,34 @@ public class ConfigurationException : DotnetCqrsEventsourcingException
     public ConfigurationException(string message, string errorCode = "CONFIGURATION_ERROR")
         : base(message, errorCode)
     {
+        ArgumentNullException.ThrowIfNull(nameof(message));
+        ArgumentNullException.ThrowIfNullOrEmpty(nameof(errorCode));
     }
-
     public ConfigurationException(string message, string errorCode, Exception? innerException)
         : base(message, errorCode, innerException)
     {
+        ArgumentNullException.ThrowIfNull(nameof(message));
+        ArgumentNullException.ThrowIfNull(nameof(innerException));
     }
 
     public static ConfigurationException MissingRequiredConfiguration(string configurationKey)
-        => new ConfigurationException(
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(configurationKey));
+        return new ConfigurationException(
             $"Required configuration '{configurationKey}' is missing or empty.");
+    }
 
     public static ConfigurationException InvalidConfigurationValue(string configurationKey, string value)
-        => new ConfigurationException(
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(configurationKey));
+        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+        return new ConfigurationException(
             $"Configuration '{configurationKey}' has invalid value: '{value}'.");
+    }
 
     public static ConfigurationException ValidationFailed(string validationMessage)
-        => new ConfigurationException(validationMessage, "CONFIGURATION_VALIDATION_FAILED");
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(validationMessage));
+        return new ConfigurationException(validationMessage, "CONFIGURATION_VALIDATION_FAILED");
+    }
 }
