@@ -52,11 +52,16 @@ public sealed class ReadModelProjectionEngine : IDisposable
         ILogger<ReadModelProjectionEngine> logger,
         IDeadLetterStore? deadLetterStore = null)
     {
-        _eventBus = GuardClauses.NotNull(eventBus, nameof(eventBus));
-        _eventStore = GuardClauses.NotNull(eventStore, nameof(eventStore));
-        _runners = GuardClauses.NotNull(runners, nameof(runners)).ToList();
+        ArgumentNullException.ThrowIfNull(eventBus);
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(runners);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        _eventBus = eventBus;
+        _eventStore = eventStore;
+        _runners = runners.ToList();
         _options = options?.Value ?? new ReadModelProjectionOptions();
-        _logger = GuardClauses.NotNull(logger, nameof(logger));
+        _logger = logger;
         _deadLetterStore = deadLetterStore;
 
         _eventHandler = @event => HandleEventAsync(@event);
