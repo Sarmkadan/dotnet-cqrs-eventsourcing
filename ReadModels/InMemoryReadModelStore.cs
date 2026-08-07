@@ -25,8 +25,8 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result> UpsertAsync(string key, TReadModel model, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(key, nameof(key));
-        GuardClauses.NotNull(model, nameof(model));
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(model);
 
         lock (_lock)
             _store[key] = model;
@@ -37,7 +37,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result<TReadModel>> GetAsync(string key, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(key, nameof(key));
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         lock (_lock)
         {
@@ -65,7 +65,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         Func<TReadModel, bool> predicate,
         CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNull(predicate, nameof(predicate));
+        ArgumentNullException.ThrowIfNull(predicate);
 
         IReadOnlyList<TReadModel> matches;
 
@@ -78,7 +78,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result> DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(key, nameof(key));
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         lock (_lock)
             _store.Remove(key);
