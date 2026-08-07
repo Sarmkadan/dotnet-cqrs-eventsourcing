@@ -99,7 +99,7 @@ public sealed class ReadModelProjectionEngine : IDisposable
         string aggregateId,
         CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(aggregateId, nameof(aggregateId));
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         _logger.LogInformation("Starting projection rebuild for aggregate {AggregateId}.", aggregateId);
 
@@ -158,8 +158,11 @@ public sealed class ReadModelProjectionEngine : IDisposable
     }
 
     /// <summary>Returns the checkpoint for <paramref name="projectionName"/>, or <see langword="null"/> if none exists.</summary>
-    public ProjectionCheckpoint? GetCheckpoint(string projectionName) =>
-        _checkpoints.GetValueOrDefault(projectionName);
+    public ProjectionCheckpoint? GetCheckpoint(string projectionName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(projectionName);
+        return _checkpoints.GetValueOrDefault(projectionName);
+    }
 
     // -------------------------------------------------------------------------
     // Event handling
