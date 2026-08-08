@@ -44,6 +44,7 @@ public sealed class SagaOrchestrator
     /// </summary>
     public async Task<Result> DispatchAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(@event);
         var capable = _handlers.Where(h => h.CanHandle(@event)).ToList();
         if (capable.Count == 0)
             return Result.Success();
