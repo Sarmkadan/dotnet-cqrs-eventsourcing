@@ -19,6 +19,8 @@ public class Money : IEquatable<Money>
 
     public Money(decimal amount, string currency)
     {
+        ArgumentException.ThrowIfNullOrEmpty(currency);
+
         if (amount < 0)
             throw new DomainException("Money amount cannot be negative.", "INVALID_AMOUNT")
                 .WithMetadata("Amount", amount);
@@ -37,19 +39,24 @@ public class Money : IEquatable<Money>
     }
 
     public Money Add(Money other)
-    {
-        if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
-            throw new DomainException($"Cannot add amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
+        {
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
 
-        var newAmount = Amount + other.Amount;
-        if (newAmount > CqrsConstants.MaximumBalance)
-            throw new DomainException("Addition would exceed maximum balance.", "AMOUNT_EXCEEDS_MAXIMUM");
+            if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
+                throw new DomainException($"Cannot add amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
 
-        return new Money(newAmount, Currency);
-    }
+            var newAmount = Amount + other.Amount;
+            if (newAmount > CqrsConstants.MaximumBalance)
+                throw new DomainException("Addition would exceed maximum balance.", "AMOUNT_EXCEEDS_MAXIMUM");
+
+            return new Money(newAmount, Currency);
+        }
 
     public Money Subtract(Money other)
     {
+        ArgumentNullException.ThrowIfNull(other);
+
         if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
             throw new DomainException($"Cannot subtract amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
 
@@ -62,6 +69,8 @@ public class Money : IEquatable<Money>
 
     public bool IsGreaterThan(Money other)
     {
+        ArgumentNullException.ThrowIfNull(other);
+
         if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
             throw new DomainException("Cannot compare amounts in different currencies.", "CURRENCY_MISMATCH");
 
@@ -70,6 +79,8 @@ public class Money : IEquatable<Money>
 
     public bool IsLessThan(Money other)
     {
+        ArgumentNullException.ThrowIfNull(other);
+
         if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
             throw new DomainException("Cannot compare amounts in different currencies.", "CURRENCY_MISMATCH");
 
@@ -81,6 +92,7 @@ public class Money : IEquatable<Money>
         if (other is null)
             return false;
 
+        ArgumentNullException.ThrowIfNull(other);
         return Amount == other.Amount && Currency == other.Currency;
     }
 
