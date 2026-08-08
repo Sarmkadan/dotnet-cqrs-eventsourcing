@@ -24,7 +24,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result<TSaga>> GetByIdAsync(string sagaId, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(sagaId, nameof(sagaId));
+        ArgumentException.ThrowIfNullOrEmpty(sagaId);
         return _store.TryGetValue(sagaId, out var saga)
             ? Task.FromResult(Result<TSaga>.Success(saga))
             : Task.FromResult(Result<TSaga>.Failure("SAGA_NOT_FOUND", $"Saga '{sagaId}' not found."));
@@ -33,7 +33,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result<TSaga>> FindByCorrelationIdAsync(string correlationId, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(correlationId, nameof(correlationId));
+        ArgumentException.ThrowIfNullOrEmpty(correlationId);
         var saga = _store.Values.FirstOrDefault(s => s.CorrelationId == correlationId);
         return saga is not null
             ? Task.FromResult(Result<TSaga>.Success(saga))
@@ -43,8 +43,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result> SaveAsync(TSaga saga, CancellationToken cancellationToken = default)
     {
-        if (saga is null)
-            return Task.FromResult(Result.Failure("NULL_SAGA", "Saga cannot be null."));
+        ArgumentNullException.ThrowIfNull(saga);
         _store[saga.SagaId] = saga;
         return Task.FromResult(Result.Success());
     }
@@ -63,7 +62,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result> DeleteAsync(string sagaId, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(sagaId, nameof(sagaId));
+        ArgumentException.ThrowIfNullOrEmpty(sagaId);
         return _store.TryRemove(sagaId, out _)
             ? Task.FromResult(Result.Success())
             : Task.FromResult(Result.Failure("SAGA_NOT_FOUND", $"Saga '{sagaId}' not found."));
