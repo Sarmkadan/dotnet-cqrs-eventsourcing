@@ -35,7 +35,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
     /// <inheritdoc/>
     public async Task<Result<CompactionResult>> CompactAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(aggregateId, nameof(aggregateId));
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         var snapshotResult = await _snapshotService.GetLatestSnapshotAsync(aggregateId, cancellationToken);
         if (!snapshotResult.IsSuccess)
@@ -58,7 +58,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         long keepFromVersion,
         CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNullOrEmpty(aggregateId, nameof(aggregateId));
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         if (keepFromVersion <= 0)
             return Result<CompactionResult>.Failure(
