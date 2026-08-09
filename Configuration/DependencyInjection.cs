@@ -27,6 +27,8 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddCqrsFramework(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
             .AddEnvironmentVariables()
@@ -40,6 +42,9 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddCqrsFramework(this IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         // Logging infrastructure - every framework service depends on ILogger<T>,
         // so registration must not require the host to call AddLogging() itself.
         // AddLogging is idempotent and preserves any providers the host configures.
@@ -102,6 +107,8 @@ public static class DependencyInjection
     /// </summary>
     public static void ConfigureEventHandlers(this IServiceProvider serviceProvider)
     {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
         var eventBus = serviceProvider.GetRequiredService<IEventBus>();
         var projectionService = serviceProvider.GetRequiredService<IProjectionService>();
 
