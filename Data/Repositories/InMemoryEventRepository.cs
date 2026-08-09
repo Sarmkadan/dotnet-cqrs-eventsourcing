@@ -20,11 +20,13 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result> SaveEventAsync(EventEnvelope eventEnvelope, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(eventEnvelope);
         return SaveEventsAsync(new List<EventEnvelope> { eventEnvelope }, cancellationToken);
     }
 
     public Task<Result> SaveEventsAsync(List<EventEnvelope> envelopes, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(envelopes);
         try
         {
             lock (_lockObject)
@@ -56,6 +58,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<List<EventEnvelope>>> GetEventsByAggregateIdAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
         try
         {
             lock (_lockObject)
@@ -72,6 +75,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<List<EventEnvelope>>> GetEventsByAggregateIdAndVersionAsync(string aggregateId, long fromVersion, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
         try
         {
             lock (_lockObject)
@@ -92,6 +96,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<EventEnvelope>> GetEventByIdAsync(string eventId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(eventId);
         try
         {
             lock (_lockObject)
@@ -111,6 +116,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<List<EventEnvelope>>> GetEventsByTypeAsync(string eventType, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(eventType);
         try
         {
             lock (_lockObject)
