@@ -64,7 +64,11 @@ public sealed class EventTypeRegistry
     /// Thrown when <paramref name="eventName"/> is already mapped to a different type.
     /// </exception>
     public void Register<T>(string eventName) where T : DomainEvent
-        => RegisterInternal(eventName, typeof(T));
+    {
+        _logger.LogInformation("Registering event {EventName}", eventName);
+        RegisterInternal(eventName, typeof(T));
+        _logger.LogInformation("Registered event {EventName}", eventName);
+    }
 
     /// <summary>
     /// Scans <paramref name="assembly"/> and registers every concrete
@@ -74,6 +78,7 @@ public sealed class EventTypeRegistry
     /// <param name="assembly">Assembly to scan.</param>
     public void ScanAssembly(Assembly assembly)
     {
+        _logger.LogInformation("Scanning assembly for event types");
         ArgumentNullException.ThrowIfNull(assembly);
 
         var candidates = assembly.GetTypes()
@@ -87,6 +92,8 @@ public sealed class EventTypeRegistry
 
             RegisterInternal(attr.Name, type);
         }
+
+        _logger.LogInformation("Finished scanning assembly for event types");
     }
 
     // -------------------------------------------------------------------------
@@ -103,6 +110,7 @@ public sealed class EventTypeRegistry
     /// </exception>
     public Type Resolve(string eventName)
     {
+        _logger.LogInformation("Resolving event type for {EventName}", eventName);
         if (string.IsNullOrEmpty(eventName))
         {
             throw new UnknownEventTypeException("unknown", "Event type name cannot be null or empty.");
@@ -124,13 +132,15 @@ public sealed class EventTypeRegistry
     /// <returns><see langword="true"/> if the event type is registered; otherwise <see langword="false"/>.</returns>
     public bool TryResolve(string eventName, out Type? type)
     {
+        _logger.LogInformation("Trying to resolve event type for {EventName}", eventName);
         try
         {
             type = Resolve(eventName);
             return true;
         }
-        catch (UnknownEventTypeException)
+        catch (UnknownEventTypeException ex)
         {
+            _logger.LogWarning(ex, "Failed to resolve event type for {EventName}", eventName);
             type = null;
             return false;
         }
@@ -146,7 +156,7 @@ public sealed class EventTypeRegistry
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private void RegisterInternal(string eventName, Type type)
+    public void RegisterInternal(string eventName, Type type)
     {
         if (string.IsNullOrWhiteSpace(eventName))
             throw new ArgumentException("Event name must not be null or whitespace.", nameof(eventName));
@@ -160,8 +170,6 @@ public sealed class EventTypeRegistry
 
         _registry[eventName] = type;
 
-        _logger?.LogDebug(
-            "EventTypeRegistry: registered '{EventName}' → {TypeName}",
-            eventName, type.FullName);
+        _logger?.LogInformation("Registered event {EventName}", eventName);
     }
 }
