@@ -33,10 +33,12 @@ public sealed class ErrorHandlingMiddleware
     {
         try
         {
+            _logger.LogInformation("InvokeAsync called");
             await _next(context);
         }
         catch (Exception exception)
         {
+            _logger.LogError(exception, "Failed to InvokeAsync");
             await HandleExceptionAsync(context, exception);
         }
     }
