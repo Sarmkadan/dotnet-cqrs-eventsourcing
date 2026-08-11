@@ -28,6 +28,7 @@ public sealed class CliCommandRegistry
         _logger = GuardClauses.NotNull(logger, nameof(logger));
         _commands = GuardClauses.NotNull(commands, nameof(commands))
             .ToDictionary(c => c.Name, c => c, StringComparer.OrdinalIgnoreCase);
+        _logger.LogInformation("CliCommandRegistry initialized with {CommandCount} commands", _commands.Count);
     }
 
     /// <summary>
@@ -36,9 +37,23 @@ public sealed class CliCommandRegistry
     /// </summary>
     public bool TryResolve(string[] args, out ICliCommand? command)
     {
+        _logger.LogInformation("Trying to resolve CLI command from args {Args}", args);
         command = null;
-        if (args.Length == 0) return false;
-        return _commands.TryGetValue(args[0], out command);
+        if (args.Length == 0)
+        {
+            _logger.LogInformation("No args provided for command resolution");
+            return false;
+        }
+        var result = _commands.TryGetValue(args[0], out command);
+        if (result)
+        {
+            _logger.LogInformation("Resolved CLI command {CommandName} from args {Args}", command?.Name, args);
+        }
+        else
+        {
+            _logger.LogInformation("No CLI command found for args {Args}", args);
+        }
+        return result;
     }
 
     /// <summary>
@@ -48,21 +63,35 @@ public sealed class CliCommandRegistry
     /// </summary>
     public async Task<Result> DispatchAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Dispatching CLI command with args {Args}", args);
         if (!TryResolve(args, out var command) || command is null)
         {
             PrintHelp();
+            _logger.LogWarning("Unknown command '{Command}'", args.Length > 0 ? args[0] : "(none)");
             return Result.Failure("UNKNOWN_COMMAND", $"Unknown command '{(args.Length > 0 ? args[0] : "(none)")}'.");
         }
 
         _logger.LogInformation("Executing CLI command '{Command}'.", command.Name);
 
         var commandArgs = args.Skip(1).ToArray();
-        return await command.ExecuteAsync(commandArgs, cancellationToken);
+        var result = await command.ExecuteAsync(commandArgs, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            _logger.LogInformation("CLI command '{Command}' executed successfully.", command.Name);
+        }
+        else
+        {
+            _logger.LogError("CLI command '{Command}' failed with error: {Error}", command.Name, result.Error);
+        }
+
+        return result;
     }
 
     /// <summary>Prints a list of all registered commands to standard output.</summary>
     public void PrintHelp()
     {
+        _logger.LogInformation("Printing help for CLI commands");
         Console.WriteLine();
         Console.WriteLine("Usage: dotnet run -- <command> [options]");
         Console.WriteLine();
@@ -70,5 +99,6 @@ public sealed class CliCommandRegistry
         foreach (var cmd in _commands.Values.OrderBy(c => c.Name))
             Console.WriteLine($"  {cmd.Name,-30} {cmd.Description}");
         Console.WriteLine();
+        _logger.LogInformation("Help printed for CLI commands");
     }
 }
