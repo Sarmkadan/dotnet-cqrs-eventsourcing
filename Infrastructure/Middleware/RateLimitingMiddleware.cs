@@ -33,12 +33,16 @@ public class RateLimitingMiddleware
 
         // Clean up expired buckets every 5 minutes to prevent memory bloat
         _cleanupTimer = new Timer(CleanupExpiredBuckets, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+
+        _logger.LogInformation("Rate limiting middleware initialized with {TokensPerMinute} tokens per minute", _options.TokensPerMinute);
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
         var clientIp = GetClientIpAddress(context);
         var bucket = _buckets.GetOrAdd(clientIp, _ => new TokenBucket(_options.TokensPerMinute, _options.TokensPerMinute));
+
+        _logger.LogInformation("Processing rate limit check for client {ClientIp}", clientIp);
 
         if (!bucket.AllowRequest())
         {
