@@ -21,6 +21,8 @@ public class RequestContextMiddleware
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        _logger.LogInformation("RequestContextMiddleware initialized");
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -57,6 +59,10 @@ public class RequestContextMiddleware
         try
         {
             await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Request failed with exception");
         }
         finally
         {
