@@ -30,6 +30,8 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
     {
         ArgumentNullException.ThrowIfNull(entry);
 
+        _logger.LogInformation("Writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+
         _entries[entry.Id] = entry;
 
         _logger.LogWarning(
@@ -37,6 +39,8 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
             entry.ProjectionName, entry.Event.EventId, entry.Event.AggregateId,
             entry.AttemptCount, entry.ErrorMessage);
 
+        _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+        _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
         return Task.CompletedTask;
     }
 
