@@ -181,4 +181,10 @@ public sealed record DotnetCqrsEventsourcingOptions : IValidatableOptions
             throw new ArgumentOutOfRangeException(nameof(RetentionDays), "RetentionDays must be between 1 and 3,650.");
         }
     }
+
+    /// <summary>
+    /// Returns a concise string representation of the configuration options.
+    /// </summary>
+    public override string ToString()
+        => $"DotnetCqrsEventsourcingOptions {{ EventStoreConnectionString = {EventStoreConnectionString}, ProjectionStoreConnectionString = {ProjectionStoreConnectionString}, SnapshotStoreConnectionString = {SnapshotStoreConnectionString}, MaxEventsCached = {MaxEventsCached}, CacheExpirationSeconds = {CacheExpirationSeconds}, EnableEventCompression = {EnableEventCompression} }}";
 }
