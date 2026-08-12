@@ -4,7 +4,11 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DotNetCqrsEventSourcing.Shared.Results;
 using Microsoft.Extensions.Logging;
 
@@ -30,17 +34,29 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
     {
         ArgumentNullException.ThrowIfNull(entry);
 
-        _logger.LogInformation("Writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+        _logger.LogInformation("WriteAsync called with entry {EntryId}, projection {ProjectionName}", entry.Id, entry.ProjectionName);
 
-        _entries[entry.Id] = entry;
+        try
+        {
+            _logger.LogInformation("Writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
 
-        _logger.LogWarning(
-            "Dead-letter entry written: projection={Projection}, eventId={EventId}, aggregateId={AggregateId}, attempts={Attempts}, error={Error}",
-            entry.ProjectionName, entry.Event.EventId, entry.Event.AggregateId,
-            entry.AttemptCount, entry.ErrorMessage);
+            _entries[entry.Id] = entry;
 
-        _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
-        _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+            _logger.LogWarning(
+                "Dead-letter entry written: projection={Projection}, eventId={EventId}, aggregateId={AggregateId}, attempts={Attempts}, error={Error}",
+                entry.ProjectionName, entry.Event.EventId, entry.Event.AggregateId,
+                entry.AttemptCount, entry.ErrorMessage);
+
+            _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+            _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while writing dead-letter entry {EntryId}", entry.Id);
+            throw;
+        }
+
+        _logger.LogInformation("WriteAsync completed for entry {EntryId}", entry.Id);
         return Task.CompletedTask;
     }
 
@@ -49,12 +65,23 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
         string projectionName,
         CancellationToken cancellationToken = default)
     {
-        var results = _entries.Values
-            .Where(e => !e.IsReprocessed && e.ProjectionName == projectionName)
-            .OrderBy(e => e.FailedAt)
-            .ToList();
+        _logger.LogInformation("GetByProjectionAsync called with projectionName {ProjectionName}", projectionName);
 
-        return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        try
+        {
+            var results = _entries.Values
+                .Where(e => !e.IsReprocessed && e.ProjectionName == projectionName)
+                .OrderBy(e => e.FailedAt)
+                .ToList();
+
+            _logger.LogInformation("GetByProjectionAsync returning {Count} entries for projection {ProjectionName}", results.Count, projectionName);
+            return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while retrieving dead-letter entries for projection {ProjectionName}", projectionName);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -62,12 +89,23 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
         string aggregateId,
         CancellationToken cancellationToken = default)
     {
-        var results = _entries.Values
-            .Where(e => !e.IsReprocessed && e.Event.AggregateId == aggregateId)
-            .OrderBy(e => e.FailedAt)
-            .ToList();
+        _logger.LogInformation("GetByAggregateAsync called with aggregateId {AggregateId}", aggregateId);
 
-        return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        try
+        {
+            var results = _entries.Values
+                .Where(e => !e.IsReprocessed && e.Event.AggregateId == aggregateId)
+                .OrderBy(e => e.FailedAt)
+                .ToList();
+
+            _logger.LogInformation("GetByAggregateAsync returning {Count} entries for aggregate {AggregateId}", results.Count, aggregateId);
+            return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while retrieving dead-letter entries for aggregate {AggregateId}", aggregateId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -75,30 +113,68 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
         bool includeReprocessed = false,
         CancellationToken cancellationToken = default)
     {
-        var results = _entries.Values
-            .Where(e => includeReprocessed || !e.IsReprocessed)
-            .OrderBy(e => e.FailedAt)
-            .ToList();
+        _logger.LogInformation("GetAllAsync called with includeReprocessed {IncludeReprocessed}", includeReprocessed);
 
-        return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        try
+        {
+            var results = _entries.Values
+                .Where(e => includeReprocessed || !e.IsReprocessed)
+                .OrderBy(e => e.FailedAt)
+                .ToList();
+
+            _logger.LogInformation("GetAllAsync returning {Count} entries (includeReprocessed={IncludeReprocessed})", results.Count, includeReprocessed);
+            return Task.FromResult<IReadOnlyList<DeadLetterEntry>>(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while retrieving all dead-letter entries (includeReprocessed={IncludeReprocessed})", includeReprocessed);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public Task<Result> MarkReprocessedAsync(string entryId, CancellationToken cancellationToken = default)
     {
-        if (!_entries.TryGetValue(entryId, out var entry))
-            return Task.FromResult(Result.Failure("NOT_FOUND", $"Dead-letter entry '{entryId}' not found."));
+        _logger.LogInformation("MarkReprocessedAsync called with entryId {EntryId}", entryId);
 
-        entry.MarkReprocessed();
+        try
+        {
+            if (!_entries.TryGetValue(entryId, out var entry))
+            {
+                _logger.LogWarning("Dead-letter entry not found for reprocessing: {EntryId}", entryId);
+                return Task.FromResult(Result.Failure("NOT_FOUND", $"Dead-letter entry '{entryId}' not found."));
+            }
 
-        _logger.LogInformation(
-            "Dead-letter entry marked as reprocessed: id={EntryId}, projection={Projection}",
-            entryId, entry.ProjectionName);
+            entry.MarkReprocessed();
 
-        return Task.FromResult(Result.Success());
+            _logger.LogInformation(
+                "Dead-letter entry marked as reprocessed: id={EntryId}, projection={Projection}",
+                entryId, entry.ProjectionName);
+
+            return Task.FromResult(Result.Success());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while marking dead-letter entry {EntryId} as reprocessed", entryId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public Task<int> GetCountAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_entries.Values.Count(e => !e.IsReprocessed));
+    {
+        _logger.LogInformation("GetCountAsync called");
+
+        try
+        {
+            var count = _entries.Values.Count(e => !e.IsReprocessed);
+            _logger.LogInformation("GetCountAsync returning count {Count}", count);
+            return Task.FromResult(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while counting dead-letter entries");
+            throw;
+        }
+    }
 }
