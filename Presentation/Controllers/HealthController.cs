@@ -41,6 +41,8 @@ public class HealthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public IActionResult Health()
+        {
+            _logger.LogInformation("Health check initiated");
     {
         return Ok(new
         {
@@ -59,9 +61,13 @@ public class HealthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> HealthDetailed(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Health detailed check initiated");
     {
         _logger.LogDebug("Detailed health check requested");
+        _logger.LogInformation("Health detailed check initiated");
 
+        _logger.LogInformation("Health check initiated");
         var checks = new List<DependencyCheck>();
 
         // Check event store
@@ -75,6 +81,8 @@ public class HealthController : ControllerBase
 
         var overallHealthy = checks.All(c => c.Healthy);
         var statusCode = overallHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+
+        _logger.LogInformation("Health check completed with status {StatusCode}", statusCode);
 
         return StatusCode(statusCode, new
         {
@@ -93,6 +101,8 @@ public class HealthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Ready(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Readiness check initiated");
     {
         var ready = await CheckEventStoreAsync(cancellationToken);
 
@@ -154,16 +164,18 @@ public class HealthController : ControllerBase
     /// </summary>
     private async Task<bool> CheckEventStoreAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("HealthDetailed called with {ItemId}", ItemId);
         try
         {
             // Try to perform a simple operation on event store
             // In a real implementation, this might query event count or metadata
             _ = await _eventStore.GetEventsAsync("health-check", cancellationToken);
+            _logger.LogInformation("Event store health check completed successfully");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Event store health check failed");
+            _logger.LogError(ex, "Event store health check failed");
             return false;
         }
     }
