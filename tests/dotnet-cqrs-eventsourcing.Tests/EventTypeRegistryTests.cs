@@ -33,9 +33,11 @@ public class EventTypeRegistryTests
     {
         // Arrange
         const string eventName = "TestEvent";
+        _logger.LogInformation("Testing Register with event name {EventName}", eventName);
 
         // Act
         _registry.Register<TestEvent>(eventName);
+        _logger.LogInformation("Registered event type {EventType} with name {EventName}", typeof(TestEvent).Name, eventName);
 
         // Assert
         var resolvedType = _registry.Resolve(eventName);
@@ -51,11 +53,20 @@ public class EventTypeRegistryTests
     {
         // Arrange
         const string unknownEventName = "NonExistentEvent";
+        _logger.LogInformation("Testing Resolve with unknown event name {EventName}", unknownEventName);
 
         // Act & Assert
         var act = () => _registry.Resolve(unknownEventName);
-        act.Should().Throw<UnknownEventTypeException>()
-            .Where(ex => ex.EventTypeName == unknownEventName);
+        try
+        {
+            act.Should().Throw<UnknownEventTypeException>()
+                .Where(ex => ex.EventTypeName == unknownEventName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Caught expected exception during Resolve for unknown event name {EventName}", unknownEventName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -139,11 +150,20 @@ public class EventTypeRegistryTests
         // Arrange
         const string eventName = "DuplicateEvent";
         _registry.Register<TestEvent>(eventName);
+        _logger.LogInformation("Testing Register for duplicate event name {EventName}", eventName);
 
         // Act & Assert
         var act = () => _registry.Register<AnotherTestEvent>(eventName);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage($"Event name '{eventName}' is already registered to '{typeof(TestEvent).FullName}'. Cannot re-register it to '{typeof(AnotherTestEvent).FullName}'.");
+        try
+        {
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage($"Event name '{eventName}' is already registered to '{typeof(TestEvent).FullName}'. Cannot re-register it to '{typeof(AnotherTestEvent).FullName}'.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Caught expected exception during Register for duplicate event name {EventName}", eventName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -190,9 +210,11 @@ public class EventTypeRegistryTests
     {
         // Arrange
         var assembly = typeof(TestEvent).Assembly;
+        _logger.LogInformation("Testing ScanAssembly with assembly {Assembly}", assembly.FullName);
 
         // Act
         _registry.ScanAssembly(assembly);
+        _logger.LogInformation("Finished scanning assembly {Assembly}", assembly.FullName);
 
         // Assert
         var resolvedType = _registry.Resolve("TestEvent");
