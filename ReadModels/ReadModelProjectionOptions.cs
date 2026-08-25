@@ -110,6 +110,7 @@ public sealed record ReadModelProjectionOptions : IValidatableOptions
             throw new ArgumentOutOfRangeException(nameof(ProjectorTimeout), "ProjectorTimeout must be greater than zero.");
         }
     }
+    public override string ToString() => $"ReadModelProjectionOptions {{ MaxRetryAttempts = {MaxRetryAttempts}, RetryBaseDelayMilliseconds = {RetryBaseDelayMilliseconds}, EnableCheckpointing = {EnableCheckpointing}, CheckpointInterval = {CheckpointInterval}, MaxConcurrentProjectors = {MaxConcurrentProjectors}, ProjectorTimeout = {ProjectorTimeout} }}";
 }
 
 /// <summary>
