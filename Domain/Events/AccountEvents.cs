@@ -44,6 +44,8 @@ public class AccountCreatedEvent : DomainEvent
     public string AccountHolderName => AccountHolder;
 
     public override string GetEventType() => "AccountCreated";
+
+    public override string ToString() => $"AccountCreatedEvent {{ AccountNumber = {AccountNumber}, AccountHolder = {AccountHolder}, Currency = {Currency}, InitialBalance = {InitialBalance} }}";
 }
 
 /// <summary>
