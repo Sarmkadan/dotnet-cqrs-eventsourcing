@@ -32,6 +32,11 @@ public sealed class AccountProjectionSummary
 
     /// <summary>UTC timestamp of the most recent event applied to this summary.</summary>
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+
+    public override string ToString()
+    {
+        return $"AccountProjectionSummary {{ Status = {Status}, CurrentBalance = {CurrentBalance}, TotalDeposits = {TotalDeposits}, TotalWithdrawals = {TotalWithdrawals}, TransactionCount = {TransactionCount}, LastUpdated = {LastUpdated} }}";
+    }
 }
 
 /// <summary>
