@@ -1252,6 +1252,28 @@ public class Program
 }
 ```
 
+## CacheServiceTests
+
+The `CacheServiceTests` class contains unit tests for the `InMemoryCacheService` that verify correct handling of expiration, eviction, and concurrent set/get operations.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Tests.Infrastructure;
+using DotNetCqrsEventSourcing.Infrastructure.Caching;
+using Microsoft.Extensions.Logging.Abstractions;
+
+class Program
+{
+    static async Task Main()
+    {
+        var tests = new CacheServiceTests();
+        await tests.GetAsync_ShouldNotReturnExpiredValue_DueToRaceCondition();
+        Console.WriteLine("Test passed: GetAsync_ShouldNotReturnExpiredValue_DueToRaceCondition");
+    }
+}
 ## AccountProjectionSummary
 
 `AccountProjectionSummary` is a strongly-typed read model that provides a compact summary of an account's state and transaction history. It is computed by replaying an aggregate's event stream and serves as a convenient data transfer object for reporting scenarios, dashboards, and API responses.
@@ -5273,3 +5295,28 @@ public async Task DecompressAsync_WithCancellationToken_CompletesSuccessfully
 public async Task CompressAsync_WithDifferentCompressionLevels_ProducesDifferentSizes
 public async Task RoundTrip_PreservesDataIntegrity
 ```
+
+## CacheServiceTests
+
+The `CacheServiceTests` class contains unit tests for the `InMemoryCacheService` that verify correct handling of expiration, eviction, and concurrent set/get operations.
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Tests.Infrastructure;
+using DotNetCqrsEventSourcing.Infrastructure.Caching;
+using Microsoft.Extensions.Logging.Abstractions;
+
+class Program
+{
+    static async Task Main()
+    {
+        var tests = new CacheServiceTests();
+        await tests.GetAsync_ShouldNotReturnExpiredValue_DueToRaceCondition();
+        Console.WriteLine("Test passed: GetAsync_ShouldNotReturnExpiredValue_DueToRaceCondition");
+    }
+}
+```
+
