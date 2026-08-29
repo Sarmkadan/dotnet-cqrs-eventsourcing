@@ -32,7 +32,6 @@ namespace DotNetCqrsEventSourcing.ReadModels;
 public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
 {
     private const string ProjectionNameValue = "account-v1"; // The name of the projection
-    private const decimal ZeroAmount = 0m; // Represents a zero amount
     private const string DepositTransactionType = "Deposit"; // Transaction type for deposits
     private const string WithdrawalTransactionType = "Withdrawal"; // Transaction type for withdrawals
     private readonly ILogger<AccountProjector> _logger;
