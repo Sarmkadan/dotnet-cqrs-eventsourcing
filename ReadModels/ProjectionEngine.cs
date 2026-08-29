@@ -98,12 +98,22 @@ public sealed class ProjectionEngine
         if (Interlocked.CompareExchange(ref projectionState.Running, 1, 0) != 0)
             throw new InvalidOperationException($"Projection '{projectionName}' is already running.");
 
+        var startingCheckpoint = projectionState.Checkpoint;
+        _logger.LogInformation(
+            "Projection {ProjectionName} started at checkpoint {Checkpoint}",
+            projectionState.Name,
+            startingCheckpoint);
+
         try
         {
             await RunProjectionAsync(projectionState, processEventAndCheckpoint, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
+            _logger.LogInformation(
+                "Projection {ProjectionName} stopped at checkpoint {Checkpoint}",
+                projectionState.Name,
+                projectionState.Checkpoint);
             Interlocked.Exchange(ref projectionState.Running, 0);
         }
     }
@@ -119,15 +129,37 @@ public sealed class ProjectionEngine
                     .ConfigureAwait(false);
                 if (@event is null)
                 {
+                    _logger.LogDebug(
+                        "No event available for projection {ProjectionName} at checkpoint {Checkpoint}; polling again after backoff",
+                        projectionState.Name,
+                        projectionState.Checkpoint);
                     await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                     continue;
                 }
 
-                var shouldAdvance = await processEventAndCheckpoint(@event).ConfigureAwait(false);
+                bool shouldAdvance;
+                try
+                {
+                    shouldAdvance = await processEventAndCheckpoint(@event).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Processing delegate threw for projection {ProjectionName} at checkpoint {Checkpoint}",
+                        projectionState.Name,
+                        projectionState.Checkpoint);
+                    throw;
+                }
+
                 if (shouldAdvance)
                 {
                     projectionState.Checkpoint = @event;
                     projectionState.ConsecutiveFailures = 0;
+                    _logger.LogDebug(
+                        "Projection {ProjectionName} advanced to checkpoint {Checkpoint}",
+                        projectionState.Name,
+                        projectionState.Checkpoint);
                 }
                 else
                 {
