@@ -31,6 +31,10 @@ namespace DotNetCqrsEventSourcing.ReadModels;
 /// </remarks>
 public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
 {
+    private const string ProjectionNameValue = "account-v1"; // The name of the projection
+    private const decimal ZeroAmount = 0m; // Represents a zero amount
+    private const string DepositTransactionType = "Deposit"; // Transaction type for deposits
+    private const string WithdrawalTransactionType = "Withdrawal"; // Transaction type for withdrawals
     private readonly ILogger<AccountProjector> _logger;
 
     /// <summary>Initializes a new <see cref="AccountProjector"/>.</summary>
@@ -45,7 +49,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     /// to the read model shape can be rolled out as a new projection alongside the old one
     /// without disturbing existing consumers.
     /// </remarks>
-    public string ProjectionName => "account-v1";
+    public string ProjectionName => ProjectionNameValue;
 
     /// <inheritdoc />
     public bool CanProject(DomainEvent @event)
@@ -180,7 +184,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
         current.CurrentBalance += e.Amount;
         current.TotalDeposited += e.Amount;
         current.Transactions.Add(new TransactionSummary(
-            e.EventId, "Deposit", e.Amount,
+            e.EventId, DepositTransactionType, e.Amount,
             current.Currency, e.Reference, e.ProcessedAt));
 
         return current;
@@ -194,7 +198,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
         current.CurrentBalance -= e.Amount;
         current.TotalWithdrawn += e.Amount;
         current.Transactions.Add(new TransactionSummary(
-            e.EventId, "Withdrawal", e.Amount,
+            e.EventId, WithdrawalTransactionType, e.Amount,
             current.Currency, e.Reference, e.ProcessedAt));
 
         return current;
