@@ -19,8 +19,6 @@ public class Money : IEquatable<Money>
 
     public Money(decimal amount, string currency)
     {
-        ArgumentException.ThrowIfNullOrEmpty(currency);
-
         if (amount < 0)
             throw new DomainException("Money amount cannot be negative.", "INVALID_AMOUNT")
                 .WithMetadata("Amount", amount);
@@ -30,34 +28,30 @@ public class Money : IEquatable<Money>
                 .WithMetadata("Amount", amount)
                 .WithMetadata("Maximum", CqrsConstants.MaximumBalance);
 
-        if (string.IsNullOrWhiteSpace(currency) || currency.Length != 3)
-            throw new DomainException("Currency code must be a valid 3-character ISO code.", "INVALID_CURRENCY_CODE")
-                .WithMetadata("Currency", currency);
+        ValidateCurrency(currency);
 
         Amount = amount;
         Currency = currency.ToUpperInvariant();
     }
 
     public Money Add(Money other)
-        {
-            if (other is null)
-                throw new ArgumentNullException(nameof(other));
+    {
+        if (other is null)
+            throw new ArgumentNullException(nameof(other));
 
-            if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
-                throw new DomainException($"Cannot add amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
+        if (!Currency.Equals(other.Currency, StringComparison.Ordinal))
+            throw new DomainException($"Cannot add amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
 
-            var newAmount = Amount + other.Amount;
-            if (newAmount > CqrsConstants.MaximumBalance)
-                throw new DomainException("Addition would exceed maximum balance.", "AMOUNT_EXCEEDS_MAXIMUM");
+        var newAmount = Amount + other.Amount;
 
-            return new Money(newAmount, Currency);
-        }
+        return new Money(newAmount, Currency);
+    }
 
     public Money Subtract(Money other)
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
+        if (!Currency.Equals(other.Currency, StringComparison.Ordinal))
             throw new DomainException($"Cannot subtract amounts in different currencies: {Currency} vs {other.Currency}.", "CURRENCY_MISMATCH");
 
         var newAmount = Amount - other.Amount;
@@ -71,7 +65,7 @@ public class Money : IEquatable<Money>
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
+        if (!Currency.Equals(other.Currency, StringComparison.Ordinal))
             throw new DomainException("Cannot compare amounts in different currencies.", "CURRENCY_MISMATCH");
 
         return Amount > other.Amount;
@@ -81,7 +75,7 @@ public class Money : IEquatable<Money>
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        if (!Currency.Equals(other.Currency, StringComparison.OrdinalIgnoreCase))
+        if (!Currency.Equals(other.Currency, StringComparison.Ordinal))
             throw new DomainException("Cannot compare amounts in different currencies.", "CURRENCY_MISMATCH");
 
         return Amount < other.Amount;
@@ -106,4 +100,11 @@ public class Money : IEquatable<Money>
     public static bool operator !=(Money left, Money right) => !(left == right);
     public static bool operator <(Money left, Money right) => left.IsLessThan(right);
     public static bool operator >(Money left, Money right) => left.IsGreaterThan(right);
+
+    private static void ValidateCurrency(string currency)
+    {
+        if (string.IsNullOrWhiteSpace(currency) || currency.Length != 3)
+            throw new DomainException("Currency code must be a valid 3-character ISO code.", "INVALID_CURRENCY_CODE")
+                .WithMetadata("Currency", currency);
+    }
 }
