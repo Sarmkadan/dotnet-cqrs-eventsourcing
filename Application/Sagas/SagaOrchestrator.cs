@@ -122,11 +122,16 @@ public sealed class SagaHandlerWrapper<TSaga, TEvent> : ISagaHandlerWrapper
     }
 
     /// <inheritdoc/>
-    public bool CanHandle(DomainEvent @event) => @event is TEvent;
+    public bool CanHandle(DomainEvent @event)
+{
+    GuardClauses.NotNull(@event, nameof(@event));
+    return @event is TEvent;
+}
 
     /// <inheritdoc/>
     public async Task<Result> HandleAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
+        GuardClauses.NotNull(@event, nameof(@event));
         if (@event is not TEvent typed)
             return Result.Failure("WRONG_EVENT_TYPE", $"Expected {typeof(TEvent).Name} but got {@event.GetType().Name}.");
 
