@@ -94,6 +94,33 @@ public class InMemoryEventRepository : IEventRepository
         }
     }
 
+    public Task<Result<List<EventEnvelope>>> GetEventsByAggregateIdInVersionRangeAsync(string aggregateId, long fromVersion, long toVersion, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
+        try
+        {
+            lock (_lockObject)
+            {
+                if (toVersion < fromVersion)
+                    return Task.FromResult(Result<List<EventEnvelope>>.Failure(
+                        "INVALID_VERSION_RANGE",
+                        $"Version range is invalid. From version {fromVersion} must be less than or equal to to version {toVersion}"
+                    ));
+
+                var events = _events
+                    .Where(e => e.AggregateId == aggregateId && e.AggregateVersion >= fromVersion && e.AggregateVersion <= toVersion)
+                    .OrderBy(e => e.AggregateVersion)
+                    .ToList();
+
+                return Task.FromResult(Result<List<EventEnvelope>>.Success(events));
+            }
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(Result<List<EventEnvelope>>.Failure("RETRIEVE_FAILED", ex.Message));
+        }
+    }
+
     public Task<Result<EventEnvelope>> GetEventByIdAsync(string eventId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(eventId);
