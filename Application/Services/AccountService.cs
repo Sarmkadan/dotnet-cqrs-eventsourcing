@@ -45,15 +45,19 @@ public class AccountService : IAccountService
             var account = new Account();
             account.CreateAccount(accountNumber, accountHolder, currency, initialBalance);
 
+            var events = account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList();
             var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
             if (!saveResult.IsSuccess)
                 return Result<Account>.Failure(saveResult.ErrorCode!, saveResult.ErrorMessage!);
 
-            // Publish events
-            await _eventBus.PublishEventsAsync(
-                account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList(),
-                cancellationToken
-            );
+            try
+            {
+                await _eventBus.PublishEventsAsync(events, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Account {AccountNumber} was created but its events could not be published", account.AccountNumber);
+            }
 
             _logger.LogInformation("Account created: {AccountNumber} for {AccountHolder}", accountNumber, accountHolder);
             return Result<Account>.Success(account);
@@ -103,15 +107,19 @@ public class AccountService : IAccountService
             var account = accountResult.Data!;
             account.Deposit(amount, reference);
 
+            var events = account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList();
             var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
-            // Publish events
-            await _eventBus.PublishEventsAsync(
-                account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList(),
-                cancellationToken
-            );
+            try
+            {
+                await _eventBus.PublishEventsAsync(events, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Deposit was saved for account {AccountNumber} but its events could not be published", account.AccountNumber);
+            }
 
             _logger.LogInformation("Deposit processed: {Amount} to account {AccountId}", amount, accountId);
             return Result.Success();
@@ -145,15 +153,19 @@ public class AccountService : IAccountService
             var account = accountResult.Data!;
             account.Withdraw(amount, reference);
 
+            var events = account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList();
             var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
-            // Publish events
-            await _eventBus.PublishEventsAsync(
-                account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList(),
-                cancellationToken
-            );
+            try
+            {
+                await _eventBus.PublishEventsAsync(events, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Withdrawal was saved for account {AccountNumber} but its events could not be published", account.AccountNumber);
+            }
 
             _logger.LogInformation("Withdrawal processed: {Amount} from account {AccountId}", amount, accountId);
             return Result.Success();
@@ -185,15 +197,19 @@ public class AccountService : IAccountService
             var account = accountResult.Data!;
             account.CloseAccount(reason);
 
+            var events = account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList();
             var saveResult = await _accountRepository.SaveAsync(account, cancellationToken);
             if (!saveResult.IsSuccess)
                 return saveResult;
 
-            // Publish events
-            await _eventBus.PublishEventsAsync(
-                account.GetUncommittedEvents().Cast<Domain.Events.DomainEvent>().ToList(),
-                cancellationToken
-            );
+            try
+            {
+                await _eventBus.PublishEventsAsync(events, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Account {AccountNumber} was closed but its events could not be published", account.AccountNumber);
+            }
 
             _logger.LogInformation("Account closed: {AccountId} - Reason: {Reason}", accountId, reason);
             return Result.Success();
