@@ -83,6 +83,7 @@ public class EventDispatcher : IEventDispatcher
     public async Task DispatchManyAsync(string aggregateId, IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(aggregateId);
+        ArgumentNullException.ThrowIfNull(events);
 
         var eventList = events.ToList();
         if (eventList.Count == 0)
