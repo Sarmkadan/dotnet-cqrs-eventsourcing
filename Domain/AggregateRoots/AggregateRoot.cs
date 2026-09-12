@@ -61,13 +61,21 @@ public abstract class AggregateRoot
     /// </summary>
     public string? TenantId { get; protected set; }
 
-    // Retrieve all uncommitted events since last commit
+    /// <summary>
+    /// Gets the domain events that have been raised since the aggregate was last committed.
+    /// </summary>
+    /// <returns>A read-only list of the aggregate's uncommitted domain events.</returns>
     public IReadOnlyList<DomainEvent> GetUncommittedEvents() => _uncommittedEvents.AsReadOnly();
 
-    // Clear uncommitted events after they've been persisted
+    /// <summary>
+    /// Clears the domain events that have been recorded as uncommitted.
+    /// </summary>
     public void ClearUncommittedEvents() => _uncommittedEvents.Clear();
 
-    // Load state from event history (replay)
+    /// <summary>
+    /// Reconstructs the aggregate state by replaying its event history.
+    /// </summary>
+    /// <param name="events">The domain events to replay in sequence.</param>
     public void LoadFromHistory(IEnumerable<DomainEvent> events)
     {
         foreach (var @event in events)
@@ -96,6 +104,10 @@ public abstract class AggregateRoot
     // Apply event to state - override in derived classes
     protected abstract void ApplyEvent(DomainEvent @event, bool isFromHistory);
 
+    /// <summary>
+    /// Returns a string that represents the aggregate root.
+    /// </summary>
+    /// <returns>A string containing the aggregate type, ID, version, and creation time.</returns>
     public override string ToString()
         => $"{GetType().Name} {{ Id={Id}, Version={Version}, CreatedAt={CreatedAt} }}";
 }
