@@ -1,3 +1,31 @@
+#nullable enable
+// =============================================================================
+// Author: Vladyslav Zaiets | https://sarmkadan.com
+// CTO & Software Architect
+// =============================================================================
+
+using System.Diagnostics;
+using System.Text;
+
+namespace DotNetCqrsEventSourcing.Infrastructure.Middleware;
+
+/// <summary>
+/// Provides middleware that logs HTTP request and response details.
+/// </summary>
+public sealed class LoggingMiddleware
+{
+        private readonly RequestDelegate _next;
+        private readonly ILogger<LoggingMiddleware> _logger;
+        private const int MaxBodySize = 10000;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoggingMiddleware"/> class.
+        /// </summary>
+        /// <param name="next">The next request delegate in the middleware pipeline.</param>
+        /// <param name="logger">The logger used to record request and response details.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="next"/> or <paramref name="logger"/> is <see langword="null"/>.
+        /// </exception>
         public LoggingMiddleware(RequestDelegate next, ILogger<LoggingMiddleware> logger)
         {
             _next = next ?? throw new ArgumentNullException(nameof(next));
@@ -5,6 +33,11 @@
             _logger.LogInformation("LoggingMiddleware initialized with {Next} and {Logger}", next, logger);
         }
 
+        /// <summary>
+        /// Processes an HTTP request and logs its request body, response, status code, and elapsed time.
+        /// </summary>
+        /// <param name="context">The context for the current HTTP request.</param>
+        /// <returns>A task that represents the asynchronous middleware operation.</returns>
         public async Task InvokeAsync(HttpContext context)
         {
             _logger.LogInformation("InvokeAsync called with {Context}", context);
@@ -51,7 +84,7 @@
             }
         }
 
-        private static async Task<string> ReadRequestBodyAsync(HttpRequest request)
+        private async Task<string> ReadRequestBodyAsync(HttpRequest request)
         {
             _logger.LogInformation("ReadRequestBodyAsync called with {Request}", request);
             try
@@ -91,7 +124,7 @@
             _logger.LogInformation("LogRequest completed with {Context}, {ElapsedMs}, {RequestBody}, and {ResponseBody}", context, elapsedMs, requestBody, responseBody);
         }
 
-        private static bool ShouldSkipLogging(PathString path)
+        private bool ShouldSkipLogging(PathString path)
         {
             _logger.LogInformation("ShouldSkipLogging called with {Path}", path);
             try
@@ -116,3 +149,20 @@
                 _logger.LogInformation("ShouldSkipLogging completed with {Path}", path);
             }
         }
+}
+
+/// <summary>
+/// Provides extension methods for adding request logging to an application pipeline.
+/// </summary>
+public static class LoggingMiddlewareExtensions
+{
+        /// <summary>
+        /// Adds <see cref="LoggingMiddleware"/> to the application's request pipeline.
+        /// </summary>
+        /// <param name="builder">The application pipeline builder.</param>
+        /// <returns>The application pipeline builder.</returns>
+        public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder)
+        {
+                return builder.UseMiddleware<LoggingMiddleware>();
+        }
+}
