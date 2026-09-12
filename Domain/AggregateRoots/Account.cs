@@ -64,6 +64,7 @@ public class Account : AggregateRoot
 
     public Account(string id) : base(id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         AccountNumber = string.Empty;
         AccountHolder = string.Empty;
         Balance = new Balance(new Money(0, "USD"));
@@ -75,6 +76,9 @@ public class Account : AggregateRoot
     // Create and open a new account
     public void CreateAccount(string accountNumber, string accountHolder, string currency, decimal initialBalance)
     {
+        ArgumentNullException.ThrowIfNull(accountNumber);
+        ArgumentNullException.ThrowIfNull(accountHolder);
+        ArgumentNullException.ThrowIfNull(currency);
         ArgumentException.ThrowIfNullOrEmpty(accountNumber);
         ArgumentException.ThrowIfNullOrEmpty(accountHolder);
         ArgumentException.ThrowIfNullOrEmpty(currency);
@@ -100,6 +104,7 @@ public class Account : AggregateRoot
     // Deposit funds into the account
     public void Deposit(decimal amount, string reference)
     {
+        ArgumentNullException.ThrowIfNull(reference);
         ArgumentException.ThrowIfNullOrEmpty(reference);
         if (Status != AggregateStatus.Active)
             throw new DomainException($"Cannot deposit into account with status {Status}.", "INVALID_ACCOUNT_STATUS");
@@ -116,6 +121,7 @@ public class Account : AggregateRoot
     // Withdraw funds from the account
     public void Withdraw(decimal amount, string reference)
     {
+        ArgumentNullException.ThrowIfNull(reference);
         ArgumentException.ThrowIfNullOrEmpty(reference);
         if (Status != AggregateStatus.Active)
             throw new DomainException($"Cannot withdraw from account with status {Status}.", "INVALID_ACCOUNT_STATUS");
@@ -136,6 +142,7 @@ public class Account : AggregateRoot
     // Close the account
     public void CloseAccount(string reason)
     {
+        ArgumentNullException.ThrowIfNull(reason);
         ArgumentException.ThrowIfNullOrEmpty(reason);
         if (Status == AggregateStatus.Closed)
             throw new DomainException("Account is already closed.", "ACCOUNT_ALREADY_CLOSED");
