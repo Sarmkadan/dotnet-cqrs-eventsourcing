@@ -243,11 +243,13 @@ public static class IdempotencyExtensions
 {
     public static IApplicationBuilder UseIdempotency(this IApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         return builder.UseMiddleware<IdempotencyMiddleware>();
     }
 
     public static IServiceCollection AddIdempotency(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IIdempotencyKeyHandler, InMemoryIdempotencyKeyHandler>();
         return services;
     }
