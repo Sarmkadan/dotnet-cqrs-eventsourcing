@@ -12,9 +12,21 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 [EventName("AccountCreated")]
 public class AccountCreatedEvent : DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the account number.
+    /// </summary>
     public string AccountNumber { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the account holder name.
+    /// </summary>
     public string AccountHolder { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the currency code (e.g., USD, EUR).
+    /// </summary>
     public string Currency { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the initial account balance.
+    /// </summary>
     public decimal InitialBalance { get; set; }
 
     public AccountCreatedEvent() { }
@@ -54,8 +66,17 @@ public class AccountCreatedEvent : DomainEvent
 [EventName("MoneyDeposited")]
 public class MoneyDepositedEvent : DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the deposit amount.
+    /// </summary>
     public decimal Amount { get; set; }
+    /// <summary>
+    /// Gets or sets the transaction reference.
+    /// </summary>
     public string Reference { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the date and time when the deposit was processed.
+    /// </summary>
     public DateTime ProcessedAt { get; set; }
 
     public MoneyDepositedEvent() { }
@@ -77,8 +98,17 @@ public class MoneyDepositedEvent : DomainEvent
 [EventName("MoneyWithdrawn")]
 public class MoneyWithdrawnEvent : DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the withdrawal amount.
+    /// </summary>
     public decimal Amount { get; set; }
+    /// <summary>
+    /// Gets or sets the transaction reference.
+    /// </summary>
     public string Reference { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the date and time when the withdrawal was processed.
+    /// </summary>
     public DateTime ProcessedAt { get; set; }
 
     public MoneyWithdrawnEvent() { }
@@ -100,8 +130,17 @@ public class MoneyWithdrawnEvent : DomainEvent
 [EventName("BalanceUpdated")]
 public class BalanceUpdatedEvent : DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the previous account balance.
+    /// </summary>
     public decimal PreviousBalance { get; set; }
+    /// <summary>
+    /// Gets or sets the new account balance.
+    /// </summary>
     public decimal NewBalance { get; set; }
+    /// <summary>
+    /// Gets or sets the reason for the balance update.
+    /// </summary>
     public string Reason { get; set; } = string.Empty;
 
     public BalanceUpdatedEvent() { }
@@ -124,11 +163,27 @@ public class BalanceUpdatedEvent : DomainEvent
 [EventName("AccountClosed")]
 public class AccountClosedEvent : DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the reason for closing the account.
+    /// </summary>
     public string Reason { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the account balance at the time of closure.
+    /// </summary>
     public decimal ClosingBalance { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AccountClosedEvent"/> class.
+    /// </summary>
     public AccountClosedEvent() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AccountClosedEvent"/> class with the specified parameters.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier.</param>
+    /// <param name="reason">The reason for closing the account.</param>
+    /// <param name="closingBalance">The account balance at the time of closure.</param>
+    /// <param name="version">The version of the event.</param>
     public AccountClosedEvent(string aggregateId, string reason, decimal closingBalance, long version)
         : base(aggregateId, "Account", version)
     {
