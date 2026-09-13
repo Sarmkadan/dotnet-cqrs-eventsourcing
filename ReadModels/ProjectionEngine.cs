@@ -46,8 +46,8 @@ public sealed class ProjectionEngine
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> or <paramref name="eventSource"/> is <c>null</c>.</exception>
     public ProjectionEngine(ILogger<ProjectionEngine> logger, IProjectionEventSource eventSource)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _eventSource = eventSource ?? throw new ArgumentNullException(nameof(eventSource));
+        ArgumentNullException.ThrowIfNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(eventSource, nameof(eventSource));
     }
 
     /// <summary>
