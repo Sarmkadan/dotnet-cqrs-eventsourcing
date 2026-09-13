@@ -28,6 +28,13 @@ public sealed class EventHandlers
     [JsonIgnore]
     private readonly ILogger<EventHandlers> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventHandlers"/> class.
+    /// </summary>
+    /// <param name="eventBus">The event bus used for publishing and subscribing to events.</param>
+    /// <param name="projectionService">The service responsible for updating projections.</param>
+    /// <param name="snapshotService">The service responsible for creating snapshots.</param>
+    /// <param name="logger">The logger instance.</param>
     public EventHandlers(
         IEventBus eventBus,
         IProjectionService projectionService,
@@ -132,12 +139,19 @@ public sealed class EventHandlers
 /// </summary>
 public abstract class EventHandler<TEvent> where TEvent : DomainEvent
 {
-    protected ILogger Logger { get; }
+    /// <summary>
+        /// Gets the logger instance.
+        /// </summary>
+        protected ILogger Logger { get; }
 
-    protected EventHandler(ILogger logger)
-    {
-        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventHandler{TEvent}"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        protected EventHandler(ILogger logger)
+        {
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
     /// <summary>
     /// Handle the domain event.
@@ -159,14 +173,25 @@ public abstract class EventHandler<TEvent> where TEvent : DomainEvent
 /// </summary>
 public abstract class EventSaga
 {
-    protected IEventBus EventBus { get; }
-    protected ILogger Logger { get; }
+    /// <summary>
+        /// Gets the event bus used for publishing and subscribing to events.
+        /// </summary>
+        protected IEventBus EventBus { get; }
+        /// <summary>
+        /// Gets the logger instance.
+        /// </summary>
+        protected ILogger Logger { get; }
 
-    protected EventSaga(IEventBus eventBus, ILogger logger)
-    {
-        EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventSaga"/> class.
+        /// </summary>
+        /// <param name="eventBus">The event bus used for publishing and subscribing to events.</param>
+        /// <param name="logger">The logger instance.</param>
+        protected EventSaga(IEventBus eventBus, ILogger logger)
+        {
+            EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
     /// <summary>
     /// Start saga processing.
