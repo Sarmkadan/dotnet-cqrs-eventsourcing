@@ -29,14 +29,16 @@ public class ProjectionService : IProjectionService
 
     public ProjectionService(IEventStore eventStore, ILogger<ProjectionService> logger)
     {
-        _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _eventStore = eventStore;
+        _logger = logger;
     }
 
     public async Task<Result> UpdateProjectionAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
-        if (@event is null)
-            throw new ArgumentNullException(nameof(@event));
+        ArgumentNullException.ThrowIfNull(@event);
 
         try
         {
@@ -65,6 +67,8 @@ public class ProjectionService : IProjectionService
 
     public async Task<Result> RebuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         if (string.IsNullOrWhiteSpace(aggregateId))
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
 
@@ -145,6 +149,8 @@ public class ProjectionService : IProjectionService
 
     public async Task<Result<Dictionary<string, object>>> GetProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         if (string.IsNullOrWhiteSpace(aggregateId))
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
 
@@ -186,6 +192,8 @@ public class ProjectionService : IProjectionService
 
     public async Task<AccountProjectionSummary> BuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         if (string.IsNullOrWhiteSpace(aggregateId))
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
 
