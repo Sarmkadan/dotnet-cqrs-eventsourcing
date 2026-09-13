@@ -25,6 +25,19 @@ public class RateLimitingMiddleware
     private readonly ConcurrentDictionary<string, TokenBucket> _buckets = new();
     private readonly Timer _cleanupTimer;
 
+    // Constants for magic numbers and strings
+    private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(5);
+    private const string InitializationLogMessage = "Rate limiting middleware initialized with {TokensPerMinute} tokens per minute";
+    private const string RetryAfterHeaderName = "Retry-After";
+    private const string RetryAfterHeaderValue = "60";
+    private const string RateLimitExceededMessage = "Rate limit exceeded. Try again later.";
+    private static readonly TimeSpan BucketExpiration = TimeSpan.FromHours(1);
+    private const string CleanupLogMessage = "Cleaned up {Count} expired rate limit buckets";
+    private const string XForwardedForHeader = "X-Forwarded-For";
+    private const string UnknownIpAddress = "unknown";
+    private const string ProcessingRateLimitCheckLog = "Processing rate limit check for client {ClientIp}";
+    private const string RateLimitExceededWarningLog = "Rate limit exceeded for IP: {ClientIp}";
+
     public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger, RateLimitOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(next);
@@ -35,9 +48,9 @@ public class RateLimitingMiddleware
         _options = options ?? RateLimitOptions.Default();
 
         // Clean up expired buckets every 5 minutes to prevent memory bloat
-        _cleanupTimer = new Timer(CleanupExpiredBuckets, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        _cleanupTimer = new Timer(CleanupExpiredBuckets, null, CleanupInterval, CleanupInterval);
 
-        _logger.LogInformation("Rate limiting middleware initialized with {TokensPerMinute} tokens per minute", _options.TokensPerMinute);
+        _logger.LogInformation(InitializationLogMessage, _options.TokensPerMinute);
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -47,14 +60,14 @@ public class RateLimitingMiddleware
         var clientIp = GetClientIpAddress(context);
         var bucket = _buckets.GetOrAdd(clientIp, _ => new TokenBucket(_options.TokensPerMinute, _options.TokensPerMinute));
 
-        _logger.LogInformation("Processing rate limit check for client {ClientIp}", clientIp);
+        _logger.LogInformation(ProcessingRateLimitCheckLog, clientIp);
 
         if (!bucket.AllowRequest())
         {
-            _logger.LogWarning("Rate limit exceeded for IP: {ClientIp}", clientIp);
+            _logger.LogWarning(RateLimitExceededWarningLog, clientIp);
             context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-            context.Response.Headers["Retry-After"] = "60";
-            await context.Response.WriteAsJsonAsync(new { error = "Rate limit exceeded. Try again later." });
+            context.Response.Headers[RetryAfterHeaderName] = RetryAfterHeaderValue;
+            await context.Response.WriteAsJsonAsync(new { error = RateLimitExceededMessage });
             return;
         }
 
@@ -80,7 +93,7 @@ public class RateLimitingMiddleware
     private void CleanupExpiredBuckets(object? state)
     {
         var expiredKeys = _buckets
-            .Where(kvp => DateTime.UtcNow - kvp.Value.LastAccessTime > TimeSpan.FromHours(1))
+            .Where(kvp => DateTime.UtcNow - kvp.Value.LastAccessTime > BucketExpiration)
             .Select(kvp => kvp.Key)
             .ToList();
 
@@ -91,7 +104,7 @@ public class RateLimitingMiddleware
 
         if (expiredKeys.Count > 0)
         {
-            _logger.LogInformation("Cleaned up {Count} expired rate limit buckets", expiredKeys.Count);
+            _logger.LogInformation(CleanupLogMessage, expiredKeys.Count);
         }
     }
 
@@ -101,12 +114,12 @@ public class RateLimitingMiddleware
     /// </summary>
     private static string GetClientIpAddress(HttpContext context)
     {
-        if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+        if (context.Request.Headers.TryGetValue(XForwardedForHeader, out var forwardedFor))
         {
             return forwardedFor.ToString().Split(',')[0].Trim();
         }
 
-        return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return context.Connection.RemoteIpAddress?.ToString() ?? UnknownIpAddress;
     }
 
     /// <summary>
