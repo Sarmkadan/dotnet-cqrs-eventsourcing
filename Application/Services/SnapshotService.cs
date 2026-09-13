@@ -21,7 +21,8 @@ public class SnapshotService : ISnapshotService
 
     public SnapshotService(ILogger<SnapshotService> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
     }
 
     public Task<Result> CreateSnapshotAsync(string aggregateId, long version, string aggregateData, CancellationToken cancellationToken = default)
