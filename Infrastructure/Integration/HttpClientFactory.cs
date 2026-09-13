@@ -48,6 +48,7 @@ public class StandardHttpClientFactory : IHttpClientFactory
 
     public HttpClient CreateClient(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
         var client = _underlyingFactory.CreateClient(name);
         ConfigureClientDefaults(client);
         return client;
@@ -113,6 +114,7 @@ public static class HttpClientFactoryExtensions
     /// </summary>
     public static IServiceCollection AddStandardHttpClients(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddHttpClient();
         services.AddTransient<IHttpClientFactory, StandardHttpClientFactory>();
         return services;
