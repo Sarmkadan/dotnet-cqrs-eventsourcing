@@ -7,7 +7,6 @@
 namespace DotNetCqrsEventSourcing.Application.Services;
 
 using Data.Repositories;
-using Infrastructure.Utilities;
 using Microsoft.Extensions.Logging;
 using Shared.Results;
 
@@ -27,14 +26,19 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         ISnapshotService snapshotService,
         ILogger<EventStoreCompactionService> logger)
     {
-        _eventRepository = GuardClauses.NotNull(eventRepository, nameof(eventRepository));
-        _snapshotService = GuardClauses.NotNull(snapshotService, nameof(snapshotService));
-        _logger = GuardClauses.NotNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(eventRepository);
+        ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _eventRepository = eventRepository;
+        _snapshotService = snapshotService;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task<Result<CompactionResult>> CompactAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         var snapshotResult = await _snapshotService.GetLatestSnapshotAsync(aggregateId, cancellationToken);
@@ -58,6 +62,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         long keepFromVersion,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         if (keepFromVersion <= 0)
@@ -101,7 +106,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         IEnumerable<string> aggregateIds,
         CancellationToken cancellationToken = default)
     {
-        GuardClauses.NotNull(aggregateIds, nameof(aggregateIds));
+        ArgumentNullException.ThrowIfNull(aggregateIds);
 
         var results = new List<CompactionResult>();
 
