@@ -37,11 +37,21 @@ public class EventBus : IEventBus
     // Global lock for accessing _aggregateLocks to prevent race conditions during lock creation
     private readonly object _aggregateLocksSync = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventBus"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used for logging events.</param>
     public EventBus(ILogger<EventBus> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Publishes a single domain event asynchronously.
+    /// </summary>
+    /// <param name="event">The domain event to publish.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, containing the result of the publish operation.</returns>
     public Task<Result> PublishEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
         if (@event is null)
@@ -50,6 +60,12 @@ public class EventBus : IEventBus
         return PublishEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
     }
 
+    /// <summary>
+    /// Publishes a collection of domain events asynchronously.
+    /// </summary>
+    /// <param name="events">The collection of domain events to publish.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, containing the result of the publish operation.</returns>
     public async Task<Result> PublishEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
     {
         if (events is null)
@@ -75,6 +91,11 @@ public class EventBus : IEventBus
         }
     }
 
+    /// <summary>
+    /// Subscribes a handler to a specific domain event type.
+    /// </summary>
+    /// <typeparam name="TEvent">The type of domain event to subscribe to.</typeparam>
+    /// <param name="handler">The handler function to execute when the event is published.</param>
     public void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
         if (handler is null)
@@ -96,6 +117,11 @@ public class EventBus : IEventBus
         _logger.LogInformation("Subscribed handler for event type {EventType}", eventType.Name);
     }
 
+    /// <summary>
+    /// Unsubscribes a handler from a specific domain event type.
+    /// </summary>
+    /// <typeparam name="TEvent">The type of domain event to unsubscribe from.</typeparam>
+    /// <param name="handler">The handler function to remove.</param>
     public void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
         if (handler is null)
@@ -115,6 +141,13 @@ public class EventBus : IEventBus
         }
     }
 
+    /// <summary>
+    /// Publishes and persists a domain event asynchronously.
+    /// </summary>
+    /// <param name="event">The domain event to publish and persist.</param>
+    /// <param name="eventStore">The event store to persist the event to.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, containing the result of the publish and persist operation.</returns>
     public async Task<Result> PublishAndPersistAsync(DomainEvent @event, IEventStore eventStore, CancellationToken cancellationToken = default)
     {
         if (@event is null)
