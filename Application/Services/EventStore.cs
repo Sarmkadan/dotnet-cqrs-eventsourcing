@@ -23,6 +23,12 @@ public class EventStore : IEventStore
     private readonly ILogger<EventStore> _logger;
     private readonly EventTypeRegistry? _eventTypeRegistry;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventStore"/> class.
+    /// </summary>
+    /// <param name="eventRepository">The event repository.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="eventTypeRegistry">The event type registry (optional).</param>
     public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger, EventTypeRegistry? eventTypeRegistry = null)
     {
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
@@ -30,11 +36,23 @@ public class EventStore : IEventStore
         _eventTypeRegistry = eventTypeRegistry;
     }
 
+    /// <summary>
+    /// Appends a single domain event to the event store.
+    /// </summary>
+    /// <param name="event">The domain event to append.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> AppendEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
         return await AppendEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
     }
 
+    /// <summary>
+    /// Appends multiple domain events to the event store.
+    /// </summary>
+    /// <param name="events">The domain events to append.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> AppendEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
     {
         try
@@ -85,6 +103,12 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Retrieves the event stream for a given aggregate ID.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the list of domain events or an error.</returns>
     public async Task<Result<List<DomainEvent>>> GetEventStreamAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         try
@@ -113,6 +137,13 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Retrieves the event stream for a given aggregate ID starting from a specific version.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="fromVersion">The version to start from (exclusive).</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the list of domain events or an error.</returns>
     public async Task<Result<List<DomainEvent>>> GetEventStreamFromVersionAsync(string aggregateId, long fromVersion, CancellationToken cancellationToken = default)
     {
         try
@@ -143,6 +174,12 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Gets the current version of an aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the aggregate version or an error.</returns>
     public async Task<Result<long>> GetAggregateVersionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         try
@@ -164,6 +201,12 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Replays all events for a given aggregate ID.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> ReplayEventsAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         try
@@ -190,6 +233,12 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Retrieves events by their type.
+    /// </summary>
+    /// <param name="eventType">The type of the event to retrieve.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the list of domain events or an error.</returns>
     public async Task<Result<List<DomainEvent>>> GetEventsByTypeAsync(string eventType, CancellationToken cancellationToken = default)
     {
         try
@@ -208,6 +257,12 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Gets the count of events for a given aggregate ID.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate ID.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the event count or an error.</returns>
     public async Task<Result<int>> GetEventCountAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         try
@@ -225,6 +280,14 @@ public class EventStore : IEventStore
         }
     }
 
+    /// <summary>
+    /// Retrieves events by their partition key with pagination.
+    /// </summary>
+    /// <param name="partitionKey">The partition key to filter events by.</param>
+    /// <param name="pageNumber">The page number to retrieve (1-based).</param>
+    /// <param name="pageSize">The number of events per page.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A result containing the list of domain events or an error.</returns>
     public async Task<Result<List<DomainEvent>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default)
     {
         try
