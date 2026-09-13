@@ -11,12 +11,39 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 /// </summary>
 public abstract class DomainEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the event.
+    /// </summary>
     public string EventId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the aggregate that produced the event.
+    /// </summary>
     public string AggregateId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the type of the aggregate that produced the event.
+    /// </summary>
     public string AggregateType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate version associated with the event.
+    /// </summary>
     public long AggregateVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC date and time at which the event occurred.
+    /// </summary>
     public DateTime OccurredAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional identifier of the user who initiated the event.
+    /// </summary>
     public string? UserId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional identifier used to correlate related operations.
+    /// </summary>
     public string? CorrelationId { get; set; }
 
     /// <summary>
@@ -27,6 +54,9 @@ public abstract class DomainEvent
     /// </summary>
     public string? TenantId { get; set; }
 
+    /// <summary>
+    /// Gets or sets the collection of metadata associated with the event.
+    /// </summary>
     public Dictionary<string, object> Metadata { get; set; }
 
     /// <summary>
@@ -68,8 +98,15 @@ public abstract class DomainEvent
         AggregateVersion = aggregateVersion;
     }
 
+    /// <summary>
+    /// Gets the type name used to identify the event.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public abstract string GetEventType();
 
+    /// <summary>
+    /// Adds the event's standard properties to <see cref="Metadata"/>.
+    /// </summary>
     public virtual void PopulateMetadata()
     {
         Metadata[nameof(AggregateId)] = AggregateId;
@@ -87,6 +124,7 @@ public abstract class DomainEvent
             Metadata[nameof(TenantId)] = TenantId;
     }
 
+    /// <inheritdoc/>
     public override string ToString()
         => $"{GetType().Name} {{ AggregateId={AggregateId}, Version={AggregateVersion}, OccurredAt={OccurredAt} }}";
 }
