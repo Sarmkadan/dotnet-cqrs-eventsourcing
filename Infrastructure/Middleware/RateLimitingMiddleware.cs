@@ -38,6 +38,11 @@ public class RateLimitingMiddleware
     private const string ProcessingRateLimitCheckLog = "Processing rate limit check for client {ClientIp}";
     private const string RateLimitExceededWarningLog = "Rate limit exceeded for IP: {ClientIp}";
 
+    // Additional extracted constants
+    private const int RateLimitExceededStatusCode = 429;
+    private const int TokensPerRequest = 1;
+    private const double SecondsPerMinute = 60.0;
+
     public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger, RateLimitOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(next);
@@ -65,7 +70,7 @@ public class RateLimitingMiddleware
         if (!bucket.AllowRequest())
         {
             _logger.LogWarning(RateLimitExceededWarningLog, clientIp);
-            context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+            context.Response.StatusCode = RateLimitExceededStatusCode;
             context.Response.Headers[RetryAfterHeaderName] = RetryAfterHeaderValue;
             await context.Response.WriteAsJsonAsync(new { error = RateLimitExceededMessage });
             return;
@@ -139,7 +144,7 @@ public class RateLimitingMiddleware
         public TokenBucket(double tokensPerMinute, double maxTokens)
         {
             _maxTokens = maxTokens;
-            _tokensPerSecond = tokensPerMinute / 60.0;
+            _tokensPerSecond = tokensPerMinute / SecondsPerMinute;
             _tokens = maxTokens;
             _lastRefillTime = DateTime.UtcNow;
             LastAccessTime = DateTime.UtcNow;
@@ -150,9 +155,9 @@ public class RateLimitingMiddleware
             RefillTokens();
             LastAccessTime = DateTime.UtcNow;
 
-            if (_tokens >= 1)
+            if (_tokens >= TokensPerRequest)
             {
-                _tokens -= 1;
+                _tokens -= TokensPerRequest;
                 return true;
             }
 
