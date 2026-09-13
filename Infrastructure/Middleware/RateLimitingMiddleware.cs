@@ -27,8 +27,11 @@ public class RateLimitingMiddleware
 
     public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger, RateLimitOptions? options = null)
     {
-        _next = next ?? throw new ArgumentNullException(nameof(next));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _next = next;
+        _logger = logger;
         _options = options ?? RateLimitOptions.Default();
 
         // Clean up expired buckets every 5 minutes to prevent memory bloat
@@ -39,6 +42,8 @@ public class RateLimitingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         var clientIp = GetClientIpAddress(context);
         var bucket = _buckets.GetOrAdd(clientIp, _ => new TokenBucket(_options.TokensPerMinute, _options.TokensPerMinute));
 
@@ -168,6 +173,8 @@ public static class RateLimitingMiddlewareExtensions
 {
     public static IApplicationBuilder UseRateLimiting(this IApplicationBuilder builder, RateLimitOptions? options = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.UseMiddleware<RateLimitingMiddleware>(options);
     }
 }
