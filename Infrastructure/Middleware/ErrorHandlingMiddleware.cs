@@ -31,6 +31,8 @@ public sealed class ErrorHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         try
         {
             _logger.LogInformation("InvokeAsync called");
@@ -132,6 +134,8 @@ public static class ErrorHandlingMiddlewareExtensions
 {
     public static IApplicationBuilder UseGlobalErrorHandling(this IApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.UseMiddleware<ErrorHandlingMiddleware>();
     }
 }
