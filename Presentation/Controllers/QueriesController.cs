@@ -32,9 +32,12 @@ public class QueriesController : BaseApiController
         ICacheService cacheService,
         ILogger<QueriesController> logger)
     {
-        _projectionService = projectionService ?? throw new ArgumentNullException(nameof(projectionService));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(projectionService);
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentNullException.ThrowIfNull(logger);
+        _projectionService = projectionService;
+        _cacheService = cacheService;
+        _logger = logger;
     }
 
     /// <summary>
