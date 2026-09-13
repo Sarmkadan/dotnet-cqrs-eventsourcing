@@ -55,7 +55,9 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
     public InMemoryCacheService(ILogger<InMemoryCacheService> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _logger = logger;
 
         // Run eviction every 5 minutes to clean up expired entries
         _evictionTimer = new Timer(EvictExpiredEntries, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
@@ -63,6 +65,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
     {
+        ArgumentNullException.ThrowIfNull(key);
         GuardClauses.NotNullOrEmpty(key, nameof(key));
 
         if (_cache.TryGetValue(key, out var entry))
@@ -87,6 +90,8 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
     public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
     {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
         GuardClauses.NotNullOrEmpty(key, nameof(key));
         GuardClauses.NotNull(value, nameof(value));
 
@@ -107,6 +112,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(key);
         GuardClauses.NotNullOrEmpty(key, nameof(key));
 
         if (_cache.TryRemove(key, out _))
@@ -119,6 +125,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
     public Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(pattern);
         GuardClauses.NotNullOrEmpty(pattern, nameof(pattern));
 
         var keysToRemove = _cache.Keys
@@ -141,6 +148,8 @@ public class InMemoryCacheService : ICacheService, IDisposable
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class
     {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(factory);
         GuardClauses.NotNullOrEmpty(key, nameof(key));
         GuardClauses.NotNull(factory, nameof(factory));
 
