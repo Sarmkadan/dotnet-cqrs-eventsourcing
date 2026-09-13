@@ -11,14 +11,49 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 /// </summary>
 public sealed class EventEnvelope
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the event envelope.
+    /// </summary>
     public string Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the aggregate that produced the event.
+    /// </summary>
     public string AggregateId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the type of the aggregate that produced the event.
+    /// </summary>
     public string AggregateType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate version associated with the event.
+    /// </summary>
     public long AggregateVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted type name of the event.
+    /// </summary>
     public string EventType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the serialized event payload.
+    /// </summary>
     public string EventData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the metadata associated with the event.
+    /// </summary>
     public Dictionary<string, string> Metadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC date and time when the event occurred.
+    /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the checksum used to verify the integrity of the event data.
+    /// </summary>
     public string? ChecksumHash { get; set; }
 
     /// <summary>
@@ -29,6 +64,10 @@ public sealed class EventEnvelope
     /// </summary>
     public string? PartitionKey { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventEnvelope"/> class with a unique identifier
+    /// and default values.
+    /// </summary>
     public EventEnvelope()
     {
         Id = Guid.NewGuid().ToString();
@@ -40,6 +79,12 @@ public sealed class EventEnvelope
         CreatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventEnvelope"/> class from a domain event and
+    /// its serialized payload.
+    /// </summary>
+    /// <param name="domainEvent">The domain event to wrap.</param>
+    /// <param name="serializedData">The serialized event payload.</param>
     public EventEnvelope(DomainEvent domainEvent, string serializedData)
         : this()
     {
@@ -59,12 +104,19 @@ public sealed class EventEnvelope
         CreatedAt = domainEvent.OccurredAt;
     }
 
+    /// <summary>
+    /// Computes and stores a checksum for the aggregate and event data in this envelope.
+    /// </summary>
     public void ComputeChecksum()
     {
         var checksumData = $"{AggregateId}:{AggregateVersion}:{EventType}:{EventData}";
         ChecksumHash = ComputeSha256Hash(checksumData);
     }
 
+    /// <summary>
+    /// Verifies that the stored checksum matches the aggregate and event data in this envelope.
+    /// </summary>
+    /// <returns><see langword="true"/> when the checksum is present and valid; otherwise, <see langword="false"/>.</returns>
     public bool VerifyChecksum()
     {
         if (string.IsNullOrEmpty(ChecksumHash))
@@ -83,6 +135,10 @@ public sealed class EventEnvelope
         }
     }
 
+    /// <summary>
+    /// Returns a string that represents the event envelope.
+    /// </summary>
+    /// <returns>A string containing the envelope identifier, aggregate identifier, version, and event type.</returns>
     public override string ToString()
         => $"EventEnvelope {{ Id={Id}, AggregateId={AggregateId}, Version={AggregateVersion}, EventType={EventType} }}";
 }
