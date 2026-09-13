@@ -21,11 +21,15 @@ public class AccountRepository : IRepository<Account>
 
     public AccountRepository(IEventRepository eventRepository)
     {
-        _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
+        ArgumentNullException.ThrowIfNull(eventRepository);
+
+        _eventRepository = eventRepository;
     }
 
     public async Task<Result<Account>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         try
         {
             // Always rehydrate from the event stream. Caching aggregate instances here
@@ -54,6 +58,8 @@ public class AccountRepository : IRepository<Account>
 
     public async Task<Result> SaveAsync(Account aggregate, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregate);
+
         try
         {
             var uncommittedEvents = aggregate.GetUncommittedEvents();
@@ -82,6 +88,8 @@ public class AccountRepository : IRepository<Account>
 
     public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         // Note: In event sourcing, we don't delete events; we handle deletion through aggregate logic
         return Task.FromResult(Result.Success());
     }
@@ -116,6 +124,8 @@ public class AccountRepository : IRepository<Account>
 
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         var result = await GetByIdAsync(id, cancellationToken);
         return result.IsSuccess;
     }
