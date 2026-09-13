@@ -24,6 +24,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result<TSaga>> GetByIdAsync(string sagaId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(sagaId);
         ArgumentException.ThrowIfNullOrEmpty(sagaId);
         return _store.TryGetValue(sagaId, out var saga)
             ? Task.FromResult(Result<TSaga>.Success(saga))
@@ -33,6 +34,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result<TSaga>> FindByCorrelationIdAsync(string correlationId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(correlationId);
         ArgumentException.ThrowIfNullOrEmpty(correlationId);
         var saga = _store.Values.FirstOrDefault(s => s.CorrelationId == correlationId);
         return saga is not null
@@ -62,6 +64,7 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     /// <inheritdoc/>
     public Task<Result> DeleteAsync(string sagaId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(sagaId);
         ArgumentException.ThrowIfNullOrEmpty(sagaId);
         return _store.TryRemove(sagaId, out _)
             ? Task.FromResult(Result.Success())
