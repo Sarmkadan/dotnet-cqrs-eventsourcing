@@ -47,12 +47,20 @@ public class DomainEventPublisher : IDomainEventPublisher
     private readonly ConcurrentDictionary<Type, List<Delegate>> _subscriptions = new();
     private readonly ILogger<DomainEventPublisher> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainEventPublisher"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used for logging events and errors.</param>
     public DomainEventPublisher(ILogger<DomainEventPublisher> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task PublishAsync(DomainEvent @event, CancellationToken cancellationToken = default)
+    /// <summary>
+        /// Publishes a domain event to all registered subscribers.
+        /// Collects errors from failing subscribers but continues publishing to others.
+        /// </summary>
+        public async Task PublishAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
         GuardClauses.NotNull(@event, nameof(@event));
 
@@ -101,6 +109,13 @@ public class DomainEventPublisher : IDomainEventPublisher
         }
     }
 
+    /// <summary>
+    /// Publishes multiple events in sequence.
+    /// Useful for aggregate roots emitting multiple events from a single command.
+    /// </summary>
+    /// <param name="events">The collection of domain events to publish.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task PublishManyAsync(IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
     {
         var eventList = events.ToList();
@@ -112,23 +127,34 @@ public class DomainEventPublisher : IDomainEventPublisher
         }
     }
 
-    public void Subscribe<T>(Func<T, CancellationToken, Task> handler) where T : DomainEvent
-    {
-        GuardClauses.NotNull(handler, nameof(handler));
-
-        var eventType = typeof(T);
-        var handlers = _subscriptions.GetOrAdd(eventType, _ => new List<Delegate>());
-
-        lock (handlers) // Lock list for thread-safe modifications
+    /// <summary>
+        /// Subscribes a handler function to a specific event type.
+        /// Handler must not throw; exceptions are logged and caught.
+        /// </summary>
+        /// <typeparam name="T">The type of the event to subscribe to.</typeparam>
+        /// <param name="handler">The handler function to subscribe.</param>
+        public void Subscribe<T>(Func<T, CancellationToken, Task> handler) where T : DomainEvent
         {
-            if (!handlers.Contains(handler))
+            GuardClauses.NotNull(handler, nameof(handler));
+
+            var eventType = typeof(T);
+            var handlers = _subscriptions.GetOrAdd(eventType, _ => new List<Delegate>());
+
+            lock (handlers) // Lock list for thread-safe modifications
             {
-                handlers.Add(handler);
-                _logger.LogInformation("Subscriber registered for event type: {EventType}", eventType.Name);
+                if (!handlers.Contains(handler))
+                {
+                    handlers.Add(handler);
+                    _logger.LogInformation("Subscriber registered for event type: {EventType}", eventType.Name);
+                }
             }
         }
-    }
 
+    /// <summary>
+    /// Unsubscribes a handler from an event type.
+    /// </summary>
+    /// <typeparam name="T">The type of the event to unsubscribe from.</typeparam>
+    /// <param name="handler">The handler function to unsubscribe.</param>
     public void Unsubscribe<T>(Func<T, CancellationToken, Task> handler) where T : DomainEvent
     {
         var eventType = typeof(T);
@@ -144,13 +170,15 @@ public class DomainEventPublisher : IDomainEventPublisher
     }
 
     /// <summary>
-    /// Gets subscriber count for a specific event type (useful for testing).
-    /// </summary>
-    public int GetSubscriberCount<T>() where T : DomainEvent
-    {
-        var eventType = typeof(T);
-        return _subscriptions.TryGetValue(eventType, out var handlers) ? handlers.Count : 0;
-    }
+        /// Gets subscriber count for a specific event type (useful for testing).
+        /// </summary>
+        /// <typeparam name="T">The type of the event to get subscriber count for.</typeparam>
+        /// <returns>The number of subscribers registered for the event type.</returns>
+        public int GetSubscriberCount<T>() where T : DomainEvent
+        {
+            var eventType = typeof(T);
+            return _subscriptions.TryGetValue(eventType, out var handlers) ? handlers.Count : 0;
+        }
 
     /// <summary>
     /// Clears all subscriptions. Useful in tests to prevent state leakage between test runs.
