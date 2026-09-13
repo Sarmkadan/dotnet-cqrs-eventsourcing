@@ -43,10 +43,15 @@ public sealed class DeadLetterReplayService
         IEnumerable<IReadModelProjectionRunner> runners,
         ILogger<DeadLetterReplayService> logger)
     {
-        _deadLetterStore = GuardClauses.NotNull(deadLetterStore, nameof(deadLetterStore));
-        _eventStore = GuardClauses.NotNull(eventStore, nameof(eventStore));
-        _runners = GuardClauses.NotNull(runners, nameof(runners)).ToList();
-        _logger = GuardClauses.NotNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(deadLetterStore);
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(runners);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _deadLetterStore = deadLetterStore;
+        _eventStore = eventStore;
+        _runners = runners.ToList();
+        _logger = logger;
     }
 
     /// <summary>
