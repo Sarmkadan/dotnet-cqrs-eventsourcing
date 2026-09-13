@@ -18,7 +18,8 @@ public sealed class LoggingDecorator
 
     public LoggingDecorator(ILogger<LoggingDecorator> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
     }
 
     /// <summary>
@@ -26,6 +27,8 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogEventPublished(DomainEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         _logger.LogInformation(
             "Event published: {EventType} | AggregateId: {AggregateId} | Version: {Version} | CorrelationId: {CorrelationId} | Timestamp: {Timestamp}",
             @event.GetEventType(),
@@ -41,6 +44,8 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogEventProcessed(DomainEvent @event, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         _logger.LogInformation(
             "Event processed: {EventType} | AggregateId: {AggregateId} | Duration: {Duration}ms",
             @event.GetEventType(),
@@ -54,6 +59,9 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogEventProcessingError(DomainEvent @event, Exception ex, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentNullException.ThrowIfNull(ex);
+
         _logger.LogError(
             ex,
             "Event processing failed: {EventType} | AggregateId: {AggregateId} | Duration: {Duration}ms | Error: {Error}",
@@ -69,6 +77,10 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogAggregateOperation(string operationName, string aggregateId, string aggregateType, string? correlationId = null)
     {
+        ArgumentNullException.ThrowIfNull(operationName);
+        ArgumentNullException.ThrowIfNull(aggregateId);
+        ArgumentNullException.ThrowIfNull(aggregateType);
+
         _logger.LogInformation(
             "Aggregate operation: {Operation} | AggregateId: {AggregateId} | AggregateType: {AggregateType} | CorrelationId: {CorrelationId}",
             operationName,
@@ -83,6 +95,8 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogConcurrencyConflict(string aggregateId, long expectedVersion, long actualVersion)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         _logger.LogWarning(
             "Concurrency conflict detected: AggregateId: {AggregateId} | Expected Version: {Expected} | Actual Version: {Actual}",
             aggregateId,
@@ -96,6 +110,8 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogSnapshotCreated(string aggregateId, long version)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         _logger.LogInformation(
             "Snapshot created: AggregateId: {AggregateId} | Version: {Version}",
             aggregateId,
@@ -108,6 +124,8 @@ public sealed class LoggingDecorator
     /// </summary>
     public void LogProjectionRebuilt(string aggregateId, int eventCount, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
+
         _logger.LogInformation(
             "Projection rebuilt: AggregateId: {AggregateId} | Events: {EventCount} | Duration: {Duration}ms",
             aggregateId,
@@ -127,7 +145,8 @@ public sealed class PerformanceDecorator
 
     public PerformanceDecorator(ILogger<PerformanceDecorator> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
     }
 
     /// <summary>
@@ -135,6 +154,8 @@ public sealed class PerformanceDecorator
     /// </summary>
     public void TrackOperation(string operationName, long elapsedMilliseconds)
     {
+        ArgumentNullException.ThrowIfNull(operationName);
+
         if (elapsedMilliseconds > ThresholdMilliseconds)
         {
             _logger.LogWarning(
@@ -159,6 +180,8 @@ public sealed class PerformanceDecorator
     /// </summary>
     public string GetPerformanceSummary(Dictionary<string, long> operations)
     {
+        ArgumentNullException.ThrowIfNull(operations);
+
         if (operations.Count == 0)
             return "No operations recorded";
 
