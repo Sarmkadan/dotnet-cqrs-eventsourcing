@@ -50,6 +50,7 @@ public class AccountsController : BaseApiController
         [FromBody] CreateAccountRequest request,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         _logger.LogInformation("CreateAccount request for owner: {Owner}", request.OwnerName);
 
         var command = new CreateAccountCommand(request.OwnerName, request.InitialBalance, request.Currency);
@@ -80,6 +81,7 @@ public class AccountsController : BaseApiController
         [FromRoute] string id,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(id);
         _logger.LogInformation("GetAccountById request for accountId: {AccountId}", id);
 
         try
@@ -113,6 +115,8 @@ public class AccountsController : BaseApiController
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(request);
         _logger.LogInformation("Deposit request for accountId: {AccountId}, amount: {Amount}", id, request.Amount);
 
         var result = await _accountService.DepositAsync(id, request.Amount, idempotencyKey, cancellationToken);
@@ -133,6 +137,8 @@ public class AccountsController : BaseApiController
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(request);
         _logger.LogInformation("Withdraw request for accountId: {AccountId}, amount: {Amount}", id, request.Amount);
 
         var result = await _accountService.WithdrawAsync(id, request.Amount, idempotencyKey, cancellationToken);
