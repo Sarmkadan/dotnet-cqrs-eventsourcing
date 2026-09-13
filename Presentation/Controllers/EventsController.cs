@@ -131,6 +131,7 @@ public class EventsController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
+        ArgumentNullException.ThrowIfNull(format);
 
         _logger.LogInformation("Exporting events for aggregate {AggregateId} in {Format} format", aggregateId, format);
 
@@ -167,6 +168,8 @@ public class EventsController : BaseApiController
         [FromRoute] string aggregateId,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
+
         try
         {
             var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken);
@@ -201,6 +204,8 @@ public class EventsController : BaseApiController
         [FromRoute] string aggregateId,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
+
         try
         {
             var events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken);
