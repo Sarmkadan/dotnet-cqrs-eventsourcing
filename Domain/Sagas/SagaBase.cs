@@ -37,6 +37,9 @@ public abstract class SagaBase : ISaga
     /// <inheritdoc/>
     public IReadOnlyList<DomainEvent> OutboxEvents => _outboxEvents.AsReadOnly();
 
+    /// <summary>
+    /// Initializes a new saga instance with a generated identifier and the <see cref="SagaState.NotStarted"/> state.
+    /// </summary>
     protected SagaBase()
     {
         SagaId = Guid.NewGuid().ToString();
@@ -44,6 +47,10 @@ public abstract class SagaBase : ISaga
         StartedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Initializes a new saga instance with the specified identifier.
+    /// </summary>
+    /// <param name="sagaId">The identifier to assign to the saga, typically when rehydrating an existing saga from persistence.</param>
     protected SagaBase(string sagaId) : this()
     {
         SagaId = sagaId;
@@ -91,6 +98,10 @@ public abstract class SagaBase : ISaga
         LastUpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Returns a string representation of the saga, including its name, identifier, state, and start time.
+    /// </summary>
+    /// <returns>A human-readable summary of the saga instance.</returns>
     public override string ToString()
         => $"{SagaName} {{ SagaId={SagaId}, State={State}, StartedAt={StartedAt} }}";
 }
