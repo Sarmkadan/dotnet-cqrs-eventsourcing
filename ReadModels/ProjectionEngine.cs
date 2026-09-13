@@ -59,10 +59,12 @@ public sealed class ProjectionEngine
     /// <param name="processEvent">Delegate that processes a single event.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>A task that completes when the engine stops (usually never).</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectionName"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>empty</c>.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="processEvent"/> is <c>null</c>.</exception>
     public Task RunAsync(string projectionName, Func<string, Task> processEvent, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectionName);
         ArgumentNullException.ThrowIfNull(processEvent);
         return RunAsync(projectionName, async @event =>
         {
