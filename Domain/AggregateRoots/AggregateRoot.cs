@@ -85,7 +85,12 @@ public abstract class AggregateRoot
         }
     }
 
-    // Increment version and apply event
+    /// <summary>
+    /// Records a new domain event on the aggregate: stamps it with the aggregate
+    /// identity, type, next version, occurrence time, and tenant, then applies it
+    /// to state and adds it to the uncommitted event list.
+    /// </summary>
+    /// <param name="event">The domain event to raise.</param>
     protected void RaiseEvent(DomainEvent @event)
     {
         @event.AggregateId = Id;
@@ -101,7 +106,13 @@ public abstract class AggregateRoot
         UpdatedAt = DateTime.UtcNow;
     }
 
-    // Apply event to state - override in derived classes
+    /// <summary>
+    /// Applies a domain event to the aggregate's state. Must be overridden in derived
+    /// classes to update properties based on the event data. Called both when loading
+    /// from history (isFromHistory = true) and when raising new events (isFromHistory = false).
+    /// </summary>
+    /// <param name="event">The domain event to apply.</param>
+    /// <param name="isFromHistory">True when replaying events from the event store; false for newly raised events.</param>
     protected abstract void ApplyEvent(DomainEvent @event, bool isFromHistory);
 
     /// <summary>
