@@ -15,30 +15,54 @@ using Events;
 /// </summary>
 public interface ISaga
 {
-    /// <summary>Unique identifier for this saga instance.</summary>
+    /// <summary>
+    /// Gets the unique identifier of this saga instance.
+    /// </summary>
+    /// <value>The identifier used to persist and retrieve the saga.</value>
     string SagaId { get; }
 
-    /// <summary>Human-readable name of the saga type (e.g., "FundTransferSaga").</summary>
+    /// <summary>
+    /// Gets the human-readable name of the saga type.
+    /// </summary>
+    /// <value>A name that identifies the saga type, such as <c>FundTransferSaga</c>.</value>
     string SagaName { get; }
 
-    /// <summary>Current lifecycle state of the saga.</summary>
+    /// <summary>
+    /// Gets the current lifecycle state of the saga.
+    /// </summary>
+    /// <value>The saga's current <see cref="SagaState"/>.</value>
     SagaState State { get; }
 
-    /// <summary>UTC timestamp when the saga was created.</summary>
+    /// <summary>
+    /// Gets the UTC date and time when the saga was created.
+    /// </summary>
+    /// <value>The saga creation timestamp in UTC.</value>
     DateTime StartedAt { get; }
 
-    /// <summary>UTC timestamp of the last state transition, or null if not yet updated.</summary>
+    /// <summary>
+    /// Gets the UTC date and time of the saga's most recent state transition.
+    /// </summary>
+    /// <value>
+    /// The most recent transition timestamp in UTC, or <see langword="null"/> if the saga has not
+    /// transitioned since it was created.
+    /// </value>
     DateTime? LastUpdatedAt { get; }
 
-    /// <summary>Optional correlation identifier linking this saga to an originating command or context.</summary>
+    /// <summary>
+    /// Gets the correlation identifier that links the saga to its originating command or context.
+    /// </summary>
+    /// <value>The correlation identifier, or <see langword="null"/> when none was provided.</value>
     string? CorrelationId { get; }
 
     /// <summary>
     /// Domain events raised by the saga during processing that should be published
     /// to the event bus after the saga state is persisted.
     /// </summary>
+    /// <value>A read-only collection of domain events awaiting publication.</value>
     IReadOnlyList<DomainEvent> OutboxEvents { get; }
 
-    /// <summary>Clears <see cref="OutboxEvents"/> once they have been dispatched.</summary>
+    /// <summary>
+    /// Removes all domain events from <see cref="OutboxEvents"/> after they have been dispatched.
+    /// </summary>
     void ClearOutboxEvents();
 }
