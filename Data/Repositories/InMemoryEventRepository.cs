@@ -164,6 +164,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<long>> GetAggregateVersionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
         try
         {
             lock (_lockObject)
@@ -206,6 +207,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<List<EventEnvelope>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(partitionKey);
         try
         {
             lock (_lockObject)
@@ -229,6 +231,7 @@ public class InMemoryEventRepository : IEventRepository
 
     public Task<Result<int>> DeleteEventsBeforeVersionAsync(string aggregateId, long beforeVersion, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(aggregateId);
         try
         {
             lock (_lockObject)
