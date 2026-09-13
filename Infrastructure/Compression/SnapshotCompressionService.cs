@@ -56,7 +56,8 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
     /// <summary>Initialises the service with a required logger.</summary>
     public SnapshotCompressionService(ILogger<SnapshotCompressionService> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
     }
 
     /// <inheritdoc />
