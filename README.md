@@ -5136,6 +5136,74 @@ public class Program
 }
 ```
 
+## CLI Commands
+
+The framework includes a command-line interface (CLI) for administrative tasks and diagnostics. The CLI is accessed via `dotnet run -- <command> [options]` and provides utilities for managing projections, inspecting the event store, and handling dead-lettered events.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `event-store-stats` | Displays statistics about the event store using available query methods. |
+| `rebuild-read-models` | Rebuilds read-model projections by replaying events from the event store. |
+| `dead-letter-replay` | Replays dead-lettered events back to their projection, honoring per-stream ordering. |
+
+### Usage Examples
+
+```bash
+# Show overall event store statistics
+dotnet run -- event-store-stats
+
+# Show statistics for a specific aggregate
+dotnet run -- event-store-stats --aggregate ACC-001 --limit 500
+
+# Rebuild projections for a single aggregate
+dotnet run -- rebuild-read-models --aggregate ACC-001
+
+# Rebuild all projections
+dotnet run -- rebuild-read-models --all
+
+# Dry-run to see what would be rebuilt
+dotnet run -- rebuild-read-models --all --dry-run
+
+# List unresolved dead-letter entries
+dotnet run -- dead-letter-replay --list
+
+# Replay a specific dead-letter entry
+dotnet run -- dead-letter-replay --id abc123
+
+# Replay all dead-letter entries for a specific projection
+dotnet run -- dead-letter-replay --all --projection AccountProjection
+```
+
+### Command Details
+
+#### event-store-stats
+Displays statistics about the event store using available query methods.
+
+**Options:**
+- `--aggregate <id>` - Show statistics for a specific aggregate stream
+- `--limit <n>` - Limit the number of events to load (default: 1000, max: 10000)
+
+#### rebuild-read-models
+Rebuilds read-model projections by replaying events from the event store.
+
+**Options:**
+- `--aggregate <id>` - Rebuild projections for a single aggregate
+- `--all` - Rebuild projections for all tracked aggregates
+- `--dry-run` - Print what would be rebuilt without applying changes
+
+#### dead-letter-replay
+Replays dead-lettered events back to their projection, honoring per-stream ordering.
+
+**Options:**
+- `--id <entryId>` - Replay a single dead-letter entry by id
+- `--all` - Replay every eligible unresolved entry
+- `--projection <name>` - Restrict `--all`/`--list` to one projection
+- `--list` - List unresolved dead-letter entries without replaying
+
+For detailed API documentation, see [docs/CliCommandRegistry.md](docs/CliCommandRegistry.md).
+
 ## Result
 
 `Result<T>` is a generic result type that represents either a successful operation with a value or a failure with error information. It provides a functional programming approach to error handling, avoiding exceptions for expected error cases and making error handling more explicit and composable.
