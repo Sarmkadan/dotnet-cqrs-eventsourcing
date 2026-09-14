@@ -236,6 +236,130 @@ public class Program
 
 The event store handles event serialization/deserialization, version tracking, and provides query capabilities for event streams, event types, and partition-based access. It's designed to work with both in-memory and persistent event repositories while maintaining consistency guarantees through atomic operations.
 
+## EventBus
+
+`EventBus` is the in-memory event bus implementation responsible for publishing domain events to registered subscribers and ensuring per-aggregate ordering guarantees. It serves as the communication mechanism between domain events and their handlers (sagas, projections, etc.) while maintaining thread safety and supporting both fire-and-forget and transactional publish patterns.
+
+The EventBus provides per-aggregate ordering guarantees: events with the same `AggregateId` are processed sequentially in the order they were published, while events with different aggregate IDs can be processed in parallel. This ensures consistency within each aggregate while maximizing throughput across different aggregates.
+
+Key features:
+- **Per-aggregate ordering**: Sequential processing for events belonging to the same aggregate
+- **Parallel processing**: Concurrent handling of events from different aggregates
+- **Thread-safe subscriptions**: Safe concurrent subscription and unsubscription operations
+- **Transactional support**: Publish-and-persist functionality for atomic event storage and dispatch
+- **Handler invocation**: Asynchronous execution of registered event handlers with error isolation
+
+Example usage:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+public class EventBusExample
+{
+    private readonly EventBus _eventBus;
+
+    public EventBusExample(EventBus eventBus)
+    {
+        _eventBus = eventBus;
+    }
+
+    public async Task DemonstrateEventBusAsync()
+    {
+        // Subscribe to account created events
+        _eventBus.Subscribe<AccountCreatedEvent>(async @event =>
+        {
+            Console.WriteLine($"Account created: {@event.AccountNumber}");
+            await Task.CompletedTask;
+        });
+
+        // Subscribe to money deposited events
+        _eventBus.Subscribe<MoneyDepositedEvent>(async @event =>
+        {
+            Console.WriteLine($"Deposit of {@event.Amount} made to account {@event.AggregateId}");
+            await Task.CompletedTask;
+        });
+
+        // Publish an account created event
+        var accountCreatedEvent = new AccountCreatedEvent(
+            aggregateId: "account-123",
+            accountNumber: "ACC-2024-001",
+            accountHolder: "John Doe",
+            currency: "USD",
+            initialBalance: 1000.00m
+        );
+        accountCreatedEvent.PopulateMetadata();
+
+        var publishResult = await _eventBus.PublishEventAsync(accountCreatedEvent);
+        if (publishResult.IsSuccess)
+        {
+            Console.WriteLine("Account created event published successfully");
+        }
+
+        // Publish a money deposited event
+        var depositEvent = new MoneyDepositedEvent(
+            aggregateId: "account-123",
+            amount: 500.00m,
+            reference: "Salary payment",
+            version: 2
+        );
+        depositEvent.PopulateMetadata();
+
+        var depositResult = await _eventBus.PublishEventAsync(depositEvent);
+        if (depositResult.IsSuccess)
+        {
+            Console.WriteLine("Deposit event published successfully");
+        }
+
+        // Publish multiple events atomically with event store persistence
+        var withdrawEvent = new MoneyWithdrawnEvent(
+            aggregateId: "account-123",
+            amount: 200.00m,
+            reference: "Rent payment",
+            version: 3
+        );
+        withdrawEvent.PopulateMetadata();
+
+        // Assuming we have an event store instance
+        // var persistResult = await _eventBus.PublishAndPersistAsync(
+        //     withdrawEvent, 
+        //     eventStoreInstance
+        // );
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+
+        // Create in-memory event repository for demonstration
+        services.AddSingleton<IEventRepository>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<InMemoryEventRepository>>();
+            return new InMemoryEventRepository(logger);
+        });
+
+        services.AddSingleton<EventStore>();
+        services.AddSingleton<EventBus>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var eventBus = serviceProvider.GetRequiredService<EventBus>();
+
+        var example = new EventBusExample(eventBus);
+        await example.DemonstrateEventBusAsync();
+    }
+}
+```
+
 Example usage:
 
 ```csharp
