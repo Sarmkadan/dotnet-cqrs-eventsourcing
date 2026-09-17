@@ -29,6 +29,13 @@ public sealed class CompactionResult
     /// <summary>UTC timestamp when the compaction was performed.</summary>
     public DateTime CompactedAt { get; init; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CompactionResult"/> class.
+    /// </summary>
+    /// <param name="aggregateId">Identifier of the aggregate whose events were compacted.</param>
+    /// <param name="eventsRemoved">Number of events removed from the store.</param>
+    /// <param name="compactedToVersion">Version up to which (exclusive) events were deleted.</param>
+    /// <param name="compactedAt">UTC timestamp when the compaction was performed.</param>
     public CompactionResult(string aggregateId, int eventsRemoved, long compactedToVersion, DateTime compactedAt)
     {
         AggregateId = aggregateId;
@@ -37,6 +44,7 @@ public sealed class CompactionResult
         CompactedAt = compactedAt;
     }
 
+    /// <summary>Returns a string representation of this compaction result.</summary>
     public override string ToString()
         => $"CompactionResult {{ AggregateId={AggregateId}, Removed={EventsRemoved}, CompactedToVersion={CompactedToVersion} }}";
 }
