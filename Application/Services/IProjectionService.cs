@@ -44,10 +44,42 @@ public sealed class AccountProjectionSummary
 /// </summary>
 public interface IProjectionService
 {
+    /// <summary>
+    /// Applies a single domain event to the corresponding read model.
+    /// </summary>
+    /// <param name="event">The domain event to apply.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result indicating whether the projection was updated successfully.</returns>
     Task<Result> UpdateProjectionAsync(DomainEvent @event, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rebuilds the read model for a single aggregate by replaying its event stream.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier to rebuild.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result indicating whether the projection was rebuilt successfully.</returns>
     Task<Result> RebuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rebuilds the read models for all aggregates by replaying their event streams.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result indicating whether all projections were rebuilt successfully.</returns>
     Task<Result> RebuildAllProjectionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the current projection for a single aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier to retrieve.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing the projection data, or a failure if it does not exist.</returns>
     Task<Result<Dictionary<string, object>>> GetProjectionAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the projections for all aggregates.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing all projection data.</returns>
     Task<Result<List<Dictionary<string, object>>>> GetAllProjectionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
