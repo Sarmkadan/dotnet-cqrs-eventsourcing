@@ -21,6 +21,12 @@ public class ValidationDecorator<TCommand, TResult> where TCommand : class
     private readonly Func<TCommand, CancellationToken, Task<TResult>> _next;
     private readonly ILogger<ValidationDecorator<TCommand, TResult>> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidationDecorator{TCommand, TResult}"/> class.
+    /// </summary>
+    /// <param name="next">The next handler in the pipeline to invoke after validation succeeds.</param>
+    /// <param name="logger">The logger used to record validation activity.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="next"/> or <paramref name="logger"/> is null.</exception>
     public ValidationDecorator(
         Func<TCommand, CancellationToken, Task<TResult>> next,
         ILogger<ValidationDecorator<TCommand, TResult>> logger)
@@ -29,6 +35,13 @@ public class ValidationDecorator<TCommand, TResult> where TCommand : class
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Validates the command and, if valid, invokes the wrapped handler.
+    /// </summary>
+    /// <param name="command">The command to validate and execute.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the operation to complete.</param>
+    /// <returns>The result of the wrapped handler when validation succeeds.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when validation fails and <typeparamref name="TResult"/> is not a generic result type.</exception>
     public async Task<TResult> HandleAsync(TCommand command, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Validating command: {CommandType}", typeof(TCommand).Name);
@@ -119,6 +132,13 @@ public class BusinessRuleDecorator<TCommand, TResult> where TCommand : class
     private readonly IAccountService _accountService;
     private readonly ILogger<BusinessRuleDecorator<TCommand, TResult>> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BusinessRuleDecorator{TCommand, TResult}"/> class.
+    /// </summary>
+    /// <param name="next">The next handler in the pipeline to invoke after business rules pass.</param>
+    /// <param name="accountService">The account service used to verify aggregate existence.</param>
+    /// <param name="logger">The logger used to record business rule activity.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="next"/>, <paramref name="accountService"/>, or <paramref name="logger"/> is null.</exception>
     public BusinessRuleDecorator(
         Func<TCommand, CancellationToken, Task<TResult>> next,
         IAccountService accountService,
@@ -129,6 +149,13 @@ public class BusinessRuleDecorator<TCommand, TResult> where TCommand : class
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Verifies business rules for the command and, if satisfied, invokes the wrapped handler.
+    /// </summary>
+    /// <param name="command">The command to check and execute.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the operation to complete.</param>
+    /// <returns>The result of the wrapped handler when business rules are satisfied.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a modification command targets a non-existent aggregate and <typeparamref name="TResult"/> is not a generic result type.</exception>
     public async Task<TResult> HandleAsync(TCommand command, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Checking business rules for {CommandType}", typeof(TCommand).Name);
@@ -183,6 +210,15 @@ public class BusinessRuleDecorator<TCommand, TResult> where TCommand : class
 /// </summary>
 public static class DecoratorChain
 {
+    /// <summary>
+    /// Executes the command through the decorated handler pipeline.
+    /// </summary>
+    /// <typeparam name="TCommand">The type of the command to execute.</typeparam>
+    /// <typeparam name="T">The type of the result produced by the handler.</typeparam>
+    /// <param name="command">The command to execute.</param>
+    /// <param name="handler">The handler to invoke for the command.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the operation to complete.</param>
+    /// <returns>The result produced by the handler.</returns>
     public static async Task<T> Execute<TCommand, T>(
         TCommand command,
         Func<TCommand, CancellationToken, Task<T>> handler,
