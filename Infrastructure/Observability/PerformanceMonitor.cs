@@ -82,6 +82,8 @@ public class PerformanceMonitor : IPerformanceMonitor
 
     public OperationStatistics? GetStatistics(string operationName)
     {
+        ArgumentNullException.ThrowIfNull(operationName);
+
         if (!_metrics.TryGetValue(operationName, out var metrics))
         {
             return null;
@@ -178,6 +180,9 @@ public static class PerformanceMonitorExtensions
 {
     public static PerformanceScope StartOperation(this IPerformanceMonitor monitor, string operationName)
     {
+        ArgumentNullException.ThrowIfNull(monitor);
+        ArgumentNullException.ThrowIfNull(operationName);
+
         return new PerformanceScope(monitor, operationName);
     }
 }
@@ -198,6 +203,8 @@ public class PerformanceHealthCheck : IHealthCheck
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         var stats = _monitor.GetAllStatistics().ToList();
 
         var failingOperations = stats
