@@ -53,6 +53,12 @@ public class InMemoryCacheService : ICacheService, IDisposable
     private readonly Timer _evictionTimer;
     private bool _disposed;
 
+    private const int EvictionIntervalMinutes = 5;
+    private const int SemaphoreInitialCount = 1;
+    private const int SemaphoreMaxCount = 1;
+    private const double DefaultTtlSeconds = 0;
+    private const string WildcardPattern = "*";
+
     public InMemoryCacheService(ILogger<InMemoryCacheService> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -60,7 +66,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
         _logger = logger;
 
         // Run eviction every 5 minutes to clean up expired entries
-        _evictionTimer = new Timer(EvictExpiredEntries, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        _evictionTimer = new Timer(EvictExpiredEntries, null, TimeSpan.FromMinutes(EvictionIntervalMinutes), TimeSpan.FromMinutes(EvictionIntervalMinutes));
     }
 
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
@@ -105,7 +111,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
         };
 
         _cache[key] = entry;
-        _logger.LogDebug("Cache entry set: {Key} (TTL: {Ttl})", key, expiration?.TotalSeconds ?? 0);
+        _logger.LogDebug("Cache entry set: {Key} (TTL: {Ttl})", key, expiration?.TotalSeconds ?? DefaultTtlSeconds);
 
         return Task.CompletedTask;
     }
@@ -161,7 +167,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
 
         // Serialize factory execution per key so concurrent misses for the same key
         // run the factory only once (cache-aside without a thundering herd).
-        var keyLock = _keyLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        var keyLock = _keyLocks.GetOrAdd(key, _ => new SemaphoreSlim(SemaphoreInitialCount, SemaphoreMaxCount));
         await keyLock.WaitAsync(cancellationToken);
 
         try
@@ -230,7 +236,7 @@ public class InMemoryCacheService : ICacheService, IDisposable
     /// </summary>
     private static bool MatchesPattern(string key, string pattern)
     {
-        if (pattern == "*") return true;
+        if (pattern == WildcardPattern) return true;
 
         var patternParts = pattern.Split('*');
         if (patternParts.Length == 1) return key == pattern;
