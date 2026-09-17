@@ -19,6 +19,9 @@ public sealed class EventNameAttribute : Attribute
     /// <summary>Stable event name as it appears in the event store.</summary>
     public string Name { get; }
 
+    /// <summary>Initializes a new instance of the <see cref="EventNameAttribute"/> class.</summary>
+    /// <param name="name">The stable event name as it appears in the event store.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or whitespace.</exception>
     public EventNameAttribute(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
