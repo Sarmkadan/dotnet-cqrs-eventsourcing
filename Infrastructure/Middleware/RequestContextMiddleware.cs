@@ -27,6 +27,8 @@ public class RequestContextMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         var correlationId = ExtractOrCreateCorrelationId(context);
         var requestId = Guid.NewGuid().ToString("N");
 
@@ -175,6 +177,8 @@ public static class RequestContextMiddlewareExtensions
 {
     public static IApplicationBuilder UseRequestContext(this IApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.UseMiddleware<RequestContextMiddleware>();
     }
 }
