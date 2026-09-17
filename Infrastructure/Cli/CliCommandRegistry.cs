@@ -23,6 +23,13 @@ public sealed class CliCommandRegistry
     private readonly IReadOnlyDictionary<string, ICliCommand> _commands;
     private readonly ILogger<CliCommandRegistry> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CliCommandRegistry"/> class,
+    /// indexing the supplied commands by their <see cref="ICliCommand.Name"/> using
+    /// case-insensitive comparison.
+    /// </summary>
+    /// <param name="commands">The CLI commands to register and dispatch.</param>
+    /// <param name="logger">The logger used to record command resolution and dispatch activity.</param>
     public CliCommandRegistry(IEnumerable<ICliCommand> commands, ILogger<CliCommandRegistry> logger)
     {
         _logger = GuardClauses.NotNull(logger, nameof(logger));
