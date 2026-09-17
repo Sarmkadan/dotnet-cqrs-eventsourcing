@@ -56,6 +56,11 @@ public class ConcurrencyException : DotnetCqrsEventsourcingException
         return new ConcurrencyException(message, aggregateId, expectedVersion, actualVersion);
     }
 
+    /// <summary>
+    /// Returns a string representation of the exception, including the error code,
+    /// type name, aggregate ID, expected and actual versions, and the message.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
     public override string ToString()
     {
         return $"[{ErrorCode}] {GetType().Name} {{ AggregateId={AggregateId}, ExpectedVersion={ExpectedVersion}, ActualVersion={ActualVersion} }} - {Message}";
