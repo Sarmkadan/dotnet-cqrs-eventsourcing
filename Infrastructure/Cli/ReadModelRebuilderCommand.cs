@@ -9,7 +9,6 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Cli;
 using Application.Services;
 using Microsoft.Extensions.Logging;
 using Shared.Results;
-using Utilities;
 
 /// <summary>
 /// CLI command for rebuilding read-model projections by replaying events from the
@@ -42,14 +41,18 @@ public sealed class ReadModelRebuilderCommand : ICliCommand
         IEventStore eventStore,
         ILogger<ReadModelRebuilderCommand> logger)
     {
-        _projectionService = GuardClauses.NotNull(projectionService, nameof(projectionService));
-        _eventStore = GuardClauses.NotNull(eventStore, nameof(eventStore));
-        _logger = GuardClauses.NotNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(projectionService);
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(logger);
+        _projectionService = projectionService;
+        _eventStore = eventStore;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task<Result> ExecuteAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(args);
         var isDryRun = args.Contains("--dry-run", StringComparer.OrdinalIgnoreCase);
         var allFlag = args.Contains("--all", StringComparer.OrdinalIgnoreCase);
 
