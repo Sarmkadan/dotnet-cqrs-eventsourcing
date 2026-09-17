@@ -40,6 +40,10 @@ public interface IWebhookDispatcher
     Task<IEnumerable<WebhookRegistration>> GetRegistrationsAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Default <see cref="IWebhookDispatcher"/> implementation that delivers domain
+/// events to registered HTTP webhook endpoints with retry, signature, and idempotency support.
+/// </summary>
 public class WebhookDispatcher : IWebhookDispatcher
 {
     private readonly HttpClient _httpClient;
@@ -50,6 +54,14 @@ public class WebhookDispatcher : IWebhookDispatcher
     private const int MaxRetries = 3;
     private const int TimeoutSeconds = 10;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebhookDispatcher"/> class.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to deliver webhook payloads.</param>
+    /// <param name="logger">The logger used to record dispatch activity.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="httpClient"/> or <paramref name="logger"/> is <c>null</c>.
+    /// </exception>
     public WebhookDispatcher(HttpClient httpClient, ILogger<WebhookDispatcher> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -57,6 +69,13 @@ public class WebhookDispatcher : IWebhookDispatcher
         _httpClient.Timeout = TimeSpan.FromSeconds(TimeoutSeconds);
     }
 
+    /// <summary>
+    /// Registers a webhook endpoint to receive events of the specified type.
+    /// </summary>
+    /// <param name="webhookUrl">The URL of the webhook endpoint to register.</param>
+    /// <param name="eventType">The domain event type the webhook should receive.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that completes when the webhook has been registered.</returns>
     public Task RegisterWebhookAsync(string webhookUrl, Type eventType, CancellationToken cancellationToken = default)
     {
         GuardClauses.NotNullOrEmpty(webhookUrl, nameof(webhookUrl));
@@ -84,6 +103,13 @@ public class WebhookDispatcher : IWebhookDispatcher
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Unregisters all webhook endpoints matching the given URL and event type.
+    /// </summary>
+    /// <param name="webhookUrl">The URL of the webhook endpoint to unregister.</param>
+    /// <param name="eventType">The domain event type to unregister.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that completes when the matching webhooks have been unregistered.</returns>
     public Task UnregisterWebhookAsync(string webhookUrl, Type eventType, CancellationToken cancellationToken = default)
     {
         lock (_registrationsLock)
@@ -107,6 +133,13 @@ public class WebhookDispatcher : IWebhookDispatcher
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Dispatches an event to all active webhooks registered for its type.
+    /// Fire and forget - failures don't affect the caller.
+    /// </summary>
+    /// <param name="event">The domain event to dispatch.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that completes when the dispatch has been scheduled.</returns>
     public async Task DispatchAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
         GuardClauses.NotNull(@event, nameof(@event));
@@ -141,6 +174,11 @@ public class WebhookDispatcher : IWebhookDispatcher
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// Gets a snapshot of all registered webhooks (useful for testing/admin).
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that yields the current webhook registrations.</returns>
     public Task<IEnumerable<WebhookRegistration>> GetRegistrationsAsync(CancellationToken cancellationToken = default)
     {
         lock (_registrationsLock)
@@ -240,11 +278,33 @@ public class WebhookDispatcher : IWebhookDispatcher
     }
 }
 
+/// <summary>
+/// Represents a webhook endpoint registered to receive domain events.
+/// </summary>
 public sealed class WebhookRegistration
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the registration.
+    /// </summary>
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the URL of the webhook endpoint.
+    /// </summary>
     public string WebhookUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the domain event type this webhook receives.
+    /// </summary>
     public Type EventType { get; set; } = typeof(object);
+
+    /// <summary>
+    /// Gets or sets the UTC time the webhook was registered.
+    /// </summary>
     public DateTime RegisteredAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the webhook is active and receiving events.
+    /// </summary>
     public bool Active { get; set; }
 }
