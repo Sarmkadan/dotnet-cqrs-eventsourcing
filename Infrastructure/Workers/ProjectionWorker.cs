@@ -47,9 +47,12 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
         IProjectionService projectionService,
         ILogger<ProjectionWorker> logger)
     {
-        _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
-        _projectionService = projectionService ?? throw new ArgumentNullException(nameof(projectionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(projectionService);
+        ArgumentNullException.ThrowIfNull(logger);
+        _eventStore = eventStore;
+        _projectionService = projectionService;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
