@@ -209,6 +209,8 @@ public static class JsonFormatterExtensions
 {
     public static IServiceCollection AddJsonFormatter(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         services.AddSingleton<IJsonFormatter, JsonFormatter>();
         return services;
     }
