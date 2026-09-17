@@ -34,8 +34,19 @@ public interface ICsvFormatter
     IEnumerable<string> GetColumns<T>();
 }
 
+/// <summary>
+/// Default implementation of <see cref="ICsvFormatter"/> that reflects on object
+/// properties to produce CSV output.
+/// </summary>
 public class CsvFormatter : ICsvFormatter
 {
+    /// <summary>
+    /// Formats a collection of objects to CSV with headers.
+    /// </summary>
+    /// <typeparam name="T">The type of items to format.</typeparam>
+    /// <param name="items">The collection of objects to format.</param>
+    /// <param name="options">Optional formatting options; defaults are used when null.</param>
+    /// <returns>The CSV representation of the items, or an empty string when no items are provided.</returns>
     public string Format<T>(IEnumerable<T> items, CsvFormatOptions? options = null)
     {
         var itemsList = items.ToList();
@@ -69,6 +80,13 @@ public class CsvFormatter : ICsvFormatter
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Formats objects to CSV without headers (raw data).
+    /// </summary>
+    /// <typeparam name="T">The type of items to format.</typeparam>
+    /// <param name="items">The collection of objects to format.</param>
+    /// <param name="options">Optional formatting options; defaults are used when null.</param>
+    /// <returns>The CSV representation of the items without a header row.</returns>
     public string FormatWithoutHeaders<T>(IEnumerable<T> items, CsvFormatOptions? options = null)
     {
         var source = options ?? CsvFormatOptions.Default();
@@ -84,6 +102,11 @@ public class CsvFormatter : ICsvFormatter
         return Format(items, opts);
     }
 
+    /// <summary>
+    /// Gets available properties of a type as potential CSV columns.
+    /// </summary>
+    /// <typeparam name="T">The type whose properties to inspect.</typeparam>
+    /// <returns>The property names of <typeparamref name="T"/> that are eligible for CSV export.</returns>
     public IEnumerable<string> GetColumns<T>()
     {
         return GetOrderedColumns<T>().Select(c => c.PropertyName);
@@ -164,14 +187,39 @@ public class CsvFormatter : ICsvFormatter
     }
 }
 
+/// <summary>
+/// Options that control how <see cref="CsvFormatter"/> produces CSV output.
+/// </summary>
 public sealed class CsvFormatOptions
 {
+    /// <summary>
+    /// The character used to separate fields in the CSV output.
+    /// </summary>
     public char Delimiter { get; set; } = ',';
+
+    /// <summary>
+    /// Whether a header row is written before the data rows.
+    /// </summary>
     public bool IncludeHeaders { get; set; } = true;
+
+    /// <summary>
+    /// The format string applied to date values.
+    /// </summary>
     public string DateFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
 
+    /// <summary>
+    /// Creates a new instance with default formatting options.
+    /// </summary>
     public static CsvFormatOptions Default() => new();
+
+    /// <summary>
+    /// Creates a new instance configured with a semicolon delimiter.
+    /// </summary>
     public static CsvFormatOptions WithSemicolonDelimiter() => new() { Delimiter = ';' };
+
+    /// <summary>
+    /// Creates a new instance configured with a tab delimiter.
+    /// </summary>
     public static CsvFormatOptions WithTabDelimiter() => new() { Delimiter = '\t' };
 }
 
@@ -189,9 +237,20 @@ public class CsvIgnoreAttribute : Attribute
 [AttributeUsage(AttributeTargets.Property)]
 public class CsvColumnAttribute : Attribute
 {
+    /// <summary>
+    /// The column name to use in the CSV header for the annotated property.
+    /// </summary>
     public string Name { get; set; }
+
+    /// <summary>
+    /// The position of the column in the CSV output; lower values appear first.
+    /// </summary>
     public int Order { get; set; } = int.MaxValue;
 
+    /// <summary>
+    /// Initializes a new instance with the specified column name.
+    /// </summary>
+    /// <param name="name">The column name to use in the CSV header.</param>
     public CsvColumnAttribute(string name)
     {
         Name = name;
@@ -203,6 +262,12 @@ public class CsvColumnAttribute : Attribute
 /// </summary>
 public static class CsvFormatterExtensions
 {
+    /// <summary>
+    /// Registers <see cref="ICsvFormatter"/> and its <see cref="CsvFormatter"/> implementation
+    /// as a singleton in the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to register the formatter with.</param>
+    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddCsvFormatter(this IServiceCollection services)
     {
         services.AddSingleton<ICsvFormatter, CsvFormatter>();
