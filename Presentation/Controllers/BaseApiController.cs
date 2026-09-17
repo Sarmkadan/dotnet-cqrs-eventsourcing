@@ -86,4 +86,8 @@ public abstract class BaseApiController : ControllerBase
     }
 }
 
+/// <summary>
+/// Standardized API response envelope returned by all endpoints.
+/// Encapsulates success state, payload data, a human-readable message, and any validation errors.
+/// </summary>
 public record ApiResponse<T>(bool Success = false, T? Data = default, string? Message = null, List<string>? Errors = null);
