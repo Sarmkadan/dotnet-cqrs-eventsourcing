@@ -10,7 +10,6 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Cli;
 using Microsoft.Extensions.Logging;
 using ReadModels;
 using Shared.Results;
-using Utilities;
 
 /// <summary>
 /// CLI command for replaying dead-lettered events back through their projection runner.
@@ -49,9 +48,12 @@ public sealed class DeadLetterReplayCommand : ICliCommand
         IDeadLetterStore deadLetterStore,
         ILogger<DeadLetterReplayCommand> logger)
     {
-        _replayService = GuardClauses.NotNull(replayService, nameof(replayService));
-        _deadLetterStore = GuardClauses.NotNull(deadLetterStore, nameof(deadLetterStore));
-        _logger = GuardClauses.NotNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(replayService);
+        ArgumentNullException.ThrowIfNull(deadLetterStore);
+        ArgumentNullException.ThrowIfNull(logger);
+        _replayService = replayService;
+        _deadLetterStore = deadLetterStore;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
