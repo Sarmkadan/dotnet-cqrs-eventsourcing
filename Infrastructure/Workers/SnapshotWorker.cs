@@ -39,9 +39,12 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
         TimeSpan? snapshotInterval = null,
         int eventsThresholdForSnapshot = 100)
     {
-        _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
-        _snapshotService = snapshotService ?? throw new ArgumentNullException(nameof(snapshotService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(eventStore);
+        ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(logger);
+        _eventStore = eventStore;
+        _snapshotService = snapshotService;
+        _logger = logger;
         _snapshotInterval = snapshotInterval ?? TimeSpan.FromMinutes(5);
         _eventsThresholdForSnapshot = eventsThresholdForSnapshot;
     }
