@@ -41,6 +41,8 @@ public sealed class EventStoreStatsCommand : ICliCommand
     /// <inheritdoc/>
     public async Task<Result> ExecuteAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         // Check for help flag
         if (args.Contains("--help") || args.Contains("-h"))
         {
