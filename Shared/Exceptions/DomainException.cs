@@ -37,10 +37,11 @@ public class DomainException : Exception
     public override string ToString()
     {
         var baseString = base.ToString();
+        var codePart = $"Code: {Code}";
         if (Metadata.Count == 0)
-            return baseString;
+            return $"{baseString}\n{codePart}";
 
         var metadataString = string.Join(", ", Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        return $"{baseString}\nMetadata: {metadataString}";
+        return $"{baseString}\n{codePart}\nMetadata: {metadataString}";
     }
 }
