@@ -26,6 +26,9 @@ public interface ISnapshotWorker : IHostedService
 
 public class SnapshotWorker : BackgroundService, ISnapshotWorker
 {
+    private const int DefaultSnapshotIntervalMinutes = 5;
+    private const int DefaultEventsThresholdForSnapshot = 100;
+
     private readonly IEventStore _eventStore;
     private readonly ISnapshotService _snapshotService;
     private readonly ILogger<SnapshotWorker> _logger;
@@ -37,7 +40,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
         ISnapshotService snapshotService,
         ILogger<SnapshotWorker> logger,
         TimeSpan? snapshotInterval = null,
-        int eventsThresholdForSnapshot = 100)
+        int eventsThresholdForSnapshot = DefaultEventsThresholdForSnapshot)
     {
         ArgumentNullException.ThrowIfNull(eventStore);
         ArgumentNullException.ThrowIfNull(snapshotService);
@@ -45,7 +48,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
         _eventStore = eventStore;
         _snapshotService = snapshotService;
         _logger = logger;
-        _snapshotInterval = snapshotInterval ?? TimeSpan.FromMinutes(5);
+        _snapshotInterval = snapshotInterval ?? TimeSpan.FromMinutes(DefaultSnapshotIntervalMinutes);
         _eventsThresholdForSnapshot = eventsThresholdForSnapshot;
     }
 
