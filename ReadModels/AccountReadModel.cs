@@ -164,4 +164,10 @@ public sealed class AccountReadModel
     /// </summary>
     public bool IsEligibleForWithdrawal =>
         Status == AccountReadModelStatus.Active && CurrentBalance > 0m;
+
+    /// <summary>
+    /// Returns a compact, human-readable summary of the account read model.
+    /// </summary>
+    public override string ToString() =>
+        $"{AccountNumber} ({AccountHolder}) | {Status} | Balance: {CurrentBalance} {Currency} | Transactions: {TransactionCount}";
 }
