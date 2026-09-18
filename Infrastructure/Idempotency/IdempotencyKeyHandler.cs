@@ -46,6 +46,7 @@ public class InMemoryIdempotencyKeyHandler : IIdempotencyKeyHandler
     private readonly Timer _cleanupTimer;
 
     private const int DefaultRetentionHours = 24;
+    private const int CleanupIntervalHours = 6;
 
     public InMemoryIdempotencyKeyHandler(
         ILogger<InMemoryIdempotencyKeyHandler> logger,
@@ -54,8 +55,8 @@ public class InMemoryIdempotencyKeyHandler : IIdempotencyKeyHandler
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _retentionPeriod = retentionPeriod ?? TimeSpan.FromHours(DefaultRetentionHours);
 
-        // Clean up expired entries every 6 hours
-        _cleanupTimer = new Timer(CleanupExpiredEntries, null, TimeSpan.FromHours(6), TimeSpan.FromHours(6));
+        // Clean up expired entries every CleanupIntervalHours hours
+        _cleanupTimer = new Timer(CleanupExpiredEntries, null, TimeSpan.FromHours(CleanupIntervalHours), TimeSpan.FromHours(CleanupIntervalHours));
     }
 
     public Task<IdempotencyResult?> GetPreviousResultAsync(string idempotencyKey, CancellationToken cancellationToken = default)
