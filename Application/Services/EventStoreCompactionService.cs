@@ -17,6 +17,11 @@ using Shared.Results;
 /// </summary>
 public sealed class EventStoreCompactionService : IEventStoreCompactionService
 {
+    private const string NoSnapshotErrorCode = "NO_SNAPSHOT";
+    private const string InvalidVersionErrorCode = "INVALID_VERSION";
+    private const string CompactionFailedErrorCode = "COMPACTION_FAILED";
+    private const long MinimumKeepFromVersion = 0;
+
     private readonly IEventRepository _eventRepository;
     private readonly ISnapshotService _snapshotService;
     private readonly ILogger<EventStoreCompactionService> _logger;
@@ -48,7 +53,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
                 "Skipping compaction for aggregate {AggregateId}: no snapshot found ({Code})",
                 aggregateId, snapshotResult.ErrorCode);
             return Result<CompactionResult>.Failure(
-                "NO_SNAPSHOT",
+                NoSnapshotErrorCode,
                 $"Cannot compact aggregate '{aggregateId}' without a snapshot. Create a snapshot first.");
         }
 
@@ -65,9 +70,9 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         ArgumentNullException.ThrowIfNull(aggregateId);
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
-        if (keepFromVersion <= 0)
+        if (keepFromVersion <= MinimumKeepFromVersion)
             return Result<CompactionResult>.Failure(
-                "INVALID_VERSION",
+                InvalidVersionErrorCode,
                 "keepFromVersion must be greater than zero.");
 
         _logger.LogInformation(
@@ -97,7 +102,7 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during compaction for aggregate {AggregateId}", aggregateId);
-            return Result<CompactionResult>.Failure("COMPACTION_FAILED", ex.Message);
+            return Result<CompactionResult>.Failure(CompactionFailedErrorCode, ex.Message);
         }
     }
 
