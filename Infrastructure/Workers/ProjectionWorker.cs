@@ -42,6 +42,10 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
     private bool _isPaused = false;
     private readonly object _pauseLock = new();
 
+    private const int PausedPollingDelayMs = 1000;
+    private const int NormalPollingDelayMs = 1000;
+    private const int ErrorBackoffDelayMs = 5000;
+
     public ProjectionWorker(
         IEventStore eventStore,
         IProjectionService projectionService,
@@ -69,7 +73,7 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
                     if (_isPaused)
                     {
                         _logger.LogDebug("Projection worker is paused, waiting for resume");
-                        await Task.Delay(1000, stoppingToken);
+                        await Task.Delay(PausedPollingDelayMs, stoppingToken);
                         continue;
                     }
                 }
@@ -78,7 +82,7 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
                 await ProcessProjectionsAsync(stoppingToken);
 
                 // Yield to allow other work
-                await Task.Delay(1000, stoppingToken);
+                await Task.Delay(NormalPollingDelayMs, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -87,7 +91,7 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing projections");
-                await Task.Delay(5000, stoppingToken); // Back off on error
+                await Task.Delay(ErrorBackoffDelayMs, stoppingToken); // Back off on error
             }
         }
 
