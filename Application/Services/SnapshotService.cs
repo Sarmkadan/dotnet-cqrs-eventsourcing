@@ -15,6 +15,20 @@ using Shared.Results;
 /// </summary>
 public class SnapshotService : ISnapshotService
 {
+    private const string InvalidAggregateIdCode = "INVALID_AGGREGATE_ID";
+    private const string InvalidAggregateIdMessage = "Aggregate ID cannot be empty";
+    private const string InvalidVersionCode = "INVALID_VERSION";
+    private const string InvalidVersionMessage = "Version must be greater than 0";
+    private const string InvalidDataCode = "INVALID_DATA";
+    private const string InvalidDataMessage = "Aggregate data cannot be empty";
+    private const string CreateSnapshotFailedCode = "CREATE_SNAPSHOT_FAILED";
+    private const string SnapshotNotFoundCode = "SNAPSHOT_NOT_FOUND";
+    private const string SnapshotNotFoundMessage = "No snapshot found for aggregate {aggregateId}";
+    private const string GetSnapshotFailedCode = "GET_SNAPSHOT_FAILED";
+    private const string DeleteSnapshotFailedCode = "DELETE_SNAPSHOT_FAILED";
+    private const string CheckSnapshotFailedCode = "CHECK_SNAPSHOT_FAILED";
+    private const string GetCountFailedCode = "GET_COUNT_FAILED";
+
     private readonly Dictionary<string, (string Data, long Version, DateTime CreatedAt)> _snapshots = new();
     private readonly ILogger<SnapshotService> _logger;
     private readonly object _lockObject = new();
@@ -30,13 +44,13 @@ public class SnapshotService : ISnapshotService
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
-                return Task.FromResult(Result.Failure("INVALID_AGGREGATE_ID", "Aggregate ID cannot be empty"));
+                return Task.FromResult(Result.Failure(InvalidAggregateIdCode, InvalidAggregateIdMessage));
 
             if (version <= 0)
-                return Task.FromResult(Result.Failure("INVALID_VERSION", "Version must be greater than 0"));
+                return Task.FromResult(Result.Failure(InvalidVersionCode, InvalidVersionMessage));
 
             if (string.IsNullOrWhiteSpace(aggregateData))
-                return Task.FromResult(Result.Failure("INVALID_DATA", "Aggregate data cannot be empty"));
+                return Task.FromResult(Result.Failure(InvalidDataCode, InvalidDataMessage));
 
             lock (_lockObject)
             {
@@ -49,7 +63,7 @@ public class SnapshotService : ISnapshotService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating snapshot");
-            return Task.FromResult(Result.Failure("CREATE_SNAPSHOT_FAILED", ex.Message));
+            return Task.FromResult(Result.Failure(CreateSnapshotFailedCode, ex.Message));
         }
     }
 
@@ -66,12 +80,12 @@ public class SnapshotService : ISnapshotService
                 }
             }
 
-            return Task.FromResult(Result<(string, long)>.Failure("SNAPSHOT_NOT_FOUND", $"No snapshot found for aggregate {aggregateId}"));
+            return Task.FromResult(Result<(string, long)>.Failure(SnapshotNotFoundCode, string.Format(SnapshotNotFoundMessage, aggregateId)));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving snapshot");
-            return Task.FromResult(Result<(string, long)>.Failure("GET_SNAPSHOT_FAILED", ex.Message));
+            return Task.FromResult(Result<(string, long)>.Failure(GetSnapshotFailedCode, ex.Message));
         }
     }
 
@@ -87,13 +101,13 @@ public class SnapshotService : ISnapshotService
                     return Task.FromResult(Result.Success());
                 }
 
-                return Task.FromResult(Result.Failure("SNAPSHOT_NOT_FOUND", $"No snapshot found for aggregate {aggregateId}"));
+                return Task.FromResult(Result.Failure(SnapshotNotFoundCode, string.Format(SnapshotNotFoundMessage, aggregateId)));
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting snapshot");
-            return Task.FromResult(Result.Failure("DELETE_SNAPSHOT_FAILED", ex.Message));
+            return Task.FromResult(Result.Failure(DeleteSnapshotFailedCode, ex.Message));
         }
     }
 
@@ -110,7 +124,7 @@ public class SnapshotService : ISnapshotService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking snapshot existence");
-            return Task.FromResult(Result<bool>.Failure("CHECK_SNAPSHOT_FAILED", ex.Message));
+            return Task.FromResult(Result<bool>.Failure(CheckSnapshotFailedCode, ex.Message));
         }
     }
 
@@ -126,7 +140,7 @@ public class SnapshotService : ISnapshotService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting snapshot count");
-            return Task.FromResult(Result<int>.Failure("GET_COUNT_FAILED", ex.Message));
+            return Task.FromResult(Result<int>.Failure(GetCountFailedCode, ex.Message));
         }
     }
 }
