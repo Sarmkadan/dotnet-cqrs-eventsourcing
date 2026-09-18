@@ -26,16 +26,22 @@ public class PagedResult<T>
 
 public static class PaginationHelper
 {
+    internal const int DefaultPageNumber = 1;
+    internal const int DefaultPageSize = 20;
+    internal const int MinPageNumber = 1;
+    internal const int MinPageSize = 1;
+    internal const int MaxPageSize = 1000;
+
     /// <summary>
     /// Paginates a collection with given page number and size.
     /// </summary>
     public static PagedResult<T> Paginate<T>(
         IEnumerable<T> items,
-        int pageNumber = 1,
-        int pageSize = 20)
+        int pageNumber = DefaultPageNumber,
+        int pageSize = DefaultPageSize)
     {
-        GuardClauses.InRange(pageNumber, 1, int.MaxValue, nameof(pageNumber));
-        GuardClauses.InRange(pageSize, 1, 1000, nameof(pageSize));
+        GuardClauses.InRange(pageNumber, MinPageNumber, int.MaxValue, nameof(pageNumber));
+        GuardClauses.InRange(pageSize, MinPageSize, MaxPageSize, nameof(pageSize));
 
         var itemsList = items.ToList();
         var totalCount = itemsList.Count;
@@ -60,11 +66,11 @@ public static class PaginationHelper
     /// </summary>
     public static PagedResult<T> PaginateQuery<T>(
         IQueryable<T> query,
-        int pageNumber = 1,
-        int pageSize = 20)
+        int pageNumber = DefaultPageNumber,
+        int pageSize = DefaultPageSize)
     {
-        GuardClauses.InRange(pageNumber, 1, int.MaxValue, nameof(pageNumber));
-        GuardClauses.InRange(pageSize, 1, 1000, nameof(pageSize));
+        GuardClauses.InRange(pageNumber, MinPageNumber, int.MaxValue, nameof(pageNumber));
+        GuardClauses.InRange(pageSize, MinPageSize, MaxPageSize, nameof(pageSize));
 
         var totalCount = query.Count();
 
@@ -87,8 +93,8 @@ public static class PaginationHelper
     /// </summary>
     public static (int pageNumber, int pageSize) ValidatePaginationParams(int? pageNumber, int? pageSize)
     {
-        var validPageNumber = Math.Max(1, pageNumber ?? 1);
-        var validPageSize = Math.Clamp(pageSize ?? 20, 1, 1000);
+        var validPageNumber = Math.Max(MinPageNumber, pageNumber ?? DefaultPageNumber);
+        var validPageSize = Math.Clamp(pageSize ?? DefaultPageSize, MinPageSize, MaxPageSize);
 
         return (validPageNumber, validPageSize);
     }
@@ -113,8 +119,8 @@ public static class PaginationExtensions
     /// </summary>
     public static PagedResult<T> ToPagedResult<T>(
         this IQueryable<T> query,
-        int pageNumber = 1,
-        int pageSize = 20)
+        int pageNumber = PaginationHelper.DefaultPageNumber,
+        int pageSize = PaginationHelper.DefaultPageSize)
     {
         return PaginationHelper.PaginateQuery(query, pageNumber, pageSize);
     }
@@ -124,8 +130,8 @@ public static class PaginationExtensions
     /// </summary>
     public static PagedResult<T> ToPagedResult<T>(
         this IEnumerable<T> items,
-        int pageNumber = 1,
-        int pageSize = 20)
+        int pageNumber = PaginationHelper.DefaultPageNumber,
+        int pageSize = PaginationHelper.DefaultPageSize)
     {
         return PaginationHelper.Paginate(items, pageNumber, pageSize);
     }
