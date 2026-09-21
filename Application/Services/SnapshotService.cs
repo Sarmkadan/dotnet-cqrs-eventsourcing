@@ -28,8 +28,10 @@ public class SnapshotService : ISnapshotService
     private const string DeleteSnapshotFailedCode = "DELETE_SNAPSHOT_FAILED";
     private const string CheckSnapshotFailedCode = "CHECK_SNAPSHOT_FAILED";
     private const string GetCountFailedCode = "GET_COUNT_FAILED";
+    private const string SnapshotSchemaMismatchCode = "SNAPSHOT_SCHEMA_MISMATCH";
+    private const string SnapshotSchemaMismatchMessage = "Snapshot schema version mismatch for aggregate {aggregateId}";
 
-    private readonly Dictionary<string, (string Data, long Version, DateTime CreatedAt)> _snapshots = new();
+    private readonly Dictionary<string, (string WrappedData, long Version, DateTime CreatedAt)> _snapshots = new();
     private readonly ILogger<SnapshotService> _logger;
     private readonly object _lockObject = new();
 
@@ -52,9 +54,12 @@ public class SnapshotService : ISnapshotService
             if (string.IsNullOrWhiteSpace(aggregateData))
                 return Task.FromResult(Result.Failure(InvalidDataCode, InvalidDataMessage));
 
+            // Wrap the aggregate data with schema version for storage
+            var wrappedData = AggregateSnapshot.WrapForStorage(aggregateData);
+
             lock (_lockObject)
             {
-                _snapshots[aggregateId] = (aggregateData, version, DateTime.UtcNow);
+                _snapshots[aggregateId] = (wrappedData, version, DateTime.UtcNow);
                 _logger.LogInformation("Created snapshot for aggregate {AggregateId} at version {Version}", aggregateId, version);
             }
 
@@ -75,8 +80,16 @@ public class SnapshotService : ISnapshotService
             {
                 if (_snapshots.TryGetValue(aggregateId, out var snapshot))
                 {
+                    // Try to unwrap the data with current schema version
+                    var aggregateData = AggregateSnapshot.TryUnwrapCurrentSchema(snapshot.WrappedData);
+                    if (aggregateData == null)
+                    {
+                        _logger.LogWarning("Snapshot schema version mismatch for aggregate {AggregateId}. Discarding snapshot.", aggregateId);
+                        return Task.FromResult(Result<(string, long)>.Failure(SnapshotSchemaMismatchCode, string.Format(SnapshotSchemaMismatchMessage, aggregateId)));
+                    }
+
                     _logger.LogInformation("Retrieved snapshot for aggregate {AggregateId} at version {Version}", aggregateId, snapshot.Version);
-                    return Task.FromResult(Result<(string, long)>.Success((snapshot.Data, snapshot.Version)));
+                    return Task.FromResult(Result<(string, long)>.Success((aggregateData, snapshot.Version)));
                 }
             }
 

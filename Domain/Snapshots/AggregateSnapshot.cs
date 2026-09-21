@@ -11,6 +11,16 @@ namespace DotNetCqrsEventSourcing.Domain.Snapshots;
 /// </summary>
 public sealed class AggregateSnapshot
 {
+    /// <summary>
+    /// Schema version of the snapshot. Used to detect shape changes in the aggregate.
+    /// </summary>
+    public int SchemaVersion { get; set; }
+
+    /// <summary>
+    /// Current schema version of the snapshot format. Bump this when making breaking changes to the snapshot structure.
+    /// </summary>
+    public const int CurrentSchemaVersion = 1;
+
     public string Id { get; set; }
     public string AggregateId { get; set; }
     public string AggregateType { get; set; }
@@ -29,6 +39,7 @@ public sealed class AggregateSnapshot
         AggregateType = string.Empty;
         AggregateData = string.Empty;
         CreatedAt = DateTime.UtcNow;
+        SchemaVersion = CurrentSchemaVersion;
     }
 
     public AggregateSnapshot(string aggregateId, string aggregateType, long version, string aggregateData)
@@ -40,6 +51,7 @@ public sealed class AggregateSnapshot
         AggregateData = aggregateData;
         UncompressedSize = aggregateData.Length;
         CompressedSize = aggregateData.Length;
+        SchemaVersion = CurrentSchemaVersion;
     }
 
     /// <summary>
@@ -103,5 +115,5 @@ public sealed class AggregateSnapshot
     }
 
     public override string ToString()
-        => $"AggregateSnapshot {{ AggregateId={AggregateId}, Version={Version}, Size={GetSizeInKilobytes()}KB, CreatedAt={CreatedAt:yyyy-MM-dd HH:mm:ss} }}";
+        => $"AggregateSnapshot {{ AggregateId={AggregateId}, Version={Version}, Size={GetSizeInKilobytes()}KB, CreatedAt={CreatedAt:yyyy-MM-dd HH:mm:ss}, SchemaVersion={SchemaVersion} }}";
 }

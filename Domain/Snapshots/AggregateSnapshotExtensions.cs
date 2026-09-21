@@ -29,7 +29,8 @@ public static class AggregateSnapshotExtensions
             Checksum = snapshot.Checksum,
             CompressedSize = snapshot.CompressedSize,
             UncompressedSize = snapshot.UncompressedSize,
-            IsCompressed = snapshot.IsCompressed
+            IsCompressed = snapshot.IsCompressed,
+            SchemaVersion = snapshot.SchemaVersion
         };
 
         return copy;
