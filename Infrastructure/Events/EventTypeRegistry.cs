@@ -65,7 +65,6 @@ public sealed class EventTypeRegistry
     /// </exception>
     public void Register<T>(string eventName) where T : DomainEvent
     {
-        ArgumentNullException.ThrowIfNull(eventName);
         _logger.LogInformation("Registering event {EventName}", eventName);
         RegisterInternal(eventName, typeof(T));
         _logger.LogInformation("Registered event {EventName}", eventName);
@@ -111,7 +110,6 @@ public sealed class EventTypeRegistry
     /// </exception>
     public Type Resolve(string eventName)
     {
-        ArgumentNullException.ThrowIfNull(eventName);
         _logger.LogInformation("Resolving event type for {EventName}", eventName);
         if (string.IsNullOrEmpty(eventName))
         {
@@ -161,7 +159,6 @@ public sealed class EventTypeRegistry
 
     public void RegisterInternal(string eventName, Type type)
     {
-        ArgumentNullException.ThrowIfNull(eventName);
         ArgumentNullException.ThrowIfNull(type);
 
         if (string.IsNullOrWhiteSpace(eventName))

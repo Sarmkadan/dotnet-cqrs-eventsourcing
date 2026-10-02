@@ -76,12 +76,6 @@ public class Account : AggregateRoot
     // Create and open a new account
     public void CreateAccount(string accountNumber, string accountHolder, string currency, decimal initialBalance)
     {
-        ArgumentNullException.ThrowIfNull(accountNumber);
-        ArgumentNullException.ThrowIfNull(accountHolder);
-        ArgumentNullException.ThrowIfNull(currency);
-        ArgumentException.ThrowIfNullOrEmpty(accountNumber);
-        ArgumentException.ThrowIfNullOrEmpty(accountHolder);
-        ArgumentException.ThrowIfNullOrEmpty(currency);
         if (Version != 0)
             throw new DomainException("Account already created.", "ACCOUNT_ALREADY_CREATED");
 
