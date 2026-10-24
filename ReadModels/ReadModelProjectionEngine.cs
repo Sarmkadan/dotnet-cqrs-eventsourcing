@@ -9,6 +9,7 @@ using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Domain.Events;
 using DotNetCqrsEventSourcing.Infrastructure.Health;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using DotNetCqrsEventSourcing.Shared;
 using DotNetCqrsEventSourcing.Shared.Results;
 using Microsoft.Extensions.Options;
 
@@ -51,6 +52,10 @@ public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
     /// Initializes the engine and registers a base-type subscription on
     /// <paramref name="eventBus"/> so that every published domain event is received.
     /// </summary>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="eventBus"/>, <paramref name="eventStore"/>, <paramref name="runners"/>,
+    /// <paramref name="options"/>, or <paramref name="logger"/> is <see langword="null"/>.
+    /// </exception>
     public ReadModelProjectionEngine(
         IEventBus eventBus,
         IEventStore eventStore,
@@ -59,16 +64,11 @@ public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
         ILogger<ReadModelProjectionEngine> logger,
         IDeadLetterStore? deadLetterStore = null)
     {
-        ArgumentNullException.ThrowIfNull(eventBus);
-        ArgumentNullException.ThrowIfNull(eventStore);
-        ArgumentNullException.ThrowIfNull(runners);
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(logger);
-        _eventBus = eventBus;
-        _eventStore = eventStore;
-        _runners = runners.ToList();
-        _options = options?.Value ?? new ReadModelProjectionOptions();
-        _logger = logger;
+        _eventBus = Guard.NotNull(eventBus);
+        _eventStore = Guard.NotNull(eventStore);
+        _runners = Guard.NotNull(runners).ToList();
+        _options = Guard.NotNull(options).Value ?? new ReadModelProjectionOptions();
+        _logger = Guard.NotNull(logger);
         _deadLetterStore = deadLetterStore;
 
         _eventHandler = @event => HandleEventAsync(@event);
@@ -102,11 +102,13 @@ public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
     /// A <see cref="ProjectionRebuildResult"/> describing which events were applied and
     /// which (if any) failed, wrapped in a <see cref="Result{T}"/>.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="aggregateId"/> is empty or whitespace.</exception>
     public async Task<Result<ProjectionRebuildResult>> RebuildAsync(
         string aggregateId,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(aggregateId);
+        Guard.NotNullOrWhiteSpace(aggregateId);
 
         _logger.LogInformation("Starting projection rebuild for aggregate {AggregateId}.", aggregateId);
 
@@ -144,11 +146,12 @@ public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
     /// </summary>
     /// <param name="aggregateIds">Ordered sequence of aggregate identifiers to replay.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateIds"/> is <see langword="null"/>.</exception>
     public async Task<Result<IReadOnlyList<ProjectionRebuildResult>>> RebuildAllAsync(
         IEnumerable<string> aggregateIds,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(aggregateIds);
+        Guard.NotNull(aggregateIds);
 
         if (_options.ClearCheckpointsBeforeRebuild)
         {
@@ -173,9 +176,13 @@ public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
     }
 
     /// <summary>Returns the checkpoint for <paramref name="projectionName"/>, or <see langword="null"/> if none exists.</summary>
+    /// <param name="projectionName">Name of the projection whose checkpoint is requested.</param>
+    /// <returns>The checkpoint, or <see langword="null"/> when the projection has none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="projectionName"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is empty.</exception>
     public ProjectionCheckpoint? GetCheckpoint(string projectionName)
     {
-        ArgumentException.ThrowIfNullOrEmpty(projectionName);
+        Guard.NotNullOrEmpty(projectionName);
         return _checkpoints.GetValueOrDefault(projectionName);
     }
 

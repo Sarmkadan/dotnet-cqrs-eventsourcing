@@ -6,6 +6,8 @@
 
 namespace DotNetCqrsEventSourcing.Domain.AggregateRoots;
 
+using DotNetCqrsEventSourcing.Shared;
+
 using Events;
 
 /// <summary>
@@ -76,8 +78,11 @@ public abstract class AggregateRoot
     /// Reconstructs the aggregate state by replaying its event history.
     /// </summary>
     /// <param name="events">The domain events to replay in sequence.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> is <see langword="null"/>.</exception>
     public void LoadFromHistory(IEnumerable<DomainEvent> events)
     {
+        Guard.NotNull(events);
+
         foreach (var @event in events)
         {
             ApplyEvent(@event, isFromHistory: true);

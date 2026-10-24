@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
+using DotNetCqrsEventSourcing.Shared;
 using DotNetCqrsEventSourcing.Shared.Results;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -60,6 +61,7 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
         string projectionName,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNullOrEmpty(projectionName);
         _logger.LogInformation("GetByProjectionAsync called with projectionName {ProjectionName}", projectionName);
 
         try
@@ -84,6 +86,7 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
         string aggregateId,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNullOrEmpty(aggregateId);
         _logger.LogInformation("GetByAggregateAsync called with aggregateId {AggregateId}", aggregateId);
 
         try
@@ -130,6 +133,7 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
     /// <inheritdoc />
     public Task<Result> MarkReprocessedAsync(string entryId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNullOrEmpty(entryId);
         _logger.LogInformation("MarkReprocessedAsync called with entryId {EntryId}", entryId);
 
         try

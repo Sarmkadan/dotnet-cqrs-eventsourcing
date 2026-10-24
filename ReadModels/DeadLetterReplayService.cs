@@ -6,6 +6,7 @@
 
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using DotNetCqrsEventSourcing.Shared;
 using DotNetCqrsEventSourcing.Shared.Results;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -63,10 +64,11 @@ public sealed class DeadLetterReplayService
     /// A successful <see cref="Result"/> when the event was re-applied and the entry marked
     /// resolved; otherwise a failure describing why replay was refused or the projector failed.
     /// </returns>
-    /// <exception cref="ArgumentException"><paramref name="entryId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="entryId"/> is empty.</exception>
     public async Task<Result> ReplayAsync(string entryId, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(entryId);
+        Guard.NotNullOrEmpty(entryId);
 
         var allEntries = await _deadLetterStore.GetAllAsync(includeReprocessed: true, cancellationToken);
         var entry = allEntries.FirstOrDefault(e => e.Id == entryId);

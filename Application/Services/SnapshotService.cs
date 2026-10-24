@@ -7,6 +7,7 @@
 namespace DotNetCqrsEventSourcing.Application.Services;
 
 using Microsoft.Extensions.Logging;
+using Shared;
 using Shared.Results;
 
 /// <summary>
@@ -95,8 +96,11 @@ public class SnapshotService : ISnapshotService
     /// <param name="aggregateId">The aggregate identifier to look up.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A result containing the aggregate data and version, or a failure if no snapshot exists or its schema is outdated.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public Task<Result<(string AggregateData, long Version)>> GetLatestSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             lock (_lockObject)
@@ -131,8 +135,11 @@ public class SnapshotService : ISnapshotService
     /// <param name="aggregateId">The aggregate identifier whose snapshot should be removed.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A success result when the snapshot is removed, or a failure if none exists.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public Task<Result> DeleteSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             lock (_lockObject)
@@ -159,8 +166,11 @@ public class SnapshotService : ISnapshotService
     /// <param name="aggregateId">The aggregate identifier to check.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A result whose value is <see langword="true"/> when a snapshot exists.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public Task<Result<bool>> HasSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             lock (_lockObject)

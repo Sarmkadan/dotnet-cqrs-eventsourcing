@@ -5,6 +5,7 @@
 // =============================================================================
 
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using DotNetCqrsEventSourcing.Shared;
 using DotNetCqrsEventSourcing.Shared.Results;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -25,9 +26,8 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result> UpsertAsync(string key, TReadModel model, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentException.ThrowIfNullOrEmpty(key);
-        ArgumentNullException.ThrowIfNull(model);
+        Guard.NotNullOrEmpty(key);
+        Guard.NotNull(model);
 
         lock (_lock)
         {
@@ -40,8 +40,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result<TReadModel>> GetAsync(string key, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentException.ThrowIfNullOrEmpty(key);
+        Guard.NotNullOrEmpty(key);
 
         lock (_lock)
         {
@@ -71,7 +70,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         Func<TReadModel, bool> predicate,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(predicate);
+        Guard.NotNull(predicate);
 
         IReadOnlyList<TReadModel> matches;
 
@@ -86,8 +85,7 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     /// <inheritdoc />
     public Task<Result> DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentException.ThrowIfNullOrEmpty(key);
+        Guard.NotNullOrEmpty(key);
 
         lock (_lock)
         {

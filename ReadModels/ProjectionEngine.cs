@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using DotNetCqrsEventSourcing.Shared;
 
 /// <summary>
 /// Source of events for a <see cref="ProjectionEngine"/> projection.
@@ -41,11 +42,8 @@ public sealed class ProjectionEngine
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> or <paramref name="eventSource"/> is <c>null</c>.</exception>
     public ProjectionEngine(ILogger<ProjectionEngine> logger, IProjectionEventSource eventSource)
     {
-        ArgumentNullException.ThrowIfNull(logger, nameof(logger));
-        ArgumentNullException.ThrowIfNull(eventSource, nameof(eventSource));
-
-        _logger = logger;
-        _eventSource = eventSource;
+        _logger = Guard.NotNull(logger);
+        _eventSource = Guard.NotNull(eventSource);
     }
 
     /// <summary>
@@ -57,13 +55,12 @@ public sealed class ProjectionEngine
     /// <param name="processEvent">Delegate that processes a single event.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>A task that completes when the engine stops (usually never).</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectionName"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectionName"/> or <paramref name="processEvent"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>empty</c>.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="processEvent"/> is <c>null</c>.</exception>
     public Task RunAsync(string projectionName, Func<string, Task> processEvent, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(projectionName);
-        ArgumentNullException.ThrowIfNull(processEvent);
+        Guard.NotNullOrEmpty(projectionName);
+        Guard.NotNull(processEvent);
         return RunAsync(projectionName, async @event =>
         {
             await processEvent(@event).ConfigureAwait(false);
@@ -85,13 +82,13 @@ public sealed class ProjectionEngine
     /// </param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>A task that completes when the engine stops (usually never).</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="processEventAndCheckpoint"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectionName"/> or <paramref name="processEventAndCheckpoint"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="projectionName"/> is <c>empty</c>.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the projection is already running.</exception>
     public async Task RunAsync(string projectionName, Func<string, Task<bool>> processEventAndCheckpoint, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(projectionName);
-        ArgumentNullException.ThrowIfNull(processEventAndCheckpoint);
+        Guard.NotNullOrEmpty(projectionName);
+        Guard.NotNull(processEventAndCheckpoint);
 
         var projectionState = _projections.GetOrAdd(projectionName, static name => new ProjectionState(name));
 

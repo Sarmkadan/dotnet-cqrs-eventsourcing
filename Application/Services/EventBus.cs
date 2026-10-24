@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Domain.Events;
 using Microsoft.Extensions.Logging;
+using Shared;
 using Shared.Results;
 
 /// <summary>
@@ -40,9 +41,10 @@ public class EventBus : IEventBus
     /// Initializes a new instance of the <see cref="EventBus"/> class.
     /// </summary>
     /// <param name="logger">The logger used for logging events.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> is <see langword="null"/>.</exception>
     public EventBus(ILogger<EventBus> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = Guard.NotNull(logger);
     }
 
     /// <summary>
@@ -51,13 +53,10 @@ public class EventBus : IEventBus
     /// <param name="event">The domain event to publish.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the result of the publish operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="event"/> is <see langword="null"/>.</exception>
     public Task<Result> PublishEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
-        if (@event is null)
-        {
-            throw new ArgumentNullException(nameof(@event));
-        }
-
+        Guard.NotNull(@event);
         return PublishEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
     }
 
@@ -66,13 +65,14 @@ public class EventBus : IEventBus
     /// </summary>
     /// <param name="events">The collection of domain events to publish.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation, containing the result of the publish operation.</returns>
+    /// <returns>
+    /// A task containing the result of the publish operation. A <see langword="null"/> element stops publishing
+    /// and is reported as a <c>PUBLISH_FAILED</c> failure result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> is <see langword="null"/>.</exception>
     public async Task<Result> PublishEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
     {
-        if (events is null)
-        {
-            throw new ArgumentNullException(nameof(events));
-        }
+        Guard.NotNull(events);
 
         try
         {
@@ -101,12 +101,10 @@ public class EventBus : IEventBus
     /// </summary>
     /// <typeparam name="TEvent">The type of domain event to subscribe to.</typeparam>
     /// <param name="handler">The handler function to execute when the event is published.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="handler"/> is <see langword="null"/>.</exception>
     public void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
-        if (handler is null)
-        {
-            throw new ArgumentNullException(nameof(handler));
-        }
+        Guard.NotNull(handler);
 
         var eventType = typeof(TEvent);
 
@@ -129,12 +127,10 @@ public class EventBus : IEventBus
     /// </summary>
     /// <typeparam name="TEvent">The type of domain event to unsubscribe from.</typeparam>
     /// <param name="handler">The handler function to remove.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="handler"/> is <see langword="null"/>.</exception>
     public void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : DomainEvent
     {
-        if (handler is null)
-        {
-            throw new ArgumentNullException(nameof(handler));
-        }
+        Guard.NotNull(handler);
 
         var eventType = typeof(TEvent);
         bool removed;
@@ -157,17 +153,11 @@ public class EventBus : IEventBus
     /// <param name="eventStore">The event store to persist the event to.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the result of the publish and persist operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="event"/> or <paramref name="eventStore"/> is <see langword="null"/>.</exception>
     public async Task<Result> PublishAndPersistAsync(DomainEvent @event, IEventStore eventStore, CancellationToken cancellationToken = default)
     {
-        if (@event is null)
-        {
-            throw new ArgumentNullException(nameof(@event));
-        }
-
-        if (eventStore is null)
-        {
-            throw new ArgumentNullException(nameof(eventStore));
-        }
+        Guard.NotNull(@event);
+        Guard.NotNull(eventStore);
 
         try
         {

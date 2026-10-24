@@ -6,6 +6,8 @@
 
 namespace DotNetCqrsEventSourcing.Domain.Snapshots;
 
+using DotNetCqrsEventSourcing.Shared;
+
 /// <summary>
 /// Represents a snapshot of an aggregate's state at a specific version.
 /// </summary>
@@ -91,9 +93,14 @@ public sealed class AggregateSnapshot
     /// <param name="aggregateType">The type of the aggregate.</param>
     /// <param name="version">The aggregate version captured by the snapshot.</param>
     /// <param name="aggregateData">The serialized state of the aggregate.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/>, <paramref name="aggregateType"/>, or <paramref name="aggregateData"/> is <see langword="null"/>.</exception>
     public AggregateSnapshot(string aggregateId, string aggregateType, long version, string aggregateData)
         : this()
     {
+        Guard.NotNull(aggregateId);
+        Guard.NotNull(aggregateType);
+        Guard.NotNull(aggregateData);
+
         AggregateId = aggregateId;
         AggregateType = aggregateType;
         Version = version;

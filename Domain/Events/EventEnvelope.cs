@@ -6,6 +6,8 @@
 
 namespace DotNetCqrsEventSourcing.Domain.Events;
 
+using DotNetCqrsEventSourcing.Shared;
+
 /// <summary>
 /// Wrapper for domain events with infrastructure metadata for event store persistence.
 /// </summary>
@@ -93,9 +95,13 @@ public sealed class EventEnvelope
     /// </summary>
     /// <param name="domainEvent">The domain event to wrap.</param>
     /// <param name="serializedData">The serialized event payload.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="domainEvent"/> or <paramref name="serializedData"/> is <see langword="null"/>.</exception>
     public EventEnvelope(DomainEvent domainEvent, string serializedData)
         : this()
     {
+        Guard.NotNull(domainEvent);
+        Guard.NotNull(serializedData);
+
         AggregateId = domainEvent.AggregateId;
         AggregateType = domainEvent.AggregateType;
         AggregateVersion = domainEvent.AggregateVersion;

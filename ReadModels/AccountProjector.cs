@@ -5,6 +5,7 @@
 // =============================================================================
 
 using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Shared;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
@@ -51,6 +52,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     /// <inheritdoc />
     public bool CanProject(DomainEvent @event)
     {
+        Guard.NotNull(@event);
         _logger.LogInformation(
             "CanProject called for event {EventId} of type {EventType}",
             @event.EventId,
@@ -74,6 +76,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     /// <inheritdoc />
     public string GetKey(DomainEvent @event)
     {
+        Guard.NotNull(@event);
         _logger.LogInformation(
             "GetKey called for event {EventId}",
             @event.EventId);
@@ -93,6 +96,7 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
         AccountReadModel? current,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(@event);
         _logger.LogInformation(
             "ProjectAsync called for event {EventId} of type {EventType} on aggregate {AggregateId} version {Version}",
             @event.EventId,

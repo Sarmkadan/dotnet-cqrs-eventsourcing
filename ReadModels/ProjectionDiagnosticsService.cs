@@ -4,6 +4,8 @@
 // CTO & Software Architect
 // =============================================================================
 
+using DotNetCqrsEventSourcing.Shared;
+
 namespace DotNetCqrsEventSourcing.ReadModels;
 
 /// <summary>
@@ -40,8 +42,15 @@ public sealed class ProjectionDiagnosticsService
     /// <summary>
     /// Returns all unprocessed dead-letter entries for the specified projection.
     /// </summary>
+    /// <param name="projectionName">Name of the projection whose dead-letter entries are requested.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="projectionName"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="projectionName"/> is empty.</exception>
     public Task<IReadOnlyList<DeadLetterEntry>> GetDeadLetterEntriesAsync(
         string projectionName,
         CancellationToken cancellationToken = default)
-        => _deadLetterStore.GetByProjectionAsync(projectionName, cancellationToken);
+    {
+        Guard.NotNullOrEmpty(projectionName);
+        return _deadLetterStore.GetByProjectionAsync(projectionName, cancellationToken);
+    }
 }

@@ -12,6 +12,7 @@ using Domain.Events;
 using Infrastructure.Events;
 using Upcasting;
 using Microsoft.Extensions.Logging;
+using Shared;
 using Shared.Exceptions;
 using Shared.Results;
 
@@ -54,8 +55,8 @@ public class EventStore : IEventStore
         EventUpcastingPipeline? upcastingPipeline = null,
         int maxEventPayloadBytes = DefaultMaxEventPayloadBytes)
     {
-        _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _eventRepository = Guard.NotNull(eventRepository);
+        _logger = Guard.NotNull(logger);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEventPayloadBytes);
         _eventTypeRegistry = eventTypeRegistry;
         _upcastingPipeline = upcastingPipeline;
@@ -68,8 +69,10 @@ public class EventStore : IEventStore
     /// <param name="event">The domain event to append.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result indicating success or failure.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="event"/> is <see langword="null"/>.</exception>
     public async Task<Result> AppendEventAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(@event);
         return await AppendEventsAsync(new List<DomainEvent> { @event }, cancellationToken);
     }
 
@@ -79,25 +82,18 @@ public class EventStore : IEventStore
     /// <param name="events">The domain events to append.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result indicating success or failure.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="events"/> contains a <see langword="null"/> element.</exception>
     public async Task<Result> AppendEventsAsync(List<DomainEvent> events, CancellationToken cancellationToken = default)
     {
+        Guard.NoNullElements(events);
+
         try
         {
-            if (events == null)
-            {
-                throw new ArgumentNullException(nameof(events));
-            }
-
             if (events.Count == 0)
             {
                 throw new ValidationException("Event list cannot be empty.")
                     .WithError(nameof(events), "At least one event is required");
-            }
-
-            if (events.Any(e => e == null))
-            {
-                throw new ValidationException("Event list cannot contain null events.")
-                    .WithError(nameof(events), "Null events are not allowed");
             }
 
             var envelopes = events.Select(e =>
@@ -126,11 +122,6 @@ public class EventStore : IEventStore
         {
             throw;
         }
-        catch (ArgumentNullException ex)
-        {
-            _logger.LogError(ex, "Null argument passed to AppendEventsAsync");
-            throw new ValidationException("Null argument passed to AppendEventsAsync", ex.Message, ex);
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error appending events to event store");
@@ -144,8 +135,11 @@ public class EventStore : IEventStore
     /// <param name="aggregateId">The aggregate ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the list of domain events or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public async Task<Result<List<DomainEvent>>> GetEventStreamAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
@@ -183,8 +177,11 @@ public class EventStore : IEventStore
     /// <param name="fromVersion">The version to start from (exclusive).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the list of domain events or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public async Task<Result<List<DomainEvent>>> GetEventStreamFromVersionAsync(string aggregateId, long fromVersion, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
@@ -225,8 +222,11 @@ public class EventStore : IEventStore
     /// <param name="aggregateId">The aggregate ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the aggregate version or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public async Task<Result<long>> GetAggregateVersionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
@@ -254,8 +254,11 @@ public class EventStore : IEventStore
     /// <param name="aggregateId">The aggregate ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result indicating success or failure.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public async Task<Result> ReplayEventsAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
@@ -290,8 +293,11 @@ public class EventStore : IEventStore
     /// <param name="eventType">The type of the event to retrieve.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the list of domain events or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="eventType"/> is <see langword="null"/>.</exception>
     public async Task<Result<List<DomainEvent>>> GetEventsByTypeAsync(string eventType, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(eventType);
+
         try
         {
             var result = await _eventRepository.GetEventsByTypeAsync(eventType, cancellationToken);
@@ -316,8 +322,11 @@ public class EventStore : IEventStore
     /// <param name="aggregateId">The aggregate ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the event count or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregateId"/> is <see langword="null"/>.</exception>
     public async Task<Result<int>> GetEventCountAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(aggregateId);
+
         try
         {
             var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
@@ -343,8 +352,11 @@ public class EventStore : IEventStore
     /// <param name="pageSize">The number of events per page.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A result containing the list of domain events or an error.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="partitionKey"/> is <see langword="null"/>.</exception>
     public async Task<Result<List<DomainEvent>>> GetEventsByPartitionKeyAsync(string partitionKey, int pageNumber = 1, int pageSize = 100, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(partitionKey);
+
         try
         {
             var result = await _eventRepository.GetEventsByPartitionKeyAsync(partitionKey, pageNumber, pageSize, cancellationToken);
