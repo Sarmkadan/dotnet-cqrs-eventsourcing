@@ -10,6 +10,7 @@ namespace DotNetCqrsEventSourcing.Domain.Events;
 /// Event raised when an account is created in the system.
 /// </summary>
 [EventName("AccountCreated")]
+[EventVersion(2)]
 public class AccountCreatedEvent : DomainEvent
 {
     /// <summary>
@@ -17,8 +18,10 @@ public class AccountCreatedEvent : DomainEvent
     /// </summary>
     public string AccountNumber { get; set; } = string.Empty;
     /// <summary>
-    /// Gets or sets the account holder name.
+    /// Gets or sets the account holder name. Stored as <c>OwnerName</c> since schema version 2;
+    /// version 1 payloads are renamed on read by <c>AccountCreatedV1ToV2Upcaster</c>.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("OwnerName")]
     public string AccountHolder { get; set; } = string.Empty;
     /// <summary>
     /// Gets or sets the currency code (e.g., USD, EUR).

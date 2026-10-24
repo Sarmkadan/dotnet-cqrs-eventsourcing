@@ -9,6 +9,7 @@ namespace DotNetCqrsEventSourcing.Application.Services;
 using Data.Repositories;
 using Domain.Events;
 using Infrastructure.Events;
+using Upcasting;
 using Microsoft.Extensions.Logging;
 using Shared.Exceptions;
 using Shared.Results;
@@ -21,6 +22,7 @@ public class EventStore : IEventStore
     private readonly IEventRepository _eventRepository;
     private readonly ILogger<EventStore> _logger;
     private readonly EventTypeRegistry? _eventTypeRegistry;
+    private readonly EventUpcastingPipeline? _upcastingPipeline;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EventStore"/> class.
@@ -28,11 +30,16 @@ public class EventStore : IEventStore
     /// <param name="eventRepository">The event repository.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="eventTypeRegistry">The event type registry (optional).</param>
-    public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger, EventTypeRegistry? eventTypeRegistry = null)
+    /// <param name="upcastingPipeline">
+    /// The pipeline that upgrades stored payloads to the current schema version before deserialization (optional).
+    /// When <see langword="null"/>, payloads are deserialized exactly as stored.
+    /// </param>
+    public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger, EventTypeRegistry? eventTypeRegistry = null, EventUpcastingPipeline? upcastingPipeline = null)
     {
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventTypeRegistry = eventTypeRegistry;
+        _upcastingPipeline = upcastingPipeline;
     }
 
     /// <summary>
@@ -365,7 +372,10 @@ public class EventStore : IEventStore
             }
 
             var resolvedType = _eventTypeRegistry.Resolve(envelope.EventType);
-            return (DomainEvent?)System.Text.Json.JsonSerializer.Deserialize(envelope.EventData, resolvedType);
+            var payload = _upcastingPipeline is null
+                ? envelope.EventData
+                : _upcastingPipeline.UpcastToCurrentVersion(envelope);
+            return (DomainEvent?)System.Text.Json.JsonSerializer.Deserialize(payload, resolvedType);
         }
         catch (UnknownEventTypeException ex)
         {

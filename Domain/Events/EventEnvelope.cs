@@ -65,6 +65,13 @@ public sealed class EventEnvelope
     public string? PartitionKey { get; set; }
 
     /// <summary>
+    /// Gets or sets the payload schema version that <see cref="EventData"/> was written with.
+    /// Envelopes persisted before schema versioning existed are read as version 1; the
+    /// event upcasting pipeline uses this value to bring older payloads up to the current version.
+    /// </summary>
+    public int SchemaVersion { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="EventEnvelope"/> class with a unique identifier
     /// and default values.
     /// </summary>
@@ -77,6 +84,7 @@ public sealed class EventEnvelope
         EventData = string.Empty;
         Metadata = new Dictionary<string, string>();
         CreatedAt = DateTime.UtcNow;
+        SchemaVersion = EventVersionAttribute.DefaultVersion;
     }
 
     /// <summary>
@@ -93,6 +101,7 @@ public sealed class EventEnvelope
         AggregateVersion = domainEvent.AggregateVersion;
         EventType = domainEvent.GetEventType();
         EventData = serializedData;
+        SchemaVersion = EventVersionAttribute.GetVersion(domainEvent.GetType());
         PartitionKey = domainEvent.TenantId;
 
         domainEvent.PopulateMetadata();

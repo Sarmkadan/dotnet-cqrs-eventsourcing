@@ -8,6 +8,7 @@ namespace DotNetCqrsEventSourcing.Configuration;
 
 using Application.Sagas;
 using Application.Services;
+using Application.Upcasting;
 using Data.Repositories;
 using Domain.AggregateRoots;
 using Infrastructure.Events;
@@ -78,6 +79,11 @@ public static class DependencyInjection
             registry.ScanAssembly(typeof(Domain.Events.DomainEvent).Assembly);
             return registry;
         });
+
+        // Event upcasting - every IEventUpcaster registration is chained by the pipeline so
+        // streams written with older event schemas are upgraded before they are materialized.
+        services.AddSingleton<IEventUpcaster, AccountCreatedV1ToV2Upcaster>();
+        services.AddSingleton<EventUpcastingPipeline>();
 
         // Repositories
         services.AddSingleton<IEventRepository, InMemoryEventRepository>();

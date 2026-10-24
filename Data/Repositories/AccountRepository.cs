@@ -7,6 +7,7 @@
 namespace DotNetCqrsEventSourcing.Data.Repositories;
 
 using System.Text.Json;
+using Application.Upcasting;
 using Domain.AggregateRoots;
 using Domain.Events;
 using Shared.Exceptions;
@@ -18,16 +19,22 @@ using Shared.Results;
 public class AccountRepository : IRepository<Account>
 {
     private readonly IEventRepository _eventRepository;
+    private readonly EventUpcastingPipeline? _upcastingPipeline;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AccountRepository"/> class.
     /// </summary>
     /// <param name="eventRepository">Event repository used to read and append account events.</param>
-    public AccountRepository(IEventRepository eventRepository)
+    /// <param name="upcastingPipeline">
+    /// Pipeline that upgrades stored payloads to the current schema version before rehydration (optional).
+    /// When <see langword="null"/>, payloads are deserialized exactly as stored.
+    /// </param>
+    public AccountRepository(IEventRepository eventRepository, EventUpcastingPipeline? upcastingPipeline = null)
     {
         ArgumentNullException.ThrowIfNull(eventRepository);
 
         _eventRepository = eventRepository;
+        _upcastingPipeline = upcastingPipeline;
     }
 
     /// <summary>
@@ -182,13 +189,17 @@ public class AccountRepository : IRepository<Account>
 
         foreach (var envelope in envelopes)
         {
+            var payload = _upcastingPipeline is null
+                ? envelope.EventData
+                : _upcastingPipeline.UpcastToCurrentVersion(envelope);
+
             DomainEvent? domainEvent = envelope.EventType switch
             {
-                "AccountCreated" => JsonSerializer.Deserialize<AccountCreatedEvent>(envelope.EventData),
-                "MoneyDeposited" => JsonSerializer.Deserialize<MoneyDepositedEvent>(envelope.EventData),
-                "MoneyWithdrawn" => JsonSerializer.Deserialize<MoneyWithdrawnEvent>(envelope.EventData),
-                "BalanceUpdated" => JsonSerializer.Deserialize<BalanceUpdatedEvent>(envelope.EventData),
-                "AccountClosed" => JsonSerializer.Deserialize<AccountClosedEvent>(envelope.EventData),
+                "AccountCreated" => JsonSerializer.Deserialize<AccountCreatedEvent>(payload),
+                "MoneyDeposited" => JsonSerializer.Deserialize<MoneyDepositedEvent>(payload),
+                "MoneyWithdrawn" => JsonSerializer.Deserialize<MoneyWithdrawnEvent>(payload),
+                "BalanceUpdated" => JsonSerializer.Deserialize<BalanceUpdatedEvent>(payload),
+                "AccountClosed" => JsonSerializer.Deserialize<AccountClosedEvent>(payload),
                 _ => throw new DomainException($"Unknown event type: {envelope.EventType}", "UNKNOWN_EVENT_TYPE")
             };
 
