@@ -104,7 +104,10 @@ public sealed class CliCommandRegistry
         Console.WriteLine();
         Console.WriteLine("Available commands:");
         foreach (var cmd in _commands.Values.OrderBy(c => c.Name))
+        {
             Console.WriteLine($"  {cmd.Name,-30} {cmd.Description}");
+        }
+
         Console.WriteLine();
         _logger.LogInformation("Help printed for CLI commands");
     }

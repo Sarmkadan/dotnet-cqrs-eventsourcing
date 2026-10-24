@@ -6,7 +6,7 @@ namespace DotNetCqrsEventSourcing.Benchmarks;
 [MemoryDiagnoser]
 public class CqrsHelpersBenchmarks
 {
-    private DummyCommand _command;
+    private DummyCommand _command = null!;
 
     [GlobalSetup]
     public void Setup()

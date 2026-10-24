@@ -33,9 +33,22 @@ public sealed class ReadModelRebuilderCommand : ICliCommand
     private readonly IEventStore _eventStore;
     private readonly ILogger<ReadModelRebuilderCommand> _logger;
 
+    /// <summary>
+    /// Gets the name used to invoke this command from the CLI.
+    /// </summary>
     public string Name => "rebuild-read-models";
+
+    /// <summary>
+    /// Gets a short description of what this command does.
+    /// </summary>
     public string Description => "Rebuilds read-model projections by replaying events from the event store.";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReadModelRebuilderCommand"/> class.
+    /// </summary>
+    /// <param name="projectionService">Projection service used to rebuild read models.</param>
+    /// <param name="eventStore">Event store from which events are replayed.</param>
+    /// <param name="logger">Logger used to write command output and diagnostics.</param>
     public ReadModelRebuilderCommand(
         IProjectionService projectionService,
         IEventStore eventStore,
@@ -58,11 +71,15 @@ public sealed class ReadModelRebuilderCommand : ICliCommand
 
         var aggregateIdIndex = Array.IndexOf(args, "--aggregate");
         if (aggregateIdIndex < 0)
+        {
             aggregateIdIndex = Array.IndexOf(args, "-a");
+        }
 
         string? aggregateId = null;
         if (aggregateIdIndex >= 0 && aggregateIdIndex + 1 < args.Length)
+        {
             aggregateId = args[aggregateIdIndex + 1];
+        }
 
         if (!allFlag && aggregateId is null)
         {

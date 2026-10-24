@@ -4,11 +4,11 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Domain.Events;
 using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Complete CQRS + Event Sourcing Scenario ===\n");
 
@@ -60,7 +60,7 @@ if (!createResult.IsSuccess)
     return;
 }
 
-var accountId = createResult.Data.Id;
+var accountId = createResult.Data!.Id;
 Console.WriteLine($"✓ Account created\n");
 
 // Phase 2: Business operations (CQRS Commands)
@@ -127,12 +127,12 @@ var currentAccount = await accountService.GetAccountAsync(accountId);
 if (currentAccount.IsSuccess)
 {
     await snapshotService.CreateSnapshotAsync(
-        currentAccount.Data,
+        currentAccount.Data!,
         accountId,
         events.Count
     );
     Console.WriteLine($"✓ Snapshot created at event {events.Count}");
-    Console.WriteLine($"  Snapshot captures: {currentAccount.Data.Transactions.Count} transactions\n");
+    Console.WriteLine($"  Snapshot captures: {currentAccount.Data!.Transactions.Count} transactions\n");
 }
 
 // Phase 7: Audit and compliance
@@ -167,7 +167,7 @@ Console.WriteLine("=== PHASE 8: Final Verification ===\n");
 var finalAccount = await accountService.GetAccountAsync(accountId);
 if (finalAccount.IsSuccess)
 {
-    var account = finalAccount.Data;
+    var account = finalAccount.Data!;
     Console.WriteLine($"✓ Account State:");
     Console.WriteLine($"  Holder: {account.AccountHolderName}");
     Console.WriteLine($"  Balance: {account.Balance.CurrentAmount} USD");

@@ -5,8 +5,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 /// <summary>
@@ -84,6 +82,7 @@ public static class PagedResultExtensions
     /// <summary>
     /// Projects each item in the page using the specified selector function.
     /// </summary>
+    /// <param name="result">The paged result whose items are projected.</param>
     /// <param name="selector">A transform function to apply to each item.</param>
     /// <returns>A new <see cref="PagedResult{TResult}"/> with the projected items.</returns>
     /// <exception cref="ArgumentNullException">
@@ -110,6 +109,7 @@ public static class PagedResultExtensions
     /// <summary>
     /// Filters the page items using the specified predicate.
     /// </summary>
+    /// <param name="result">The paged result whose items are filtered.</param>
     /// <param name="predicate">A function to test each item for a condition.</param>
     /// <returns>A new <see cref="PagedResult{T}"/> containing only the items that match the predicate.</returns>
     /// <exception cref="ArgumentNullException">

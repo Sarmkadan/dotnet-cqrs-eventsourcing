@@ -13,17 +13,37 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 /// </summary>
 public class PagedResult<T>
 {
+    /// <summary>Gets or sets the items on the current page.</summary>
     public List<T> Items { get; set; } = new();
+
+    /// <summary>Gets or sets the one-based number of the current page.</summary>
     public int PageNumber { get; set; }
+
+    /// <summary>Gets or sets the maximum number of items per page.</summary>
     public int PageSize { get; set; }
+
+    /// <summary>Gets or sets the total number of items across all pages.</summary>
     public long TotalCount { get; set; }
+
+    /// <summary>Gets the total number of pages, derived from <see cref="TotalCount"/> and <see cref="PageSize"/>.</summary>
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+
+    /// <summary>Gets a value indicating whether a page precedes the current page.</summary>
     public bool HasPreviousPage => PageNumber > 1;
+
+    /// <summary>Gets a value indicating whether a page follows the current page.</summary>
     public bool HasNextPage => PageNumber < TotalPages;
 
+    /// <summary>
+    /// Returns a string representation of the paging state and items.
+    /// </summary>
+    /// <returns>A string describing the items, page number, page size and total count.</returns>
     public override string ToString() => $"PagedResult {{ Items = {Items}, PageNumber = {PageNumber}, PageSize = {PageSize}, TotalCount = {TotalCount} }}";
 }
 
+/// <summary>
+/// Static helpers for paginating collections and queryables and validating paging parameters.
+/// </summary>
 public static class PaginationHelper
 {
     internal const int DefaultPageNumber = 1;

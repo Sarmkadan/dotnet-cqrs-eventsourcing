@@ -4,9 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System;
 using DotNetCqrsEventSourcing.Domain.Events;
-using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
@@ -178,7 +176,9 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     private static AccountReadModel? ApplyDeposited(AccountReadModel? current, MoneyDepositedEvent e)
     {
         if (current is null)
+        {
             return null;
+        }
 
         current.CurrentBalance += e.Amount;
         current.TotalDeposited += e.Amount;
@@ -192,7 +192,9 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     private static AccountReadModel? ApplyWithdrawn(AccountReadModel? current, MoneyWithdrawnEvent e)
     {
         if (current is null)
+        {
             return null;
+        }
 
         current.CurrentBalance -= e.Amount;
         current.TotalWithdrawn += e.Amount;
@@ -206,7 +208,9 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     private static AccountReadModel? ApplyBalanceUpdated(AccountReadModel? current, BalanceUpdatedEvent e)
     {
         if (current is null)
+        {
             return null;
+        }
 
         current.CurrentBalance = e.NewBalance;
         return current;
@@ -215,7 +219,9 @@ public sealed class AccountProjector : IReadModelProjector<AccountReadModel>
     private static AccountReadModel? ApplyClosed(AccountReadModel? current, AccountClosedEvent e)
     {
         if (current is null)
+        {
             return null;
+        }
 
         current.Status         = AccountReadModelStatus.Closed;
         current.ClosedAt       = e.OccurredAt;

@@ -9,7 +9,6 @@ using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Domain.Events;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 using DotNetCqrsEventSourcing.Shared.Results;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -100,13 +99,14 @@ public sealed class ReadModelProjectionEngine : IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
-        ArgumentNullException.ThrowIfNull(cancellationToken);
 
         _logger.LogInformation("Starting projection rebuild for aggregate {AggregateId}.", aggregateId);
 
         var eventsResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
         if (!eventsResult.IsSuccess)
+        {
             return Result<ProjectionRebuildResult>.Failure(eventsResult.ErrorCode!, eventsResult.ErrorMessage!);
+        }
 
         var events = eventsResult.Data!;
         var failedIds = new List<string>();
@@ -115,7 +115,9 @@ public sealed class ReadModelProjectionEngine : IDisposable
         {
             var routeResult = await RouteAsync(@event, cancellationToken);
             if (!routeResult.IsSuccess)
+            {
                 failedIds.Add(@event.EventId);
+            }
         }
 
         var summary = new ProjectionRebuildResult(aggregateId, events.Count, failedIds, DateTime.UtcNow);
@@ -139,10 +141,11 @@ public sealed class ReadModelProjectionEngine : IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(aggregateIds);
-        ArgumentNullException.ThrowIfNull(cancellationToken);
 
         if (_options.ClearCheckpointsBeforeRebuild)
+        {
             _checkpoints.Clear();
+        }
 
         var results = new List<ProjectionRebuildResult>();
 
@@ -150,8 +153,10 @@ public sealed class ReadModelProjectionEngine : IDisposable
         {
             var result = await RebuildAsync(id, cancellationToken);
             if (!result.IsSuccess)
+            {
                 return Result<IReadOnlyList<ProjectionRebuildResult>>.Failure(
                     result.ErrorCode!, result.ErrorMessage!);
+            }
 
             results.Add(result.Data!);
         }
@@ -177,16 +182,20 @@ public sealed class ReadModelProjectionEngine : IDisposable
         var result = await RouteAsync(@event, CancellationToken.None);
 
         if (!result.IsSuccess)
+        {
             _logger.LogError(
                 "Projection routing failed for event {EventId} ({EventType}): {Error}",
                 @event.EventId, @event.GetEventType(), result.ErrorMessage);
+        }
     }
 
     private async Task<Result> RouteAsync(DomainEvent @event, CancellationToken cancellationToken)
     {
         var capable = _runners.Where(r => r.CanHandle(@event)).ToList();
         if (capable.Count == 0)
+        {
             return Result.Success();
+        }
 
         using var semaphore = new SemaphoreSlim(_options.MaxConcurrentProjectors, _options.MaxConcurrentProjectors);
         var errors = new ConcurrentBag<string>();
@@ -198,9 +207,13 @@ public sealed class ReadModelProjectionEngine : IDisposable
             {
                 var result = await ApplyWithRetryAsync(runner, @event, cancellationToken);
                 if (!result.IsSuccess)
+                {
                     errors.Add($"[{runner.ProjectionName}] {result.ErrorMessage}");
+                }
                 else
+                {
                     AdvanceCheckpoint(runner.ProjectionName, @event);
+                }
             }
             finally
             {
@@ -271,12 +284,16 @@ public sealed class ReadModelProjectionEngine : IDisposable
     private void AdvanceCheckpoint(string projectionName, DomainEvent @event)
     {
         if (!_options.EnableCheckpointing)
+        {
             return;
+        }
 
         var total = _processingCounters.AddOrUpdate(projectionName, 1, (_, c) => c + 1);
 
         if (total % _options.CheckpointInterval != 0)
+        {
             return;
+        }
 
         _checkpoints[projectionName] = new ProjectionCheckpoint(
             projectionName,
@@ -294,7 +311,9 @@ public sealed class ReadModelProjectionEngine : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _eventBus.Unsubscribe<DomainEvent>(_eventHandler);
         _disposed = true;

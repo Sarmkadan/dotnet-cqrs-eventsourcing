@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using DotNetCqrsEventSourcing.Infrastructure.Caching;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -29,7 +26,7 @@ public class CacheServiceTests
 
     /// <summary>
     /// Verifies that a value whose expiration has elapsed is not returned
-    /// by <see cref="InMemoryCacheService.GetAsync{T}(string)"/>.
+    /// by <see cref="InMemoryCacheService.GetAsync{T}"/>.
     /// </summary>
     /// <returns>
     /// A <see cref="Task"/> that completes when the assertion has been performed.
@@ -172,7 +169,7 @@ public class CacheServiceTests
         var key = "get-or-create-key";
         var factoryCallCount = 0;
 
-        Func<CancellationToken, Task<string>> factory = async ct =>
+        Func<CancellationToken, Task<string?>> factory = async ct =>
         {
             factoryCallCount++;
             await Task.Delay(10, ct);

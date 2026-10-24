@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 // Adjusted namespace to match the existing test files
-namespace DotNetCqrsEventSourcing.Tests.Application.Sagas
-{
+namespace DotNetCqrsEventSourcing.Tests.Application.Sagas;
+
 	/// <summary>
 	/// Validation helpers for <see cref="TestSaga"/>.
 	/// </summary>
@@ -65,4 +61,3 @@ namespace DotNetCqrsEventSourcing.Tests.Application.Sagas
 			}
 		}
 	}
-}

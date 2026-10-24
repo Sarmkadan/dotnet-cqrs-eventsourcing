@@ -21,17 +21,59 @@ public sealed class AggregateSnapshot
     /// </summary>
     public const int CurrentSchemaVersion = 1;
 
+    /// <summary>
+    /// Gets or sets the unique identifier of the snapshot.
+    /// </summary>
     public string Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the aggregate the snapshot belongs to.
+    /// </summary>
     public string AggregateId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the type of the aggregate the snapshot belongs to.
+    /// </summary>
     public string AggregateType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate version captured by the snapshot.
+    /// </summary>
     public long Version { get; set; }
+
+    /// <summary>
+    /// Gets or sets the serialized state of the aggregate.
+    /// </summary>
     public string AggregateData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC date and time at which the snapshot was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the integrity checksum of the snapshot, or <see langword="null"/> if none has been computed.
+    /// </summary>
     public string? Checksum { get; set; }
+
+    /// <summary>
+    /// Gets or sets the size of the snapshot data in bytes after compression.
+    /// </summary>
     public int CompressedSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets the size of the snapshot data in bytes before compression.
+    /// </summary>
     public int UncompressedSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the snapshot data is compressed.
+    /// </summary>
     public bool IsCompressed { get; set; }
 
+    /// <summary>
+    /// Initializes a new, empty instance of the <see cref="AggregateSnapshot"/> class for deserialization.
+    /// </summary>
     public AggregateSnapshot()
     {
         Id = Guid.NewGuid().ToString();
@@ -42,6 +84,13 @@ public sealed class AggregateSnapshot
         SchemaVersion = CurrentSchemaVersion;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AggregateSnapshot"/> class with the specified aggregate state.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the aggregate.</param>
+    /// <param name="aggregateType">The type of the aggregate.</param>
+    /// <param name="version">The aggregate version captured by the snapshot.</param>
+    /// <param name="aggregateData">The serialized state of the aggregate.</param>
     public AggregateSnapshot(string aggregateId, string aggregateType, long version, string aggregateData)
         : this()
     {
@@ -69,7 +118,9 @@ public sealed class AggregateSnapshot
     public bool VerifyChecksum()
     {
         if (string.IsNullOrEmpty(Checksum))
+        {
             return false;
+        }
 
         var expectedChecksum = Checksum;
         ComputeChecksum();
@@ -91,7 +142,9 @@ public sealed class AggregateSnapshot
     public double GetCompressionRatio()
     {
         if (UncompressedSize == 0)
+        {
             return 0;
+        }
 
         return 100.0 * (1 - (double)CompressedSize / UncompressedSize);
     }
@@ -114,6 +167,10 @@ public sealed class AggregateSnapshot
         }
     }
 
+    /// <summary>
+    /// Returns a string representation of the snapshot including its aggregate, version, size, creation time and schema version.
+    /// </summary>
+    /// <returns>A formatted string describing the snapshot.</returns>
     public override string ToString()
         => $"AggregateSnapshot {{ AggregateId={AggregateId}, Version={Version}, Size={GetSizeInKilobytes()}KB, CreatedAt={CreatedAt:yyyy-MM-dd HH:mm:ss}, SchemaVersion={SchemaVersion} }}";
 }

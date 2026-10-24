@@ -5,8 +5,8 @@
 // =============================================================================
 
 using System.Globalization;
-using System.Text;
 using System.Reflection;
+using System.Text;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Formatters;
 
@@ -147,17 +147,26 @@ public class CsvFormatter : ICsvFormatter
     /// </summary>
     private static object? GetPropertyValue<T>(T item, string propertyName)
     {
-        if (item is null) return null;
+        if (item is null)
+        {
+            return null;
+        }
 
         var parts = propertyName.Split('.');
         object? current = item;
 
         foreach (var part in parts)
         {
-            if (current is null) return null;
+            if (current is null)
+            {
+                return null;
+            }
 
             var property = current.GetType().GetProperty(part, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
-            if (property is null) return null;
+            if (property is null)
+            {
+                return null;
+            }
 
             current = property.GetValue(current);
         }

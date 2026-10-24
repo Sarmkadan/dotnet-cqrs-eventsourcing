@@ -68,10 +68,14 @@ public class Balance : IEquatable<Balance>
     public void AddFunds(Money amount)
     {
         if (amount is null)
+        {
             throw new ArgumentNullException(nameof(amount));
+        }
 
         if (!amount.Currency.Equals(CurrentAmount.Currency, StringComparison.OrdinalIgnoreCase))
+        {
             throw new DomainException("Cannot add funds in different currency.", "CURRENCY_MISMATCH");
+        }
 
         CurrentAmount = CurrentAmount.Add(amount);
         AvailableAmount = AvailableAmount.Add(amount);
@@ -90,13 +94,19 @@ public class Balance : IEquatable<Balance>
     public void RemoveFunds(Money amount)
     {
         if (amount is null)
+        {
             throw new ArgumentNullException(nameof(amount));
+        }
 
         if (!amount.Currency.Equals(CurrentAmount.Currency, StringComparison.OrdinalIgnoreCase))
+        {
             throw new DomainException("Cannot remove funds in different currency.", "CURRENCY_MISMATCH");
+        }
 
         if (AvailableAmount.IsLessThan(amount))
+        {
             throw new DomainException($"Insufficient available balance. Available: {AvailableAmount}, Requested: {amount}", "INSUFFICIENT_FUNDS");
+        }
 
         CurrentAmount = CurrentAmount.Subtract(amount);
         AvailableAmount = AvailableAmount.Subtract(amount);
@@ -115,13 +125,19 @@ public class Balance : IEquatable<Balance>
     public void PlaceHold(Money amount)
     {
         if (amount is null)
+        {
             throw new ArgumentNullException(nameof(amount));
+        }
 
         if (!amount.Currency.Equals(CurrentAmount.Currency, StringComparison.OrdinalIgnoreCase))
+        {
             throw new DomainException("Cannot place hold in different currency.", "CURRENCY_MISMATCH");
+        }
 
         if (AvailableAmount.IsLessThan(amount))
+        {
             throw new DomainException("Insufficient available balance for hold.", "INSUFFICIENT_FUNDS");
+        }
 
         AvailableAmount = AvailableAmount.Subtract(amount);
         HoldAmount = HoldAmount.Add(amount);
@@ -139,13 +155,19 @@ public class Balance : IEquatable<Balance>
     public void ReleaseHold(Money amount)
     {
         if (amount is null)
+        {
             throw new ArgumentNullException(nameof(amount));
+        }
 
         if (!amount.Currency.Equals(HoldAmount.Currency, StringComparison.OrdinalIgnoreCase))
+        {
             throw new DomainException("Cannot release hold in different currency.", "CURRENCY_MISMATCH");
+        }
 
         if (HoldAmount.IsLessThan(amount))
+        {
             throw new DomainException("Hold amount to release exceeds current hold.", "INVALID_HOLD_RELEASE");
+        }
 
         HoldAmount = HoldAmount.Subtract(amount);
         AvailableAmount = AvailableAmount.Add(amount);
@@ -160,7 +182,9 @@ public class Balance : IEquatable<Balance>
     public bool Equals(Balance? other)
     {
         if (other is null)
+        {
             return false;
+        }
 
         return CurrentAmount == other.CurrentAmount &&
                AvailableAmount == other.AvailableAmount &&

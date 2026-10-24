@@ -4,10 +4,10 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Shared.Results;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Concurrency Example ===\n");
 
@@ -107,7 +107,7 @@ Console.WriteLine("5. Verifying final state consistency...\n");
 var finalResult = await accountService.GetAccountAsync("ACC-CONCURRENT-001");
 if (finalResult.IsSuccess)
 {
-    var finalAccount = finalResult.Data;
+    var finalAccount = finalResult.Data!;
     Console.WriteLine($"  Final balance: {finalAccount.Balance.CurrentAmount} USD");
     Console.WriteLine($"  Total transactions: {finalAccount.Transactions.Count}");
 

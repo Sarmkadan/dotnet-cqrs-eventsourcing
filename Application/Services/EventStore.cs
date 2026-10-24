@@ -6,13 +6,12 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
-using Domain.Events;
 using Data.Repositories;
-using Microsoft.Extensions.Logging;
-using Shared.Constants;
-using Shared.Results;
-using Shared.Exceptions;
+using Domain.Events;
 using Infrastructure.Events;
+using Microsoft.Extensions.Logging;
+using Shared.Exceptions;
+using Shared.Results;
 
 /// <summary>
 /// Event store implementation handling persistence, retrieval, and replay of domain events.
@@ -58,15 +57,21 @@ public class EventStore : IEventStore
         try
         {
             if (events == null)
+            {
                 throw new ArgumentNullException(nameof(events));
+            }
 
             if (events.Count == 0)
+            {
                 throw new ValidationException("Event list cannot be empty.")
                     .WithError(nameof(events), "At least one event is required");
+            }
 
             if (events.Any(e => e == null))
+            {
                 throw new ValidationException("Event list cannot contain null events.")
                     .WithError(nameof(events), "Null events are not allowed");
+            }
 
             var envelopes = events.Select(e =>
             {
@@ -114,12 +119,16 @@ public class EventStore : IEventStore
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
+            {
                 throw new ValidationException("Aggregate ID cannot be null or whitespace.")
                     .WithError(nameof(aggregateId), "Aggregate ID is required");
+            }
 
             var result = await _eventRepository.GetEventsByAggregateIdAsync(aggregateId, cancellationToken);
             if (!result.IsSuccess)
+            {
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
+            }
 
             var domainEvents = DeserializeEvents(result.Data!);
             _logger.LogInformation("Retrieved event stream for aggregate {AggregateId} with {EventCount} events", aggregateId, domainEvents.Count);
@@ -149,16 +158,22 @@ public class EventStore : IEventStore
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
+            {
                 throw new ValidationException("Aggregate ID cannot be null or whitespace.")
                     .WithError(nameof(aggregateId), "Aggregate ID is required");
+            }
 
             if (fromVersion <= 0)
+            {
                 throw new ValidationException("From version must be positive.")
                     .WithError(nameof(fromVersion), "From version must be greater than zero");
+            }
 
             var result = await _eventRepository.GetEventsByAggregateIdAndVersionAsync(aggregateId, fromVersion, cancellationToken);
             if (!result.IsSuccess)
+            {
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
+            }
 
             var domainEvents = DeserializeEvents(result.Data!);
             return Result<List<DomainEvent>>.Success(domainEvents);
@@ -185,8 +200,10 @@ public class EventStore : IEventStore
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
+            {
                 throw new ValidationException("Aggregate ID cannot be null or whitespace.")
                     .WithError(nameof(aggregateId), "Aggregate ID is required");
+            }
 
             return await _eventRepository.GetAggregateVersionAsync(aggregateId, cancellationToken);
         }
@@ -212,12 +229,16 @@ public class EventStore : IEventStore
         try
         {
             if (string.IsNullOrWhiteSpace(aggregateId))
+            {
                 throw new ValidationException("Aggregate ID cannot be null or whitespace.")
                     .WithError(nameof(aggregateId), "Aggregate ID is required");
+            }
 
             var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
             if (!streamResult.IsSuccess)
+            {
                 return Result.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
+            }
 
             _logger.LogInformation("Replayed {EventCount} events for aggregate {AggregateId}", streamResult.Data!.Count, aggregateId);
             return Result.Success();
@@ -245,7 +266,9 @@ public class EventStore : IEventStore
         {
             var result = await _eventRepository.GetEventsByTypeAsync(eventType, cancellationToken);
             if (!result.IsSuccess)
+            {
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
+            }
 
             var domainEvents = DeserializeEvents(result.Data!);
             return Result<List<DomainEvent>>.Success(domainEvents);
@@ -269,7 +292,9 @@ public class EventStore : IEventStore
         {
             var streamResult = await GetEventStreamAsync(aggregateId, cancellationToken);
             if (!streamResult.IsSuccess)
+            {
                 return Result<int>.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
+            }
 
             return Result<int>.Success(streamResult.Data!.Count);
         }
@@ -294,7 +319,9 @@ public class EventStore : IEventStore
         {
             var result = await _eventRepository.GetEventsByPartitionKeyAsync(partitionKey, pageNumber, pageSize, cancellationToken);
             if (!result.IsSuccess)
+            {
                 return Result<List<DomainEvent>>.Failure(result.ErrorCode!, result.ErrorMessage!);
+            }
 
             var domainEvents = DeserializeEvents(result.Data!);
             _logger.LogInformation(
@@ -317,7 +344,9 @@ public class EventStore : IEventStore
         {
             var @event = DeserializeEvent(envelope);
             if (@event is not null)
+            {
                 events.Add(@event);
+            }
         }
         return events;
     }

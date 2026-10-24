@@ -5,9 +5,6 @@
 // =============================================================================
 
 namespace DotNetCqrsEventSourcing.Domain.ValueObjects;
-
-using System.Globalization;
-
 /// <summary>
 /// Provides validation helpers for <see cref="Transaction"/> value objects.
 /// </summary>

@@ -21,7 +21,9 @@ public static class MoneyExtensions
     public static bool IsZero(this Money money)
     {
         if (money is null)
+        {
             throw new ArgumentNullException(nameof(money));
+        }
 
         return money.Amount == 0;
     }
@@ -34,7 +36,9 @@ public static class MoneyExtensions
     public static bool IsPositive(this Money money)
     {
         if (money is null)
+        {
             throw new ArgumentNullException(nameof(money));
+        }
 
         return money.Amount > 0;
     }

@@ -138,7 +138,7 @@ public static class ValidationDecoratorExtensions
                 var failureMethod = resultType.GetMethod(nameof(Result.Failure));
                 if (failureMethod != null)
                 {
-                    return (TResult)failureMethod.Invoke(null, new object[] { validationErrors });
+                    return (TResult)failureMethod.Invoke(null, new object[] { validationErrors })!;
                 }
             }
 
@@ -185,7 +185,7 @@ public static class ValidationDecoratorExtensions
                 var failureMethod = resultType.GetMethod(nameof(Result.Failure));
                 if (failureMethod != null)
                 {
-                    return (TResult)failureMethod.Invoke(null, new object[] { validationErrors });
+                    return (TResult)failureMethod.Invoke(null, new object[] { validationErrors })!;
                 }
             }
 

@@ -28,6 +28,12 @@ public sealed class SagaOrchestrator
     private readonly IEventBus _eventBus;
     private readonly ILogger<SagaOrchestrator> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SagaOrchestrator"/> class.
+    /// </summary>
+    /// <param name="handlers">Saga handler wrappers that receive dispatched events.</param>
+    /// <param name="eventBus">Event bus used to publish events produced by sagas.</param>
+    /// <param name="logger">Logger used to record dispatch and failure information.</param>
     public SagaOrchestrator(
         IEnumerable<ISagaHandlerWrapper> handlers,
         IEventBus eventBus,
@@ -47,7 +53,9 @@ public sealed class SagaOrchestrator
         ArgumentNullException.ThrowIfNull(@event);
         var capable = _handlers.Where(h => h.CanHandle(@event)).ToList();
         if (capable.Count == 0)
+        {
             return Result.Success();
+        }
 
         _logger.LogInformation(
             "Dispatching {EventType} to {HandlerCount} saga handler(s).",
@@ -116,6 +124,10 @@ public sealed class SagaHandlerWrapper<TSaga, TEvent> : ISagaHandlerWrapper
     private readonly ISagaHandler<TSaga, TEvent> _inner;
     private List<DomainEvent> _latestOutbox = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SagaHandlerWrapper{TSaga,TEvent}"/> class.
+    /// </summary>
+    /// <param name="inner">The strongly-typed saga handler to delegate to.</param>
     public SagaHandlerWrapper(ISagaHandler<TSaga, TEvent> inner)
     {
         _inner = GuardClauses.NotNull(inner, nameof(inner));
@@ -133,7 +145,9 @@ public sealed class SagaHandlerWrapper<TSaga, TEvent> : ISagaHandlerWrapper
     {
         GuardClauses.NotNull(@event, nameof(@event));
         if (@event is not TEvent typed)
+        {
             return Result.Failure("WRONG_EVENT_TYPE", $"Expected {typeof(TEvent).Name} but got {@event.GetType().Name}.");
+        }
 
         return await _inner.HandleAsync(typed, cancellationToken);
     }

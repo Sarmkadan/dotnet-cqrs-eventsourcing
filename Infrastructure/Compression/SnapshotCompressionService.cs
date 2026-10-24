@@ -8,7 +8,6 @@ using System.IO.Compression;
 using System.Text;
 using DotNetCqrsEventSourcing.Domain.Snapshots;
 using DotNetCqrsEventSourcing.Shared.Results;
-using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Compression;
 
@@ -69,13 +68,19 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
         ArgumentNullException.ThrowIfNull(snapshot);
 
         if (snapshot.IsCompressed)
+        {
             return Result<AggregateSnapshot>.Success(snapshot);
+        }
 
         if (snapshot.AggregateData == null)
+        {
             return Result<AggregateSnapshot>.Failure("EMPTY_DATA", "Snapshot contains no data to compress");
-        
+        }
+
         if (string.IsNullOrWhiteSpace(snapshot.AggregateData) && snapshot.AggregateData != "")
+        {
             return Result<AggregateSnapshot>.Failure("EMPTY_DATA", "Snapshot contains only whitespace");
+        }
 
         try
         {
@@ -83,7 +88,9 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
 
             using var output = new MemoryStream();
             await using (var gzip = new GZipStream(output, level))
+            {
                 await gzip.WriteAsync(originalBytes, cancellationToken);
+            }
 
             var compressed = output.ToArray();
 
@@ -120,10 +127,14 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
         ArgumentNullException.ThrowIfNull(snapshot);
 
         if (!snapshot.IsCompressed)
+        {
             return Result<string>.Success(snapshot.AggregateData);
+        }
 
         if (string.IsNullOrWhiteSpace(snapshot.AggregateData))
+        {
             return Result<string>.Failure("EMPTY_DATA", "Snapshot contains no compressed data");
+        }
 
         try
         {
@@ -132,7 +143,9 @@ public sealed class SnapshotCompressionService : ISnapshotCompressionService
             using var input = new MemoryStream(compressedBytes);
             using var output = new MemoryStream();
             await using (var gzip = new GZipStream(input, CompressionMode.Decompress))
+            {
                 await gzip.CopyToAsync(output, cancellationToken);
+            }
 
             var decompressed = Encoding.UTF8.GetString(output.ToArray());
 

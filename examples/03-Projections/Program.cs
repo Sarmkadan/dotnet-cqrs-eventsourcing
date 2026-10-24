@@ -4,9 +4,9 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Projections Example ===\n");
 
@@ -34,7 +34,7 @@ if (!createResult.IsSuccess)
     return;
 }
 
-var account = createResult.Data;
+var account = createResult.Data!;
 Console.WriteLine($"✓ Account created with initial balance: {account.Balance.CurrentAmount} USD\n");
 
 // Perform multiple transactions

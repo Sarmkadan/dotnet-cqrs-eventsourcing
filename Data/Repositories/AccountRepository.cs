@@ -6,9 +6,9 @@
 
 namespace DotNetCqrsEventSourcing.Data.Repositories;
 
+using System.Text.Json;
 using Domain.AggregateRoots;
 using Domain.Events;
-using System.Text.Json;
 using Shared.Exceptions;
 using Shared.Results;
 
@@ -19,6 +19,10 @@ public class AccountRepository : IRepository<Account>
 {
     private readonly IEventRepository _eventRepository;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AccountRepository"/> class.
+    /// </summary>
+    /// <param name="eventRepository">Event repository used to read and append account events.</param>
     public AccountRepository(IEventRepository eventRepository)
     {
         ArgumentNullException.ThrowIfNull(eventRepository);
@@ -26,6 +30,13 @@ public class AccountRepository : IRepository<Account>
         _eventRepository = eventRepository;
     }
 
+    /// <summary>
+    /// Rehydrates the account with the specified identifier from its event stream.
+    /// </summary>
+    /// <param name="id">The account identifier.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing the rehydrated account, or a failure if it does not exist or cannot be loaded.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see langword="null"/>.</exception>
     public async Task<Result<Account>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -41,7 +52,9 @@ public class AccountRepository : IRepository<Account>
             eventsResult.ThrowIfFailure();
 
             if (eventsResult.Data!.Count == 0)
+            {
                 return Result<Account>.Failure("NOT_FOUND", $"Account {id} not found");
+            }
 
             // Reconstruct account from events
             var account = new Account(id);
@@ -56,6 +69,13 @@ public class AccountRepository : IRepository<Account>
         }
     }
 
+    /// <summary>
+    /// Appends the uncommitted events of the account to the event store and clears them on success.
+    /// </summary>
+    /// <param name="aggregate">The account whose uncommitted events should be persisted.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A success result when the events are persisted or there is nothing to save, or a failure otherwise.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="aggregate"/> is <see langword="null"/>.</exception>
     public async Task<Result> SaveAsync(Account aggregate, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(aggregate);
@@ -64,7 +84,9 @@ public class AccountRepository : IRepository<Account>
         {
             var uncommittedEvents = aggregate.GetUncommittedEvents();
             if (uncommittedEvents.Count == 0)
+            {
                 return Result.Success();
+            }
 
             // Serialize and wrap events
             var envelopes = uncommittedEvents
@@ -74,7 +96,9 @@ public class AccountRepository : IRepository<Account>
             // Persist to event store
             var saveResult = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken);
             if (!saveResult.IsSuccess)
+            {
                 return saveResult;
+            }
 
             aggregate.ClearUncommittedEvents();
 
@@ -86,6 +110,13 @@ public class AccountRepository : IRepository<Account>
         }
     }
 
+    /// <summary>
+    /// Reports a deletion request for the account. Event streams are never removed, so this always succeeds without modifying stored events.
+    /// </summary>
+    /// <param name="id">The account identifier.</param>
+    /// <param name="cancellationToken">Token to cancel the operation (not used).</param>
+    /// <returns>A completed task containing a success result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see langword="null"/>.</exception>
     public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -94,6 +125,11 @@ public class AccountRepository : IRepository<Account>
         return Task.FromResult(Result.Success());
     }
 
+    /// <summary>
+    /// Rehydrates all accounts found in the event store.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing the accounts that could be rehydrated, or a failure if event retrieval fails.</returns>
     public async Task<Result<List<Account>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -111,7 +147,9 @@ public class AccountRepository : IRepository<Account>
             {
                 var result = await GetByIdAsync(accountId, cancellationToken);
                 if (result.IsSuccess)
+                {
                     accounts.Add(result.Data!);
+                }
             }
 
             return Result<List<Account>>.Success(accounts);
@@ -122,6 +160,13 @@ public class AccountRepository : IRepository<Account>
         }
     }
 
+    /// <summary>
+    /// Determines whether an account with the specified identifier can be loaded.
+    /// </summary>
+    /// <param name="id">The account identifier to check.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><see langword="true"/> if the account exists; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see langword="null"/>.</exception>
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -148,7 +193,9 @@ public class AccountRepository : IRepository<Account>
             };
 
             if (domainEvent is not null)
+            {
                 events.Add(domainEvent);
+            }
         }
 
         return events;

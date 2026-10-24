@@ -1,6 +1,6 @@
 #nullable enable
-using Xunit;
 using DotNetCqrsEventSourcing.Infrastructure.Caching;
+using Xunit;
 
 namespace DotNetCqrsEventSourcing.Tests;
 

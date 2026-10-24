@@ -25,7 +25,9 @@ public sealed class EventNameAttribute : Attribute
     public EventNameAttribute(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new ArgumentException("Event name must not be null or whitespace.", nameof(name));
+        }
 
         Name = name;
     }

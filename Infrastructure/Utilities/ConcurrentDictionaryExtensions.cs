@@ -4,7 +4,6 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
@@ -24,6 +23,7 @@ public static class ConcurrentDictionaryExtensions
     /// <param name="value">The specific value instance that must be present to remove the entry.</param>
     /// <returns>True if the entry was removed; otherwise, false.</returns>
     public static bool TryRemoveEntry<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        where TKey : notnull
         where TValue : class
     {
         return dictionary.TryRemove(new KeyValuePair<TKey, TValue>(key, value));

@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Diagnostics.Windows.Configs;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 namespace DotNetCqrsEventSourcing.Benchmarks;

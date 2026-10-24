@@ -1,9 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Source of events for a <see cref="ProjectionEngine"/> projection.
@@ -48,6 +43,9 @@ public sealed class ProjectionEngine
     {
         ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         ArgumentNullException.ThrowIfNull(eventSource, nameof(eventSource));
+
+        _logger = logger;
+        _eventSource = eventSource;
     }
 
     /// <summary>
@@ -98,7 +96,9 @@ public sealed class ProjectionEngine
         var projectionState = _projections.GetOrAdd(projectionName, static name => new ProjectionState(name));
 
         if (Interlocked.CompareExchange(ref projectionState.Running, 1, 0) != 0)
+        {
             throw new InvalidOperationException($"Projection '{projectionName}' is already running.");
+        }
 
         var startingCheckpoint = projectionState.Checkpoint;
         _logger.LogInformation(

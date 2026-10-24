@@ -4,8 +4,8 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Reflection;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
@@ -34,6 +34,14 @@ public static class ReflectionUtilities
         return GetTypesImplementing(assembly, interfaceType);
     }
 
+    /// <summary>
+    /// Returns the concrete, non-abstract classes in an assembly that implement or derive from the specified interface type.
+    /// Results are cached per assembly and interface pair.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <param name="interfaceType">The interface type that matching classes must implement.</param>
+    /// <returns>The matching types.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="assembly"/> or <paramref name="interfaceType"/> is <see langword="null"/>.</exception>
     public static IEnumerable<Type> GetTypesImplementing(Assembly assembly, Type interfaceType)
     {
         ArgumentNullException.ThrowIfNull(assembly);
@@ -85,7 +93,10 @@ public static class ReflectionUtilities
     /// </summary>
     public static bool IsGenericTypeOf(Type type, Type genericTypeDefinition)
     {
-        if (!type.IsGenericType) return false;
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
 
         return type.GetGenericTypeDefinition() == genericTypeDefinition;
     }

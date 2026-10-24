@@ -4,7 +4,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System;
 using System.Runtime.Serialization;
 
 namespace DotNetCqrsEventSourcing.Domain.Events;
@@ -40,17 +39,6 @@ public sealed class UnknownEventTypeException : Exception
         : base(message)
     {
         EventTypeName = eventTypeName ?? throw new ArgumentNullException(nameof(eventTypeName));
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UnknownEventTypeException"/> class with serialization info.
-    /// </summary>
-    /// <param name="info">The serialization info.</param>
-    /// <param name="context">The streaming context.</param>
-    private UnknownEventTypeException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-    {
-        EventTypeName = info.GetString(nameof(EventTypeName)) ?? string.Empty;
     }
 
     /// <summary>

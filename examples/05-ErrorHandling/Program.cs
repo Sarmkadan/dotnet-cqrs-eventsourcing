@@ -4,10 +4,10 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Shared.Exceptions;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Error Handling Example ===\n");
 
@@ -130,7 +130,7 @@ Console.WriteLine($"Withdraw 400 (balance 350): {(scenario3.IsSuccess ? "✓ Suc
 var final = await accountService.GetAccountAsync("ACC-ERROR-001");
 if (final.IsSuccess)
 {
-    Console.WriteLine($"Final account balance: {final.Data.Balance.CurrentAmount} USD");
+    Console.WriteLine($"Final account balance: {final.Data!.Balance.CurrentAmount} USD");
 }
 
 Console.WriteLine("\n=== Example Complete ===");

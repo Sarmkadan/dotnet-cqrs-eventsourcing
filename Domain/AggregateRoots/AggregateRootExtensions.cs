@@ -8,8 +8,6 @@
 namespace DotNetCqrsEventSourcing.Domain.AggregateRoots;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 /// <summary>
 /// Extension methods for <see cref="AggregateRoot"/> providing common operations on aggregate roots.

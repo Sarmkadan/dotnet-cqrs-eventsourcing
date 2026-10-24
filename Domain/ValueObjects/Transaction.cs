@@ -111,7 +111,9 @@ public class Transaction : IEquatable<Transaction>
     public bool Equals(Transaction? other)
     {
         if (other is null)
+        {
             return false;
+        }
 
         return Id == other.Id && Type == other.Type && Amount == other.Amount;
     }

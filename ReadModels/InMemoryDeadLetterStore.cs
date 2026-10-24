@@ -4,13 +4,8 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DotNetCqrsEventSourcing.Shared.Results;
-using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 

@@ -147,7 +147,9 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
         var result = await _store.GetAsync(accountId, cancellationToken);
 
         if (!result.IsSuccess)
+        {
             _logger.LogDebug("Account read model not found for id '{AccountId}'.", accountId);
+        }
 
         return result;
     }
@@ -163,7 +165,9 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
             cancellationToken);
 
         if (!query.IsSuccess)
+        {
             return Result<AccountReadModel>.Failure(query.ErrorCode!, query.ErrorMessage!);
+        }
 
         var match = query.Data!.FirstOrDefault();
 
@@ -200,7 +204,9 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
             m => m.Status == AccountReadModelStatus.Active, cancellationToken);
 
         if (!active.IsSuccess)
+        {
             return active;
+        }
 
         IReadOnlyList<AccountReadModel> top = active.Data!
             .OrderByDescending(m => m.CurrentBalance)
@@ -230,7 +236,9 @@ internal sealed class AccountReadModelQueryService : IAccountReadModelQueryServi
         var all = await _store.GetAllAsync(cancellationToken);
 
         if (!all.IsSuccess)
+        {
             return Result<AccountPortfolioStatistics>.Failure(all.ErrorCode!, all.ErrorMessage!);
+        }
 
         var accounts = all.Data!;
         var active   = accounts.Where(a => a.Status == AccountReadModelStatus.Active).ToList();

@@ -30,7 +30,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         ArgumentNullException.ThrowIfNull(model);
 
         lock (_lock)
+        {
             _store[key] = model;
+        }
 
         return Task.FromResult(Result.Success());
     }
@@ -57,7 +59,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         IReadOnlyList<TReadModel> snapshot;
 
         lock (_lock)
+        {
             snapshot = _store.Values.ToList();
+        }
 
         return Task.FromResult(Result<IReadOnlyList<TReadModel>>.Success(snapshot));
     }
@@ -72,7 +76,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         IReadOnlyList<TReadModel> matches;
 
         lock (_lock)
+        {
             matches = _store.Values.Where(predicate).ToList();
+        }
 
         return Task.FromResult(Result<IReadOnlyList<TReadModel>>.Success(matches));
     }
@@ -84,7 +90,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         ArgumentException.ThrowIfNullOrEmpty(key);
 
         lock (_lock)
+        {
             _store.Remove(key);
+        }
 
         return Task.FromResult(Result.Success());
     }
@@ -95,7 +103,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
         int count;
 
         lock (_lock)
+        {
             count = _store.Count;
+        }
 
         return Task.FromResult(Result<int>.Success(count));
     }
@@ -104,7 +114,9 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     public Task ClearAsync(CancellationToken cancellationToken = default)
     {
         lock (_lock)
+        {
             _store.Clear();
+        }
 
         return Task.CompletedTask;
     }
@@ -116,6 +128,8 @@ public sealed class InMemoryReadModelStore<TReadModel> : IReadModelStore<TReadMo
     public IReadOnlyList<string> GetAllKeys()
     {
         lock (_lock)
+        {
             return _store.Keys.ToList();
+        }
     }
 }

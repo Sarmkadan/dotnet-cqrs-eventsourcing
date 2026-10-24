@@ -98,7 +98,10 @@ public static class SerializationUtilities
     /// </summary>
     public static Dictionary<string, object?> Todictionary<T>(T obj) where T : class
     {
-        if (obj is null) return new();
+        if (obj is null)
+        {
+            return new();
+        }
 
         var json = ToJson(obj);
         using var doc = JsonDocument.Parse(json);
@@ -119,7 +122,10 @@ public static class SerializationUtilities
     /// </summary>
     public static T? DeepClone<T>(T? obj) where T : class
     {
-        if (obj is null) return null;
+        if (obj is null)
+        {
+            return null;
+        }
 
         var json = ToJson(obj);
         return FromJson<T>(json);
@@ -131,7 +137,10 @@ public static class SerializationUtilities
     /// </summary>
     public static T? MergeJson<T>(T existing, string patch) where T : class
     {
-        if (existing is null) return null;
+        if (existing is null)
+        {
+            return null;
+        }
 
         var currentJson = ToJson(existing);
         using var currentDoc = JsonDocument.Parse(currentJson);

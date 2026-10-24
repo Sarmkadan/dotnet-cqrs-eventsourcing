@@ -69,7 +69,9 @@ public static class AggregateSnapshotExtensions
         ArgumentNullException.ThrowIfNull(snapshot);
 
         if (other is null)
+        {
             return true;
+        }
 
         return snapshot.Version > other.Version
             || (snapshot.Version == other.Version && snapshot.CreatedAt > other.CreatedAt);

@@ -28,7 +28,7 @@ public static class ResultExtensions
     /// <param name="result">The result.</param>
     /// <param name="action">The action to execute on failure, receiving the error message.</param>
     /// <returns>The original result for chaining.</returns>
-    public static Result OnFailure(this Result result, Action<string> action)
+    public static Result OnFailure(this Result result, Action<string?> action)
     {
         if (!result.IsSuccess)
         {

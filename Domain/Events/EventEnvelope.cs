@@ -120,7 +120,9 @@ public sealed class EventEnvelope
     public bool VerifyChecksum()
     {
         if (string.IsNullOrEmpty(ChecksumHash))
+        {
             return false;
+        }
 
         ComputeChecksum();
         return ChecksumHash == ComputeSha256Hash($"{AggregateId}:{AggregateVersion}:{EventType}:{EventData}");

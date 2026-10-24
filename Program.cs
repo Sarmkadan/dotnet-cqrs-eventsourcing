@@ -4,8 +4,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Infrastructure.Cli;
@@ -87,13 +85,17 @@ try
     logger.LogInformation("\n2. Depositing funds...");
     var depositResult = await accountService.DepositAsync(account.Id, 500m, "Initial deposit");
     if (depositResult.IsSuccess)
+    {
         logger.LogInformation("Deposit successful");
+    }
 
     // 3. Withdraw funds
     logger.LogInformation("\n3. Withdrawing funds...");
     var withdrawResult = await accountService.WithdrawAsync(account.Id, 200m, "Withdrawal");
     if (withdrawResult.IsSuccess)
+    {
         logger.LogInformation("Withdrawal successful");
+    }
 
     // 4. Get updated account
     logger.LogInformation("\n4. Retrieving updated account...");

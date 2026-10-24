@@ -1,9 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
 using DotNetCqrsEventSourcing.Infrastructure.Cli;
 using DotNetCqrsEventSourcing.Shared.Results;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections.Generic;
 
 namespace DotNetCqrsEventSourcing.Benchmarks;
 

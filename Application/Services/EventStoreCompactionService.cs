@@ -26,6 +26,12 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
     private readonly ISnapshotService _snapshotService;
     private readonly ILogger<EventStoreCompactionService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventStoreCompactionService"/> class.
+    /// </summary>
+    /// <param name="eventRepository">Event repository from which old events are deleted.</param>
+    /// <param name="snapshotService">Snapshot service used to determine the safe cut-off version.</param>
+    /// <param name="logger">Logger used to record compaction activity.</param>
     public EventStoreCompactionService(
         IEventRepository eventRepository,
         ISnapshotService snapshotService,
@@ -71,9 +77,11 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         ArgumentException.ThrowIfNullOrEmpty(aggregateId);
 
         if (keepFromVersion <= MinimumKeepFromVersion)
+        {
             return Result<CompactionResult>.Failure(
                 InvalidVersionErrorCode,
                 "keepFromVersion must be greater than zero.");
+        }
 
         _logger.LogInformation(
             "Compacting event stream for aggregate {AggregateId} – deleting events before version {Version}.",
@@ -85,7 +93,9 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
                 aggregateId, keepFromVersion, cancellationToken);
 
             if (!deleteResult.IsSuccess)
+            {
                 return Result<CompactionResult>.Failure(deleteResult.ErrorCode!, deleteResult.ErrorMessage!);
+            }
 
             var compaction = new CompactionResult(
                 aggregateId,
@@ -119,7 +129,9 @@ public sealed class EventStoreCompactionService : IEventStoreCompactionService
         {
             var result = await CompactAsync(id, cancellationToken);
             if (result.IsSuccess)
+            {
                 results.Add(result.Data!);
+            }
             // Aggregates without snapshots are silently skipped (CompactAsync already logs a warning).
         }
 

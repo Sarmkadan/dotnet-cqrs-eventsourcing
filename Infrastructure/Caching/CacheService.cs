@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Caching;
@@ -45,6 +44,10 @@ public interface ICacheService
     Task<T?> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T?>> factory, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class;
 }
 
+/// <summary>
+/// Thread-safe in-memory implementation of <see cref="ICacheService"/> with per-key locking,
+/// optional expiration, and periodic eviction of expired entries.
+/// </summary>
 public class InMemoryCacheService : ICacheService, IDisposable
 {
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
@@ -59,6 +62,10 @@ public class InMemoryCacheService : ICacheService, IDisposable
     private const double DefaultTtlSeconds = 0;
     private const string WildcardPattern = "*";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InMemoryCacheService"/> class and starts the eviction timer.
+    /// </summary>
+    /// <param name="logger">Logger used to record cache activity.</param>
     public InMemoryCacheService(ILogger<InMemoryCacheService> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -69,6 +76,13 @@ public class InMemoryCacheService : ICacheService, IDisposable
         _evictionTimer = new Timer(EvictExpiredEntries, null, TimeSpan.FromMinutes(EvictionIntervalMinutes), TimeSpan.FromMinutes(EvictionIntervalMinutes));
     }
 
+    /// <summary>
+    /// Retrieves a cached value by key, returning <see langword="null"/> when it is missing or expired.
+    /// </summary>
+    /// <typeparam name="T">The reference type of the cached value.</typeparam>
+    /// <param name="key">The cache key.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The cached value, or <see langword="null"/> if no live entry exists.</returns>
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -94,6 +108,15 @@ public class InMemoryCacheService : ICacheService, IDisposable
         return Task.FromResult<T?>(null);
     }
 
+    /// <summary>
+    /// Stores a value under the specified key, replacing any existing entry.
+    /// </summary>
+    /// <typeparam name="T">The reference type of the value to cache.</typeparam>
+    /// <param name="key">The cache key.</param>
+    /// <param name="value">The value to cache.</param>
+    /// <param name="expiration">Optional lifetime of the entry; when <see langword="null"/> the entry does not expire.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -116,6 +139,12 @@ public class InMemoryCacheService : ICacheService, IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Removes the entry with the specified key, if present.
+    /// </summary>
+    /// <param name="key">The cache key to remove.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -129,6 +158,12 @@ public class InMemoryCacheService : ICacheService, IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Removes all entries whose keys match the specified wildcard pattern.
+    /// </summary>
+    /// <param name="pattern">The wildcard pattern to match keys against.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pattern);
@@ -148,6 +183,15 @@ public class InMemoryCacheService : ICacheService, IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Returns the cached value for the key, or creates it with the factory and caches the result when it is missing.
+    /// </summary>
+    /// <typeparam name="T">The reference type of the cached value.</typeparam>
+    /// <param name="key">The cache key.</param>
+    /// <param name="factory">Delegate that produces the value on a cache miss.</param>
+    /// <param name="expiration">Optional lifetime of the created entry; when <see langword="null"/> the entry does not expire.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The cached or newly created value.</returns>
     public async Task<T?> GetOrCreateAsync<T>(
         string key,
         Func<CancellationToken, Task<T?>> factory,
@@ -236,12 +280,21 @@ public class InMemoryCacheService : ICacheService, IDisposable
     /// </summary>
     private static bool MatchesPattern(string key, string pattern)
     {
-        if (pattern == WildcardPattern) return true;
+        if (pattern == WildcardPattern)
+        {
+            return true;
+        }
 
         var patternParts = pattern.Split('*');
-        if (patternParts.Length == 1) return key == pattern;
+        if (patternParts.Length == 1)
+        {
+            return key == pattern;
+        }
 
-        if (!key.StartsWith(patternParts[0], StringComparison.Ordinal)) return false;
+        if (!key.StartsWith(patternParts[0], StringComparison.Ordinal))
+        {
+            return false;
+        }
 
         // Consume the prefix so the remaining segments cannot overlap with it.
         key = key[patternParts[0].Length..];
@@ -249,7 +302,11 @@ public class InMemoryCacheService : ICacheService, IDisposable
         for (int i = 1; i < patternParts.Length - 1; i++)
         {
             var index = key.IndexOf(patternParts[i], StringComparison.Ordinal);
-            if (index < 0) return false;
+            if (index < 0)
+            {
+                return false;
+            }
+
             key = key[(index + patternParts[i].Length)..];
         }
 
@@ -290,10 +347,20 @@ public class InMemoryCacheService : ICacheService, IDisposable
     }
 }
 
+/// <summary>
+/// Point-in-time statistics describing the contents of a cache.
+/// </summary>
 public sealed class CacheStatistics
 {
+    /// <summary>Gets or sets the number of entries currently held in the cache.</summary>
     public int TotalEntries { get; set; }
+
+    /// <summary>Gets or sets the total number of cache hits recorded across all entries.</summary>
     public long TotalHits { get; set; }
+
+    /// <summary>Gets or sets the number of entries that have passed their expiration time.</summary>
     public int ExpiredEntries { get; set; }
+
+    /// <summary>Gets or sets the average age of the cached entries.</summary>
     public TimeSpan AverageEntryAge { get; set; }
 }

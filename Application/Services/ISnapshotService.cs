@@ -111,10 +111,45 @@ public sealed class AggregateSnapshot
 /// </summary>
 public interface ISnapshotService
 {
+    /// <summary>
+    /// Stores a serialized snapshot for the specified aggregate, replacing any existing snapshot for it.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier the snapshot belongs to.</param>
+    /// <param name="version">The aggregate version the snapshot is taken at.</param>
+    /// <param name="aggregateData">The serialized aggregate state.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result indicating whether the snapshot was stored.</returns>
     Task<Result> CreateSnapshotAsync(string aggregateId, long version, string aggregateData, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the most recent snapshot for the specified aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier to look up.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing the serialized aggregate data and its version, or a failure if no snapshot is available.</returns>
     Task<Result<(string AggregateData, long Version)>> GetLatestSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes the snapshot stored for the specified aggregate, if any.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier whose snapshot should be removed.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result indicating whether the deletion succeeded.</returns>
     Task<Result> DeleteSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks whether a snapshot exists for the specified aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier to check.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result whose value is <see langword="true"/> when a snapshot exists.</returns>
     Task<Result<bool>> HasSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the total number of snapshots currently stored.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing the number of stored snapshots.</returns>
     Task<Result<int>> GetSnapshotCountAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -153,7 +188,9 @@ public interface ISnapshotService
 
         var snapshotResult = await GetLatestSnapshotAsync(aggregateId, cancellationToken);
         if (!snapshotResult.IsSuccess)
+        {
             return null;
+        }
 
         var aggregateJson = AggregateSnapshot.TryUnwrapCurrentSchema(snapshotResult.Data.AggregateData);
         return aggregateJson is null

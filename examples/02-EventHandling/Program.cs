@@ -4,10 +4,10 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Domain.Events;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Event Handling Example ===\n");
 
@@ -83,7 +83,7 @@ Console.WriteLine("5. Final account state...");
 var finalResult = await accountService.GetAccountAsync("ACC-EVENTS-001");
 if (finalResult.IsSuccess)
 {
-    var account = finalResult.Data;
+    var account = finalResult.Data!;
     Console.WriteLine($"  Balance: {account.Balance.CurrentAmount} USD");
     Console.WriteLine($"  Total Transactions: {account.Transactions.Count}");
 }

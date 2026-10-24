@@ -80,6 +80,9 @@ public abstract class DomainEvent
     [System.Text.Json.Serialization.JsonIgnore]
     public DateTime Timestamp => OccurredAt;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainEvent"/> class with a generated event identifier and the current UTC time.
+    /// </summary>
     protected DomainEvent()
     {
         EventId = Guid.NewGuid().ToString();
@@ -90,6 +93,12 @@ public abstract class DomainEvent
         Metadata = new Dictionary<string, object>();
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainEvent"/> class for the specified aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the aggregate that produced the event.</param>
+    /// <param name="aggregateType">The type of the aggregate that produced the event.</param>
+    /// <param name="aggregateVersion">The aggregate version associated with the event.</param>
     protected DomainEvent(string aggregateId, string aggregateType, long aggregateVersion)
         : this()
     {
@@ -115,13 +124,19 @@ public abstract class DomainEvent
         Metadata[nameof(OccurredAt)] = OccurredAt;
 
         if (!string.IsNullOrEmpty(UserId))
+        {
             Metadata[nameof(UserId)] = UserId;
+        }
 
         if (!string.IsNullOrEmpty(CorrelationId))
+        {
             Metadata[nameof(CorrelationId)] = CorrelationId;
+        }
 
         if (!string.IsNullOrEmpty(TenantId))
+        {
             Metadata[nameof(TenantId)] = TenantId;
+        }
     }
 
     /// <inheritdoc/>

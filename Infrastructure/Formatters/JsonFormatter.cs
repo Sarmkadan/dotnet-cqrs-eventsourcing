@@ -39,6 +39,9 @@ public interface IJsonFormatter
     JsonSerializerOptions GetOptions();
 }
 
+/// <summary>
+/// Default <see cref="IJsonFormatter"/> implementation backed by <see cref="JsonSerializer"/>.
+/// </summary>
 public class JsonFormatter : IJsonFormatter
 {
     private static readonly JsonSerializerOptions DefaultOptions = CreateOptions(writeIndented: false, ignoreNulls: true);
@@ -68,6 +71,15 @@ public class JsonFormatter : IJsonFormatter
         _ => DefaultOptions
     };
 
+    /// <summary>
+    /// Serializes an object to a JSON string using camelCase names and the supplied formatting options.
+    /// </summary>
+    /// <typeparam name="T">The type of the object to serialize.</typeparam>
+    /// <param name="obj">The object to serialize; must not be <see langword="null"/>.</param>
+    /// <param name="options">Formatting options; when <see langword="null"/> the default compact, null-ignoring options are used.</param>
+    /// <returns>The JSON representation of <paramref name="obj"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="obj"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when serialization fails.</exception>
     public string Format<T>(T obj, JsonFormatOptions? options = null)
     {
         // Guard clause for reference-type parameter 'obj'
@@ -90,6 +102,15 @@ public class JsonFormatter : IJsonFormatter
         }
     }
 
+    /// <summary>
+    /// Serializes a sequence to a JSON array using camelCase names and the supplied formatting options.
+    /// </summary>
+    /// <typeparam name="T">The element type of the sequence.</typeparam>
+    /// <param name="items">The items to serialize; must not be <see langword="null"/>.</param>
+    /// <param name="options">Formatting options; when <see langword="null"/> the default compact, null-ignoring options are used.</param>
+    /// <returns>The JSON array representation of <paramref name="items"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="items"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when serialization fails.</exception>
     public string FormatCollection<T>(IEnumerable<T> items, JsonFormatOptions? options = null)
     {
         // Guard clause for reference-type parameter 'items'
@@ -112,6 +133,14 @@ public class JsonFormatter : IJsonFormatter
         }
     }
 
+    /// <summary>
+    /// Deserializes a JSON string into an object of type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The target type to deserialize into.</typeparam>
+    /// <param name="json">The JSON text to parse.</param>
+    /// <returns>The deserialized object, or the default value when <paramref name="json"/> is white space.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is <see langword="null"/> or empty.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the JSON cannot be parsed into <typeparamref name="T"/>.</exception>
     public T? Parse<T>(string json)
     {
         // Guard clause for string parameter 'json'
@@ -132,12 +161,22 @@ public class JsonFormatter : IJsonFormatter
         }
     }
 
+    /// <summary>
+    /// Gets the default <see cref="JsonSerializerOptions"/> used by this formatter.
+    /// </summary>
+    /// <returns>The compact serializer options that ignore null values.</returns>
     public JsonSerializerOptions GetOptions() => DefaultOptions;
 }
 
+/// <summary>
+/// Formatting options for <see cref="IJsonFormatter"/> output.
+/// </summary>
 public sealed record JsonFormatOptions
 {
+    /// <summary>Gets a value indicating whether the output is indented for readability.</summary>
     public bool PrettyPrint { get; init; }
+
+    /// <summary>Gets a value indicating whether properties with <see langword="null"/> values are omitted. Defaults to <see langword="true"/>.</summary>
     public bool IgnoreNulls { get; init; } = true;
 }
 
@@ -146,6 +185,14 @@ public sealed record JsonFormatOptions
 /// </summary>
 public class JsonDateTimeConverter : JsonConverter<DateTime>
 {
+    /// <summary>
+    /// Reads an ISO 8601 string token and converts it to a <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the value to read.</param>
+    /// <param name="typeToConvert">The type to convert to.</param>
+    /// <param name="options">The serializer options in use.</param>
+    /// <returns>The parsed <see cref="DateTime"/>.</returns>
+    /// <exception cref="JsonException">Thrown when the token is not a string or cannot be parsed as a date.</exception>
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.String)
@@ -163,6 +210,12 @@ public class JsonDateTimeConverter : JsonConverter<DateTime>
         throw new JsonException($"Failed to parse DateTime: {raw}");
     }
 
+    /// <summary>
+    /// Writes a <see cref="DateTime"/> as an ISO 8601 ("O") formatted string.
+    /// </summary>
+    /// <param name="writer">The writer to write to.</param>
+    /// <param name="value">The date and time value to write.</param>
+    /// <param name="options">The serializer options in use.</param>
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.ToString("O")); // ISO 8601 format
@@ -174,6 +227,14 @@ public class JsonDateTimeConverter : JsonConverter<DateTime>
 /// </summary>
 public class JsonDecimalConverter : JsonConverter<decimal>
 {
+    /// <summary>
+    /// Reads a decimal from a JSON number or from a numeric string using invariant culture.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the value to read.</param>
+    /// <param name="typeToConvert">The type to convert to.</param>
+    /// <param name="options">The serializer options in use.</param>
+    /// <returns>The parsed decimal value.</returns>
+    /// <exception cref="JsonException">Thrown when the token is neither a number nor a parsable string.</exception>
     public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.Number)
@@ -196,6 +257,12 @@ public class JsonDecimalConverter : JsonConverter<decimal>
         throw new JsonException($"Failed to parse decimal: unexpected token {reader.TokenType}");
     }
 
+    /// <summary>
+    /// Writes a <see cref="decimal"/> as a JSON number.
+    /// </summary>
+    /// <param name="writer">The writer to write to.</param>
+    /// <param name="value">The decimal value to write.</param>
+    /// <param name="options">The serializer options in use.</param>
     public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options)
     {
         writer.WriteNumberValue(value);
@@ -207,6 +274,12 @@ public class JsonDecimalConverter : JsonConverter<decimal>
 /// </summary>
 public static class JsonFormatterExtensions
 {
+    /// <summary>
+    /// Registers <see cref="JsonFormatter"/> as a singleton implementation of <see cref="IJsonFormatter"/>.
+    /// </summary>
+    /// <param name="services">The service collection to add the formatter to.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="services"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddJsonFormatter(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

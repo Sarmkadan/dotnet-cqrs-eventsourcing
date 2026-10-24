@@ -6,7 +6,6 @@
 
 namespace DotNetCqrsEventSourcing.Data.Repositories;
 
-using System.Globalization;
 using Domain.Events;
 using Shared.Results;
 
@@ -71,7 +70,9 @@ public static class InMemoryEventRepositoryValidation
 
         var errors = Validate(value);
         if (errors.Count == 0)
+        {
             return;
+        }
 
         throw new ArgumentException(
             $"InMemoryEventRepository validation failed:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", errors)}");
@@ -91,41 +92,63 @@ public static class InMemoryEventRepositoryValidation
 
         // Validate required string properties
         if (string.IsNullOrWhiteSpace(envelope.Id))
+        {
             errors.Add("EventEnvelope.Id must not be null, empty, or whitespace.");
+        }
 
         if (string.IsNullOrWhiteSpace(envelope.AggregateId))
+        {
             errors.Add("EventEnvelope.AggregateId must not be null, empty, or whitespace.");
+        }
 
         if (string.IsNullOrWhiteSpace(envelope.AggregateType))
+        {
             errors.Add("EventEnvelope.AggregateType must not be null, empty, or whitespace.");
+        }
 
         if (string.IsNullOrWhiteSpace(envelope.EventType))
+        {
             errors.Add("EventEnvelope.EventType must not be null, empty, or whitespace.");
+        }
 
         if (string.IsNullOrWhiteSpace(envelope.EventData))
+        {
             errors.Add("EventEnvelope.EventData must not be null, empty, or whitespace.");
+        }
 
         // Validate numeric properties
         if (envelope.AggregateVersion < 0)
+        {
             errors.Add("EventEnvelope.AggregateVersion must be a non-negative number.");
+        }
 
         // Validate date properties
         if (envelope.CreatedAt == default)
+        {
             errors.Add("EventEnvelope.CreatedAt must be a valid UTC date/time.");
+        }
         else if (envelope.CreatedAt.Kind != DateTimeKind.Utc)
+        {
             errors.Add("EventEnvelope.CreatedAt must be in UTC timezone.");
+        }
 
         // Validate collection properties
         if (envelope.Metadata is null)
+        {
             errors.Add("EventEnvelope.Metadata must not be null.");
+        }
 
         // Validate checksum consistency
         if (!string.IsNullOrEmpty(envelope.ChecksumHash) && !envelope.VerifyChecksum())
+        {
             errors.Add("EventEnvelope.ChecksumHash is present but does not match computed checksum.");
+        }
 
         // Validate PartitionKey if present
         if (!string.IsNullOrWhiteSpace(envelope.PartitionKey) && string.IsNullOrWhiteSpace(envelope.PartitionKey))
+        {
             errors.Add("EventEnvelope.PartitionKey must not be whitespace if specified.");
+        }
 
         return errors.AsReadOnly();
     }
@@ -150,7 +173,9 @@ public static class InMemoryEventRepositoryValidation
 
         var errors = Validate(envelope);
         if (errors.Count == 0)
+        {
             return;
+        }
 
         throw new ArgumentException(
             $"EventEnvelope validation failed:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", errors)}");
@@ -207,7 +232,9 @@ public static class InMemoryEventRepositoryValidation
 
         var errors = Validate(envelopes);
         if (errors.Count == 0)
+        {
             return;
+        }
 
         throw new ArgumentException(
             $"EventEnvelope list validation failed:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", errors)}");
@@ -227,15 +254,21 @@ public static class InMemoryEventRepositoryValidation
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(operationName))
+        {
             operationName = "Operation";
+        }
 
         if (!result.IsSuccess)
         {
             if (string.IsNullOrWhiteSpace(result.ErrorCode))
+            {
                 errors.Add($"{operationName} failed but ErrorCode is null or empty.");
+            }
 
             if (string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
                 errors.Add($"{operationName} failed but ErrorMessage is null or empty.");
+            }
         }
 
         return errors.AsReadOnly();
@@ -263,7 +296,9 @@ public static class InMemoryEventRepositoryValidation
 
         var errors = Validate(result, operationName);
         if (errors.Count == 0)
+        {
             return;
+        }
 
         throw new ArgumentException(
             $"{operationName} validation failed:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", errors)}");
@@ -284,15 +319,21 @@ public static class InMemoryEventRepositoryValidation
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(operationName))
+        {
             operationName = "Operation";
+        }
 
         if (!result.IsSuccess)
         {
             if (string.IsNullOrWhiteSpace(result.ErrorCode))
+            {
                 errors.Add($"{operationName} failed but ErrorCode is null or empty.");
+            }
 
             if (string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
                 errors.Add($"{operationName} failed but ErrorMessage is null or empty.");
+            }
         }
         else
         {
@@ -335,7 +376,9 @@ public static class InMemoryEventRepositoryValidation
 
         var errors = Validate(result, operationName);
         if (errors.Count == 0)
+        {
             return;
+        }
 
         throw new ArgumentException(
             $"{operationName} validation failed:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", errors)}");

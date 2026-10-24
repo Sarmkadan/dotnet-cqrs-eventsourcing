@@ -48,7 +48,6 @@ public sealed class ReadModelRebuilderCommandTests
     /// <summary>
     /// Tests that the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method returns a failure when no arguments are provided.
     /// </summary>
-    /// <param name="result">The result of the <see cref="ReadModelRebuilderCommand.ExecuteAsync"/> method.</param>
     [Fact]
     public async Task ExecuteAsync_NoArgs_ReturnsFailureWithMissingArgument()
     {

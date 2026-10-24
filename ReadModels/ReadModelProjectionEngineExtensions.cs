@@ -5,9 +5,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System;
-using DotNetCqrsEventSourcing.Shared.Results;
-
 namespace DotNetCqrsEventSourcing.ReadModels;
 
 /// <summary>
@@ -36,7 +33,9 @@ public static class ReadModelProjectionEngineExtensions
         var checkpoint = engine.GetCheckpoint(projectionName);
 
         if (checkpoint is not null)
+        {
             return checkpoint;
+        }
 
         return new ProjectionCheckpoint(
             projectionName,
@@ -65,7 +64,9 @@ public static class ReadModelProjectionEngineExtensions
         ArgumentNullException.ThrowIfNull(engine);
 
         if (engine.Checkpoints.Count == 0)
+        {
             return false;
+        }
 
         return engine.Checkpoints.Values.All(cp => cp.LastProcessedVersion >= targetVersion);
     }

@@ -34,7 +34,7 @@ if (!createResult.IsSuccess)
     return;
 }
 
-var account = createResult.Data;
+var account = createResult.Data!;
 Console.WriteLine($"✓ Account created: {account.Id}");
 Console.WriteLine($" Balance: {account.Balance.CurrentAmount} {account.Balance.Currency}\n");
 
@@ -77,7 +77,7 @@ Console.WriteLine("4. Retrieving current account state...");
 var getResult = await accountService.GetAccountAsync(account.Id);
 if (getResult.IsSuccess)
 {
-    var updated = getResult.Data;
+    var updated = getResult.Data!;
     Console.WriteLine($"✓ Account state retrieved");
     Console.WriteLine($" ID: {updated.Id}");
     Console.WriteLine($" Holder: {updated.AccountHolderName}");

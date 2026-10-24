@@ -51,8 +51,8 @@ public sealed class EventStoreCompactionServiceTests
         };
 
     /// <summary>
-    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync(string,long)"/>
-    /// removes events before the specified <paramref name="keepFromVersion"/> and returns the correct result.
+    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync"/>
+    /// removes events before the specified <c>keepFromVersion</c> and returns the correct result.
     /// </summary>
     [Fact]
     public async Task CompactToVersionAsync_RemovesEventsBeforeVersion()
@@ -80,7 +80,7 @@ public sealed class EventStoreCompactionServiceTests
     }
 
     /// <summary>
-    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync(string)"/>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync"/>
     /// uses the latest snapshot version to determine the compaction point.
     /// </summary>
     [Fact]
@@ -109,7 +109,7 @@ public sealed class EventStoreCompactionServiceTests
     }
 
     /// <summary>
-    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync(string)"/>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAsync"/>
     /// returns a failure result when no snapshot exists for the aggregate.
     /// </summary>
     [Fact]
@@ -126,7 +126,7 @@ public sealed class EventStoreCompactionServiceTests
     }
 
     /// <summary>
-    /// Verifies that <see cref="EventStoreCompactionService.CompactAllAsync(string[])"/>
+    /// Verifies that <see cref="EventStoreCompactionService.CompactAllAsync"/>
     /// processes only aggregates that have snapshots and skips those without.
     /// </summary>
     [Fact]
@@ -136,7 +136,9 @@ public sealed class EventStoreCompactionServiceTests
         const string noSnap = "agg-without";
 
         for (long v = 1; v <= 4; v++)
+        {
             await _repository.SaveEventsAsync(new List<EventEnvelope> { MakeEnvelope(withSnap, v) });
+        }
 
         _snapshotMock
             .Setup(s => s.GetLatestSnapshotAsync(withSnap, It.IsAny<CancellationToken>()))
@@ -154,8 +156,8 @@ public sealed class EventStoreCompactionServiceTests
     }
 
     /// <summary>
-    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync(string,long)"/>
-    /// returns a failure result when the <paramref name="keepFromVersion"/> is invalid (<= 0).
+    /// Verifies that <see cref="EventStoreCompactionService.CompactToVersionAsync"/>
+    /// returns a failure result when the <c>keepFromVersion</c> is invalid (&lt;= 0).
     /// </summary>
     [Fact]
     public async Task CompactToVersionAsync_InvalidVersion_ReturnsFailure()

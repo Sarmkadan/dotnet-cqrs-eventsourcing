@@ -55,7 +55,9 @@ public sealed class InMemorySagaRepository<TSaga> : ISagaRepository<TSaga>
     {
         IEnumerable<TSaga> sagas = _store.Values;
         if (state.HasValue)
+        {
             sagas = sagas.Where(s => s.State == state.Value);
+        }
 
         IReadOnlyList<TSaga> result = sagas.ToList();
         return Task.FromResult(Result<IReadOnlyList<TSaga>>.Success(result));

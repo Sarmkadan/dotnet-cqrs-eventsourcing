@@ -27,9 +27,21 @@ public sealed class EventStoreStatsCommand : ICliCommand
     private readonly IEventStore _eventStore;
     private readonly ILogger<EventStoreStatsCommand> _logger;
 
+    /// <summary>
+    /// Gets the name used to invoke this command from the CLI.
+    /// </summary>
     public string Name => "event-store-stats";
+
+    /// <summary>
+    /// Gets a short description of what this command reports.
+    /// </summary>
     public string Description => "Displays statistics about the event store using available query methods.";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventStoreStatsCommand"/> class.
+    /// </summary>
+    /// <param name="eventStore">Event store whose statistics are reported.</param>
+    /// <param name="logger">Logger used to write command output and diagnostics.</param>
     public EventStoreStatsCommand(
         IEventStore eventStore,
         ILogger<EventStoreStatsCommand> logger)
@@ -103,9 +115,14 @@ public sealed class EventStoreStatsCommand : ICliCommand
     private static void ValidateAggregateId(string aggregateId)
     {
         if (string.IsNullOrWhiteSpace(aggregateId))
+        {
             throw new ArgumentException("Aggregate ID cannot be null, empty, or whitespace.");
+        }
+
         if (aggregateId.Length > 100)
+        {
             throw new ArgumentException("Aggregate ID length exceeds 100 characters.");
+        }
     }
 
     /// <inheritdoc/>

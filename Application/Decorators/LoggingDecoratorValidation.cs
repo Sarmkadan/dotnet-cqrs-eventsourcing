@@ -6,7 +6,6 @@
 
 namespace DotNetCqrsEventSourcing.Application.Decorators;
 
-using System.Globalization;
 using DotNetCqrsEventSourcing.Domain.Events;
 
 /// <summary>

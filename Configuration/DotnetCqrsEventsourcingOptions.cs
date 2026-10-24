@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace DotNetCqrsEventSourcing.Configuration;
 
 /// <summary>

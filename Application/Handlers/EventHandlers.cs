@@ -6,10 +6,10 @@
 
 namespace DotNetCqrsEventSourcing.Application.Handlers;
 
-using Domain.Events;
-using Services;
-using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using Domain.Events;
+using Microsoft.Extensions.Logging;
+using Services;
 
 /// <summary>
 /// Event handlers for domain events - extensible handler pattern.

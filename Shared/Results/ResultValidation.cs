@@ -4,8 +4,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Globalization;
-
 namespace DotNetCqrsEventSourcing.Shared.Results;
 
 /// <summary>

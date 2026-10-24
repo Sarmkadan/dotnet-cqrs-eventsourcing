@@ -4,10 +4,10 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.Extensions.DependencyInjection;
-using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Configuration;
 using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("=== Event Replay Example ===\n");
 
@@ -36,7 +36,7 @@ if (!createResult.IsSuccess)
     return;
 }
 
-var accountId = createResult.Data.Id;
+var accountId = createResult.Data!.Id;
 
 // Perform transactions
 for (int i = 0; i < 5; i++)

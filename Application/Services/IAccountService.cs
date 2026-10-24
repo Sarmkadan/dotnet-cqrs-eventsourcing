@@ -11,7 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Domain.AggregateRoots;
 using Shared.Results;
-using Exceptions;
 
 /// <summary>
 /// Service interface for account operations and business logic.

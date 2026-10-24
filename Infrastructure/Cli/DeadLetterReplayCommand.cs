@@ -71,14 +71,20 @@ public sealed class DeadLetterReplayCommand : ICliCommand
         var projectionName = GetOptionValue(args, "--projection");
 
         if (args.Contains("--list"))
+        {
             return await ListAsync(projectionName, cancellationToken);
+        }
 
         var entryId = GetOptionValue(args, "--id");
         if (entryId is not null)
+        {
             return await ReplayOneAsync(entryId, cancellationToken);
+        }
 
         if (args.Contains("--all"))
+        {
             return await ReplayAllAsync(projectionName, cancellationToken);
+        }
 
         PrintUsage();
         return Result.Failure("MISSING_ARGUMENT", "Specify --id <entryId>, --all, or --list.");
@@ -159,7 +165,9 @@ public sealed class DeadLetterReplayCommand : ICliCommand
         Console.WriteLine($"  Failed: {batch.Failed.Count}");
 
         foreach (var (entryId, reason) in batch.Failed)
+        {
             Console.WriteLine($"    {entryId}: {reason}");
+        }
 
         _logger.LogInformation(
             "Dead-letter batch replay for {Target}: {Succeeded} succeeded, {Failed} failed.",
@@ -174,7 +182,9 @@ public sealed class DeadLetterReplayCommand : ICliCommand
     {
         var index = Array.IndexOf(args, optionName);
         if (index < 0 || index + 1 >= args.Length)
+        {
             return null;
+        }
 
         var value = args[index + 1];
         return value.StartsWith('-') ? null : value;

@@ -6,7 +6,6 @@
 
 using System.Collections.Concurrent;
 using System.Reflection;
-using DotNetCqrsEventSourcing.Shared.Exceptions;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Utilities;
 
@@ -94,7 +93,10 @@ public static class CqrsHelpers
     /// </summary>
     public static string? ExtractAggregateId(object commandOrEvent)
     {
-        if (commandOrEvent is null) return null;
+        if (commandOrEvent is null)
+        {
+            return null;
+        }
 
         var type = commandOrEvent.GetType();
         var idProperty = type.GetProperty("AggregateId") ??
@@ -170,7 +172,12 @@ public static class CqrsHelpers
 /// </summary>
 public sealed class HandlerMetadata
 {
+    /// <summary>Gets the CLR type of the command or query.</summary>
     public required Type CommandType { get; init; }
+
+    /// <summary>Gets the human-readable name used when displaying the command or query.</summary>
     public required string DisplayName { get; init; }
+
+    /// <summary>Gets the public properties discovered on <see cref="CommandType"/>.</summary>
     public PropertyInfo[] Properties { get; init; } = [];
 }

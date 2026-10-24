@@ -6,15 +6,13 @@
 
 namespace DotNetCqrsEventSourcing.Configuration;
 
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
+using Application.Sagas;
 using Application.Services;
 using Data.Repositories;
-using Application.Sagas;
 using Domain.AggregateRoots;
 using Infrastructure.Events;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Dependency injection configuration for the CQRS framework.

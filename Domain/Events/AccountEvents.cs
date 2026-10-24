@@ -29,8 +29,19 @@ public class AccountCreatedEvent : DomainEvent
     /// </summary>
     public decimal InitialBalance { get; set; }
 
+    /// <summary>
+    /// Initializes a new, empty instance of the <see cref="AccountCreatedEvent"/> class for deserialization.
+    /// </summary>
     public AccountCreatedEvent() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AccountCreatedEvent"/> class with the specified account details.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the account aggregate.</param>
+    /// <param name="accountNumber">The account number.</param>
+    /// <param name="accountHolder">The name of the account holder.</param>
+    /// <param name="currency">The currency code of the account.</param>
+    /// <param name="initialBalance">The initial balance of the account.</param>
     public AccountCreatedEvent(string aggregateId, string accountNumber, string accountHolder,
         string currency, decimal initialBalance)
         : base(aggregateId, "Account", 1)
@@ -41,6 +52,15 @@ public class AccountCreatedEvent : DomainEvent
         InitialBalance = initialBalance;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AccountCreatedEvent"/> class with the specified account details and occurrence time.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the account aggregate.</param>
+    /// <param name="accountNumber">The account number.</param>
+    /// <param name="accountHolder">The name of the account holder.</param>
+    /// <param name="currency">The currency code of the account.</param>
+    /// <param name="initialBalance">The initial balance of the account.</param>
+    /// <param name="occurredAt">The UTC date and time at which the account was created.</param>
     public AccountCreatedEvent(string aggregateId, string accountNumber, string accountHolder,
         string currency, decimal initialBalance, DateTime occurredAt)
         : this(aggregateId, accountNumber, accountHolder, currency, initialBalance)
@@ -55,8 +75,16 @@ public class AccountCreatedEvent : DomainEvent
     [System.Text.Json.Serialization.JsonIgnore]
     public string AccountHolderName => AccountHolder;
 
+    /// <summary>
+    /// Gets the event type name, <c>AccountCreated</c>.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public override string GetEventType() => "AccountCreated";
 
+    /// <summary>
+    /// Returns a string representation of the event containing the account number, holder, currency and initial balance.
+    /// </summary>
+    /// <returns>A formatted string describing the event.</returns>
     public override string ToString() => $"AccountCreatedEvent {{ AccountNumber = {AccountNumber}, AccountHolder = {AccountHolder}, Currency = {Currency}, InitialBalance = {InitialBalance} }}";
 }
 
@@ -79,8 +107,18 @@ public class MoneyDepositedEvent : DomainEvent
     /// </summary>
     public DateTime ProcessedAt { get; set; }
 
+    /// <summary>
+    /// Initializes a new, empty instance of the <see cref="MoneyDepositedEvent"/> class for deserialization.
+    /// </summary>
     public MoneyDepositedEvent() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MoneyDepositedEvent"/> class.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the account aggregate.</param>
+    /// <param name="amount">The deposited amount.</param>
+    /// <param name="reference">The transaction reference.</param>
+    /// <param name="version">The version of the aggregate after the deposit.</param>
     public MoneyDepositedEvent(string aggregateId, decimal amount, string reference, long version)
         : base(aggregateId, "Account", version)
     {
@@ -89,6 +127,10 @@ public class MoneyDepositedEvent : DomainEvent
         ProcessedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Gets the event type name, <c>MoneyDeposited</c>.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public override string GetEventType() => "MoneyDeposited";
 }
 
@@ -111,8 +153,18 @@ public class MoneyWithdrawnEvent : DomainEvent
     /// </summary>
     public DateTime ProcessedAt { get; set; }
 
+    /// <summary>
+    /// Initializes a new, empty instance of the <see cref="MoneyWithdrawnEvent"/> class for deserialization.
+    /// </summary>
     public MoneyWithdrawnEvent() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MoneyWithdrawnEvent"/> class.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the account aggregate.</param>
+    /// <param name="amount">The withdrawn amount.</param>
+    /// <param name="reference">The transaction reference.</param>
+    /// <param name="version">The version of the aggregate after the withdrawal.</param>
     public MoneyWithdrawnEvent(string aggregateId, decimal amount, string reference, long version)
         : base(aggregateId, "Account", version)
     {
@@ -121,6 +173,10 @@ public class MoneyWithdrawnEvent : DomainEvent
         ProcessedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Gets the event type name, <c>MoneyWithdrawn</c>.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public override string GetEventType() => "MoneyWithdrawn";
 }
 
@@ -143,8 +199,19 @@ public class BalanceUpdatedEvent : DomainEvent
     /// </summary>
     public string Reason { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Initializes a new, empty instance of the <see cref="BalanceUpdatedEvent"/> class for deserialization.
+    /// </summary>
     public BalanceUpdatedEvent() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BalanceUpdatedEvent"/> class.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the account aggregate.</param>
+    /// <param name="previousBalance">The balance before the update.</param>
+    /// <param name="newBalance">The balance after the update.</param>
+    /// <param name="reason">The reason for the balance update.</param>
+    /// <param name="version">The version of the aggregate after the update.</param>
     public BalanceUpdatedEvent(string aggregateId, decimal previousBalance, decimal newBalance,
         string reason, long version)
         : base(aggregateId, "Account", version)
@@ -154,6 +221,10 @@ public class BalanceUpdatedEvent : DomainEvent
         Reason = reason;
     }
 
+    /// <summary>
+    /// Gets the event type name, <c>BalanceUpdated</c>.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public override string GetEventType() => "BalanceUpdated";
 }
 
@@ -191,5 +262,9 @@ public class AccountClosedEvent : DomainEvent
         ClosingBalance = closingBalance;
     }
 
+    /// <summary>
+    /// Gets the event type name, <c>AccountClosed</c>.
+    /// </summary>
+    /// <returns>The event type name.</returns>
     public override string GetEventType() => "AccountClosed";
 }

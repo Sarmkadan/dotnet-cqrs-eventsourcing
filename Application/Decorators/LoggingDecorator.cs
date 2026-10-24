@@ -6,8 +6,8 @@
 
 namespace DotNetCqrsEventSourcing.Application.Decorators;
 
-using Microsoft.Extensions.Logging;
 using Domain.Events;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Logging decorator for event processing with correlation IDs and performance metrics.
@@ -16,6 +16,10 @@ public sealed class LoggingDecorator
 {
     private readonly ILogger<LoggingDecorator> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoggingDecorator"/> class.
+    /// </summary>
+    /// <param name="logger">Logger used to write event and aggregate diagnostics.</param>
     public LoggingDecorator(ILogger<LoggingDecorator> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -143,6 +147,10 @@ public sealed class PerformanceDecorator
     private readonly ILogger<PerformanceDecorator> _logger;
     private const long ThresholdMilliseconds = 1000;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PerformanceDecorator"/> class.
+    /// </summary>
+    /// <param name="logger">Logger used to report operation durations.</param>
     public PerformanceDecorator(ILogger<PerformanceDecorator> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -183,7 +191,9 @@ public sealed class PerformanceDecorator
         ArgumentNullException.ThrowIfNull(operations);
 
         if (operations.Count == 0)
+        {
             return "No operations recorded";
+        }
 
         var totalMs = operations.Values.Sum();
         var avgMs = operations.Values.Average();

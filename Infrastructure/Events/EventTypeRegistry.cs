@@ -6,8 +6,8 @@
 
 using System.Collections.Concurrent;
 using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
 using DotNetCqrsEventSourcing.Domain.Events;
-using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Events;
 
@@ -38,11 +38,15 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Events;
 public sealed class EventTypeRegistry
 {
     private readonly ConcurrentDictionary<string, Type> _registry = new(StringComparer.Ordinal);
-    private readonly ILogger<EventTypeRegistry>? _logger;
+    private readonly ILogger<EventTypeRegistry> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventTypeRegistry"/> class.
+    /// </summary>
+    /// <param name="logger">Optional logger; when <see langword="null"/> a no-op logger is used.</param>
     public EventTypeRegistry(ILogger<EventTypeRegistry>? logger = null)
     {
-        _logger = logger;
+        _logger = logger ?? NullLogger<EventTypeRegistry>.Instance;
     }
 
     // -------------------------------------------------------------------------
@@ -88,7 +92,9 @@ public sealed class EventTypeRegistry
         {
             var attr = type.GetCustomAttribute<EventNameAttribute>(inherit: false);
             if (attr is null)
+            {
                 continue;
+            }
 
             RegisterInternal(attr.Name, type);
         }
@@ -117,7 +123,9 @@ public sealed class EventTypeRegistry
         }
 
         if (_registry.TryGetValue(eventName, out var type) && type is not null)
+        {
             return type;
+        }
 
         throw new UnknownEventTypeException(eventName);
     }
@@ -157,12 +165,21 @@ public sealed class EventTypeRegistry
     // Private helpers
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// Registers a mapping from an event name to its CLR type, rejecting empty names and conflicting re-registrations.
+    /// </summary>
+    /// <param name="eventName">The event name to register; must not be null or whitespace.</param>
+    /// <param name="type">The CLR type that the event name maps to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="eventName"/> is null or whitespace.</exception>
     public void RegisterInternal(string eventName, Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
 
         if (string.IsNullOrWhiteSpace(eventName))
+        {
             throw new ArgumentException("Event name must not be null or whitespace.", nameof(eventName));
+        }
 
         if (_registry.TryGetValue(eventName, out var existing) && existing != type)
         {

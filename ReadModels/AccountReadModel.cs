@@ -22,21 +22,48 @@ public enum AccountReadModelStatus
 /// Immutable summary of a single credit or debit entry recorded against an account.
 /// Appended to <see cref="AccountReadModel.Transactions"/> by <see cref="AccountProjector"/>.
 /// </summary>
-/// <param name="EventId">Identifier of the domain event that produced this transaction entry.</param>
-/// <param name="Type">Direction of the movement: <c>"Deposit"</c> or <c>"Withdrawal"</c>.</param>
-/// <param name="Amount">Absolute monetary amount of the transaction (always positive).</param>
-/// <param name="Currency">ISO 4217 currency code inherited from the account (e.g. <c>USD</c>).</param>
-/// <param name="Reference">Human-readable reference text supplied at the time of the transaction.</param>
-/// <param name="ProcessedAt">UTC timestamp when the transaction was processed on the command side.</param>
 public sealed record TransactionSummary
 {
+    /// <summary>
+    /// Gets the identifier of the domain event that produced this transaction entry.
+    /// </summary>
     public string EventId { get; init; }
+
+    /// <summary>
+    /// Gets the direction of the movement: <c>"Deposit"</c> or <c>"Withdrawal"</c>.
+    /// </summary>
     public string Type { get; init; }
+
+    /// <summary>
+    /// Gets the absolute monetary amount of the transaction (always positive).
+    /// </summary>
     public decimal Amount { get; init; }
+
+    /// <summary>
+    /// Gets the ISO 4217 currency code inherited from the account (e.g. <c>USD</c>).
+    /// </summary>
     public string Currency { get; init; }
+
+    /// <summary>
+    /// Gets the human-readable reference text supplied at the time of the transaction.
+    /// </summary>
     public string Reference { get; init; }
+
+    /// <summary>
+    /// Gets the UTC timestamp when the transaction was processed on the command side.
+    /// </summary>
     public DateTime ProcessedAt { get; init; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionSummary"/> record.
+    /// </summary>
+    /// <param name="eventId">Identifier of the domain event that produced this transaction entry.</param>
+    /// <param name="type">Direction of the movement: <c>"Deposit"</c> or <c>"Withdrawal"</c>.</param>
+    /// <param name="amount">Absolute monetary amount of the transaction (always positive).</param>
+    /// <param name="currency">ISO 4217 currency code inherited from the account (e.g. <c>USD</c>).</param>
+    /// <param name="reference">Human-readable reference text supplied at the time of the transaction.</param>
+    /// <param name="processedAt">UTC timestamp when the transaction was processed on the command side.</param>
+    /// <exception cref="ArgumentException">Thrown when a string argument is null or empty, or <paramref name="amount"/> is negative.</exception>
     public TransactionSummary(string eventId, string type, decimal amount, string currency, string reference, DateTime processedAt)
     {
         ArgumentException.ThrowIfNullOrEmpty(eventId);

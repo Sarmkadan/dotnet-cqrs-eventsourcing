@@ -7,7 +7,6 @@
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 using DotNetCqrsEventSourcing.Shared.Results;
-using Microsoft.Extensions.Logging;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
 
@@ -73,20 +72,28 @@ public sealed class DeadLetterReplayService
         var entry = allEntries.FirstOrDefault(e => e.Id == entryId);
 
         if (entry is null)
+        {
             return Result.Failure("NOT_FOUND", $"Dead-letter entry '{entryId}' not found.");
+        }
 
         if (entry.IsReprocessed)
+        {
             return Result.Failure("ALREADY_REPROCESSED", $"Dead-letter entry '{entryId}' was already reprocessed.");
+        }
 
         var orderingResult = await CheckOrderingAsync(entry, cancellationToken);
         if (!orderingResult.IsSuccess)
+        {
             return orderingResult;
+        }
 
         var runner = _runners.FirstOrDefault(r => r.ProjectionName == entry.ProjectionName);
         if (runner is null)
+        {
             return Result.Failure(
                 "PROJECTION_NOT_FOUND",
                 $"No registered projection runner named '{entry.ProjectionName}' is available to replay this entry.");
+        }
 
         var runResult = await runner.RunAsync(entry.Event, cancellationToken);
         if (!runResult.IsSuccess)
@@ -140,9 +147,13 @@ public sealed class DeadLetterReplayService
         {
             var result = await ReplayAsync(entry.Id, cancellationToken);
             if (result.IsSuccess)
+            {
                 succeeded.Add(entry.Id);
+            }
             else
+            {
                 failed.Add((entry.Id, result.ErrorMessage ?? "unknown error"));
+            }
         }
 
         return Result<DeadLetterReplayBatchResult>.Success(new DeadLetterReplayBatchResult(succeeded, failed));
@@ -162,14 +173,18 @@ public sealed class DeadLetterReplayService
     {
         var streamResult = await _eventStore.GetEventStreamAsync(entry.Event.AggregateId, cancellationToken);
         if (!streamResult.IsSuccess)
+        {
             return Result.Success();
+        }
 
         var laterEvents = streamResult.Data!
             .Where(e => e.AggregateVersion > entry.Event.AggregateVersion)
             .ToList();
 
         if (laterEvents.Count == 0)
+        {
             return Result.Success();
+        }
 
         var pendingForAggregate = await _deadLetterStore.GetByAggregateAsync(entry.Event.AggregateId, cancellationToken);
         var stillPendingVersions = pendingForAggregate
@@ -183,7 +198,9 @@ public sealed class DeadLetterReplayService
             .ToList();
 
         if (alreadyApplied.Count == 0)
+        {
             return Result.Success();
+        }
 
         var versions = string.Join(", ", alreadyApplied);
 

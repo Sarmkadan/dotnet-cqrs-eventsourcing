@@ -8,7 +8,6 @@ using System.IO.Compression;
 using DotNetCqrsEventSourcing.Domain.Snapshots;
 using DotNetCqrsEventSourcing.Infrastructure.Compression;
 using DotNetCqrsEventSourcing.Shared.Results;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Extensions;
 

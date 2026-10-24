@@ -88,7 +88,7 @@ public sealed class TestSagaHandler : ISagaHandler<TestSaga, AccountCreatedEvent
 	/// Handles an account created event by either finding an existing saga with the same correlation ID
 	/// or creating a new one, processing the event, and saving the saga state.
 	/// </summary>
-	/// <param name="@event">The account created event to handle.</param>
+	/// <param name="event">The account created event to handle.</param>
 	/// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
 	/// <returns>A <see cref="Result"/> indicating success or failure of the operation.</returns>
 	public async Task<Result> HandleAsync(AccountCreatedEvent @event, CancellationToken cancellationToken = default)

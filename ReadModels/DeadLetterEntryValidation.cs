@@ -5,9 +5,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System;
-using System.Collections.Generic;
-
 namespace DotNetCqrsEventSourcing.ReadModels;
 
 /// <summary>

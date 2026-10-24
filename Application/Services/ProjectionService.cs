@@ -13,9 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Domain.Events;
 using Microsoft.Extensions.Logging;
-using Shared.Constants;
 using Shared.Results;
-using Exceptions;
 
 /// <summary>
 /// Projection service implementation for building and maintaining read models from events.
@@ -27,6 +25,11 @@ public class ProjectionService : IProjectionService
     private readonly ILogger<ProjectionService> _logger;
     private readonly object _lockObject = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectionService"/> class.
+    /// </summary>
+    /// <param name="eventStore">Event store used to load event streams for rebuilding projections.</param>
+    /// <param name="logger">Logger used to record projection activity.</param>
     public ProjectionService(IEventStore eventStore, ILogger<ProjectionService> logger)
     {
         ArgumentNullException.ThrowIfNull(eventStore);
@@ -36,6 +39,13 @@ public class ProjectionService : IProjectionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Applies a single domain event to the projection of its aggregate, creating the projection if needed.
+    /// </summary>
+    /// <param name="event">The domain event to apply.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A success result when the projection is updated, or a failure otherwise.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="event"/> is <see langword="null"/>.</exception>
     public async Task<Result> UpdateProjectionAsync(DomainEvent @event, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(@event);
@@ -65,18 +75,29 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    /// <summary>
+    /// Rebuilds the projection for the specified aggregate by replaying its full event stream.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the aggregate whose projection should be rebuilt.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A success result when the projection is rebuilt, or a failure otherwise.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="aggregateId"/> is null or whitespace.</exception>
     public async Task<Result> RebuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(aggregateId);
 
         if (string.IsNullOrWhiteSpace(aggregateId))
+        {
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+        }
 
         try
         {
             var streamResult = await _eventStore.GetEventStreamAsync(aggregateId, cancellationToken);
             if (!streamResult.IsSuccess)
+            {
                 return Result.Failure(streamResult.ErrorCode!, streamResult.ErrorMessage!);
+            }
 
             lock (_lockObject)
             {
@@ -103,6 +124,11 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    /// <summary>
+    /// Clears all existing projections and rebuilds them from the events in the event store.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A success result when the rebuild completes, or a failure otherwise.</returns>
     public async Task<Result> RebuildAllProjectionsAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -147,12 +173,21 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    /// <summary>
+    /// Retrieves a copy of the projection for the specified aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the aggregate whose projection is requested.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing a copy of the projection, or a failure if it does not exist.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="aggregateId"/> is null or whitespace.</exception>
     public async Task<Result<Dictionary<string, object>>> GetProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(aggregateId);
 
         if (string.IsNullOrWhiteSpace(aggregateId))
+        {
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+        }
 
         try
         {
@@ -173,6 +208,11 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    /// <summary>
+    /// Retrieves copies of all currently maintained projections.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A result containing a copy of every projection.</returns>
     public async Task<Result<List<Dictionary<string, object>>>> GetAllProjectionsAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -190,12 +230,21 @@ public class ProjectionService : IProjectionService
         }
     }
 
+    /// <summary>
+    /// Builds an account projection summary by replaying the event stream of the specified aggregate.
+    /// </summary>
+    /// <param name="aggregateId">The identifier of the aggregate to summarize.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The summary built from the stream, or an empty summary if no stream is found.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="aggregateId"/> is null or whitespace.</exception>
     public async Task<AccountProjectionSummary> BuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(aggregateId);
 
         if (string.IsNullOrWhiteSpace(aggregateId))
+        {
             throw new ArgumentException("Aggregate ID cannot be null or whitespace.", nameof(aggregateId));
+        }
 
         var summary = new AccountProjectionSummary();
 

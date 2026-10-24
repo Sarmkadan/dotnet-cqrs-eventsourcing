@@ -1,29 +1,43 @@
 using BenchmarkDotNet.Attributes;
 using DotNetCqrsEventSourcing.Shared.Exceptions;
-using System;
 
-namespace DotNetCqrsEventSourcing.Benchmarks
+namespace DotNetCqrsEventSourcing.Benchmarks;
+
+[MemoryDiagnoser]
+public class DotnetCqrsEventsourcingExceptionBenchmarks
 {
-    [MemoryDiagnoser]
-    public class DotnetCqrsEventsourcingExceptionBenchmarks
+    private const string BaseMessage = "This is a test exception message for benchmarking.";
+    private const string ErrorCode = "TEST_ERROR";
+
+    [Params(10, 100, 1000)]
+    public int MessageLength { get; set; }
+
+    private string _longMessage = null!;
+
+    [GlobalSetup]
+    public void Setup()
     {
-        private const string BaseMessage = "This is a test exception message for benchmarking.";
-        private const string ErrorCode = "TEST_ERROR";
+        // Create a long message for the message size impact test
+        _longMessage = new string('A', MessageLength);
+    }
 
-        [Params(10, 100, 1000)]
-        public int MessageLength { get; set; }
-
-        private string _longMessage = null!;
-
-        [GlobalSetup]
-        public void Setup()
+    [Benchmark]
+    public void Throw_Exception()
+    {
+        try
         {
-            // Create a long message for the message size impact test
-            _longMessage = new string('A', MessageLength);
+            throw new DotnetCqrsEventsourcingException(BaseMessage, ErrorCode);
         }
+        catch (DotnetCqrsEventsourcingException)
+        {
+            // Intentionally empty
+        }
+    }
 
-        [Benchmark]
-        public void Throw_Exception()
+    [Benchmark]
+    public void Catch_And_Rethrow_Exception()
+    {
+        try
         {
             try
             {
@@ -31,49 +45,33 @@ namespace DotNetCqrsEventSourcing.Benchmarks
             }
             catch (DotnetCqrsEventsourcingException)
             {
-                // Intentionally empty
+                // Rethrow preserving the original exception information
+                throw;
             }
         }
-
-        [Benchmark]
-        public void Catch_And_Rethrow_Exception()
+        catch (DotnetCqrsEventsourcingException)
         {
-            try
-            {
-                try
-                {
-                    throw new DotnetCqrsEventsourcingException(BaseMessage, ErrorCode);
-                }
-                catch (DotnetCqrsEventsourcingException ex)
-                {
-                    // Rethrow preserving the original exception information
-                    throw;
-                }
-            }
-            catch (DotnetCqrsEventsourcingException)
-            {
-                // Intentionally empty
-            }
+            // Intentionally empty
         }
+    }
 
-        [Benchmark]
-        public void Throw_Exception_With_Large_Message()
+    [Benchmark]
+    public void Throw_Exception_With_Large_Message()
+    {
+        try
         {
-            try
-            {
-                throw new DotnetCqrsEventsourcingException(_longMessage, ErrorCode);
-            }
-            catch (DotnetCqrsEventsourcingException)
-            {
-                // Intentionally empty
-            }
+            throw new DotnetCqrsEventsourcingException(_longMessage, ErrorCode);
         }
+        catch (DotnetCqrsEventsourcingException)
+        {
+            // Intentionally empty
+        }
+    }
 
-        [Benchmark]
-        public string ToString_Invocation()
-        {
-            var ex = new DotnetCqrsEventsourcingException(BaseMessage, ErrorCode);
-            return ex.ToString();
-        }
+    [Benchmark]
+    public string ToString_Invocation()
+    {
+        var ex = new DotnetCqrsEventsourcingException(BaseMessage, ErrorCode);
+        return ex.ToString();
     }
 }

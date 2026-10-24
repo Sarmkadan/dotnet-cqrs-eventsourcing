@@ -116,7 +116,9 @@ public sealed class IncrementalSnapshot
     public bool VerifyChecksum()
     {
         if (string.IsNullOrEmpty(Checksum))
+        {
             return false;
+        }
 
         var stored = Checksum;
         ComputeChecksum();

@@ -2,7 +2,6 @@ using System.IO.Compression;
 using System.Text;
 using DotNetCqrsEventSourcing.Domain.Snapshots;
 using DotNetCqrsEventSourcing.Infrastructure.Compression;
-using DotNetCqrsEventSourcing.Shared.Results;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -81,8 +80,8 @@ public class SnapshotCompressionServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Data.AggregateData.Should().Be("");
-        result.Data.IsCompressed.Should().BeTrue();
+        result.Data!.AggregateData.Should().Be("");
+        result.Data!.IsCompressed.Should().BeTrue();
     }
 
     /// <summary>
@@ -138,9 +137,9 @@ public class SnapshotCompressionServiceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
-        result.Data.IsCompressed.Should().BeTrue();
-        result.Data.AggregateData.Should().NotBe(originalData);
-        result.Data.AggregateData.Should().NotBeEmpty();
+        result.Data!.IsCompressed.Should().BeTrue();
+        result.Data!.AggregateData.Should().NotBe(originalData);
+        result.Data!.AggregateData.Should().NotBeEmpty();
         result.Data.UncompressedSize.Should().Be(originalData.Length);
         result.Data.CompressedSize.Should().BeGreaterThan(0);
         // Note: Small data may not compress due to GZip overhead, so we just check it's processed
