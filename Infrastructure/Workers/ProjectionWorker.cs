@@ -5,6 +5,7 @@
 // =============================================================================
 
 using DotNetCqrsEventSourcing.Application.Services;
+using DotNetCqrsEventSourcing.Infrastructure.Health;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Workers;
 
@@ -14,7 +15,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Workers;
 /// Implements event-driven architecture: projections stay eventually consistent with event stream.
 /// Handles projection rebuild, catch-up after outages, and backpressure on slow projections.
 /// </summary>
-public interface IProjectionWorker : IHostedService
+public interface IProjectionWorker : IHostedService, IHealthContributor
 {
     /// <summary>
     /// Manually triggers projection rebuild from event stream.
@@ -45,6 +46,13 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
     private const int PausedPollingDelayMs = 1000;
     private const int NormalPollingDelayMs = 1000;
     private const int ErrorBackoffDelayMs = 5000;
+    private const string HealthComponentName = "projection-worker";
+    private static readonly TimeSpan HeartbeatStaleAfter = TimeSpan.FromSeconds(30);
+
+    private readonly object _healthLock = new();
+    private bool _isRunning;
+    private DateTime? _lastHeartbeatUtc;
+    private int _consecutiveErrors;
 
     public ProjectionWorker(
         IEventStore eventStore,
@@ -62,40 +70,114 @@ public class ProjectionWorker : BackgroundService, IProjectionWorker
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Projection worker started");
+        SetRunning(true);
 
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                // Check if paused
-                lock (_pauseLock)
+                try
                 {
-                    if (_isPaused)
+                    RecordHeartbeat();
+
+                    // Check if paused
+                    lock (_pauseLock)
                     {
-                        _logger.LogDebug("Projection worker is paused, waiting for resume");
-                        await Task.Delay(PausedPollingDelayMs, stoppingToken);
-                        continue;
+                        if (_isPaused)
+                        {
+                            _logger.LogDebug("Projection worker is paused, waiting for resume");
+                            await Task.Delay(PausedPollingDelayMs, stoppingToken);
+                            continue;
+                        }
                     }
+
+                    // Process projections
+                    await ProcessProjectionsAsync(stoppingToken);
+                    RecordSuccessfulCycle();
+
+                    // Yield to allow other work
+                    await Task.Delay(NormalPollingDelayMs, stoppingToken);
                 }
-
-                // Process projections
-                await ProcessProjectionsAsync(stoppingToken);
-
-                // Yield to allow other work
-                await Task.Delay(NormalPollingDelayMs, stoppingToken);
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing projections");
+                    RecordFailedCycle();
+                    await Task.Delay(ErrorBackoffDelayMs, stoppingToken); // Back off on error
+                }
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing projections");
-                await Task.Delay(ErrorBackoffDelayMs, stoppingToken); // Back off on error
-            }
+        }
+        finally
+        {
+            SetRunning(false);
         }
 
         _logger.LogInformation("Projection worker stopped");
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Reports one <c>projection-worker</c> component. The worker is unhealthy when its loop is not
+    /// running or its heartbeat is older than 30 seconds, and degraded when paused or failing.
+    /// </remarks>
+    public Task<IReadOnlyList<ComponentHealth>> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        bool isRunning;
+        DateTime? lastHeartbeat;
+        int consecutiveErrors;
+
+        lock (_healthLock)
+        {
+            isRunning = _isRunning;
+            lastHeartbeat = _lastHeartbeatUtc;
+            consecutiveErrors = _consecutiveErrors;
+        }
+
+        var component = WorkerLiveness.Describe(
+            HealthComponentName,
+            isRunning,
+            IsPaused,
+            lastHeartbeat,
+            HeartbeatStaleAfter,
+            consecutiveErrors,
+            DateTime.UtcNow);
+
+        return Task.FromResult<IReadOnlyList<ComponentHealth>>([component]);
+    }
+
+    private void SetRunning(bool isRunning)
+    {
+        lock (_healthLock)
+        {
+            _isRunning = isRunning;
+        }
+    }
+
+    private void RecordHeartbeat()
+    {
+        lock (_healthLock)
+        {
+            _lastHeartbeatUtc = DateTime.UtcNow;
+        }
+    }
+
+    private void RecordSuccessfulCycle()
+    {
+        lock (_healthLock)
+        {
+            _consecutiveErrors = 0;
+        }
+    }
+
+    private void RecordFailedCycle()
+    {
+        lock (_healthLock)
+        {
+            _consecutiveErrors++;
+        }
     }
 
     public async Task RebuildProjectionAsync(string aggregateId, CancellationToken cancellationToken = default)

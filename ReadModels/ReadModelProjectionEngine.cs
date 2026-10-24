@@ -7,6 +7,7 @@
 using System.Collections.Concurrent;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Domain.Events;
+using DotNetCqrsEventSourcing.Infrastructure.Health;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 using DotNetCqrsEventSourcing.Shared.Results;
 using Microsoft.Extensions.Options;
@@ -19,11 +20,16 @@ namespace DotNetCqrsEventSourcing.ReadModels;
 /// <see cref="IReadModelProjectionRunner"/>.
 /// <para>
 /// Features: configurable retry with exponential back-off, per-projection checkpointing,
-/// bounded concurrency, and on-demand aggregate replay for full or partial rebuilds.
+/// bounded concurrency, on-demand aggregate replay for full or partial rebuilds, and
+/// health reporting (projection lag and failure streaks) through <see cref="IHealthContributor"/>.
 /// </para>
 /// </summary>
-public sealed class ReadModelProjectionEngine : IDisposable
+public sealed class ReadModelProjectionEngine : IDisposable, IHealthContributor
 {
+    private const string EngineComponentName = "read-model-engine";
+    private const string ProjectionComponentPrefix = "projection:";
+    private const long LagDegradedThreshold = 1000;
+
     private readonly IEventBus _eventBus;
     private readonly IEventStore _eventStore;
     private readonly IReadOnlyList<IReadModelProjectionRunner> _runners;
@@ -36,6 +42,8 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
     private readonly ConcurrentDictionary<string, ProjectionCheckpoint> _checkpoints = new();
     private readonly ConcurrentDictionary<string, long> _processingCounters = new();
+    private readonly ConcurrentDictionary<string, long> _headPositions = new();
+    private readonly ConcurrentDictionary<string, int> _failureStreaks = new();
     private long _totalEventsRouted;
     private bool _disposed;
 
@@ -171,6 +179,38 @@ public sealed class ReadModelProjectionEngine : IDisposable
         return _checkpoints.GetValueOrDefault(projectionName);
     }
 
+    /// <summary>
+    /// Reports the engine and one component per registered projection. For each projection the
+    /// metrics are <c>head</c> (events routed to it), <c>checkpoint</c> (events it has applied),
+    /// <c>persisted_checkpoint</c> (events covered by the last written checkpoint), <c>lag</c>
+    /// (<c>head</c> minus <c>checkpoint</c>) and <c>failure_streak</c> (consecutive permanent failures).
+    /// A projection is degraded when its streak is non-zero or its lag exceeds 1000 events.
+    /// The engine is unhealthy once it has been disposed and no longer receives events.
+    /// </summary>
+    /// <param name="cancellationToken">Not used; the probe is synchronous and in-memory.</param>
+    /// <returns>The engine component followed by one component per registered projection.</returns>
+    public Task<IReadOnlyList<ComponentHealth>> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        var engineComponent = new ComponentHealth(
+            EngineComponentName,
+            _disposed ? HealthState.Unhealthy : HealthState.Healthy,
+            _disposed ? "Engine is disposed and no longer receives events." : "Engine is receiving events.",
+            new Dictionary<string, long>
+            {
+                ["events_routed"] = TotalEventsRouted,
+                ["projections"] = _runners.Count
+            });
+
+        var components = new List<ComponentHealth> { engineComponent };
+
+        foreach (var projectionName in _runners.Select(runner => runner.ProjectionName).Distinct(StringComparer.Ordinal))
+        {
+            components.Add(DescribeProjection(projectionName));
+        }
+
+        return Task.FromResult<IReadOnlyList<ComponentHealth>>(components);
+    }
+
     // -------------------------------------------------------------------------
     // Event handling
     // -------------------------------------------------------------------------
@@ -197,6 +237,11 @@ public sealed class ReadModelProjectionEngine : IDisposable
             return Result.Success();
         }
 
+        foreach (var runner in capable)
+        {
+            _headPositions.AddOrUpdate(runner.ProjectionName, 1, static (_, position) => position + 1);
+        }
+
         using var semaphore = new SemaphoreSlim(_options.MaxConcurrentProjectors, _options.MaxConcurrentProjectors);
         var errors = new ConcurrentBag<string>();
 
@@ -209,6 +254,12 @@ public sealed class ReadModelProjectionEngine : IDisposable
                 if (!result.IsSuccess)
                 {
                     errors.Add($"[{runner.ProjectionName}] {result.ErrorMessage}");
+
+                    // A cancelled shutdown is not a projector failure, so it does not extend the streak.
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        _failureStreaks.AddOrUpdate(runner.ProjectionName, 1, static (_, streak) => streak + 1);
+                    }
                 }
                 else
                 {
@@ -283,14 +334,12 @@ public sealed class ReadModelProjectionEngine : IDisposable
 
     private void AdvanceCheckpoint(string projectionName, DomainEvent @event)
     {
-        if (!_options.EnableCheckpointing)
-        {
-            return;
-        }
+        // A successful apply ends any failure streak for this projection.
+        _failureStreaks[projectionName] = 0;
 
         var total = _processingCounters.AddOrUpdate(projectionName, 1, (_, c) => c + 1);
 
-        if (total % _options.CheckpointInterval != 0)
+        if (!_options.EnableCheckpointing || total % _options.CheckpointInterval != 0)
         {
             return;
         }
@@ -301,6 +350,36 @@ public sealed class ReadModelProjectionEngine : IDisposable
             @event.AggregateVersion,
             DateTime.UtcNow,
             total);
+    }
+
+    private ComponentHealth DescribeProjection(string projectionName)
+    {
+        var head = _headPositions.GetValueOrDefault(projectionName);
+        var checkpoint = _processingCounters.GetValueOrDefault(projectionName);
+        var persistedCheckpoint = _checkpoints.TryGetValue(projectionName, out var stored) ? stored.TotalEventsProcessed : 0;
+        var failureStreak = _failureStreaks.GetValueOrDefault(projectionName);
+        var lag = head - checkpoint;
+
+        var (state, description) = (failureStreak, lag) switch
+        {
+            ( > 0, _) => (HealthState.Degraded, $"{failureStreak} consecutive failure(s); events are being retried or dead-lettered."),
+            (_, > LagDegradedThreshold) => (HealthState.Degraded, $"Lag of {lag} event(s) exceeds {LagDegradedThreshold}."),
+            (_, > 0) => (HealthState.Healthy, $"Lag of {lag} event(s); may include dead-lettered events awaiting replay."),
+            _ => (HealthState.Healthy, "Caught up with the event stream.")
+        };
+
+        return new ComponentHealth(
+            ProjectionComponentPrefix + projectionName,
+            state,
+            description,
+            new Dictionary<string, long>
+            {
+                ["head"] = head,
+                ["checkpoint"] = checkpoint,
+                ["persisted_checkpoint"] = persistedCheckpoint,
+                ["lag"] = lag,
+                ["failure_streak"] = failureStreak
+            });
     }
 
     // -------------------------------------------------------------------------

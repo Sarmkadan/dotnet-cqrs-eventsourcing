@@ -32,6 +32,7 @@ services.AddCqrsFramework(configuration);
 // Register CLI commands
 services.AddSingleton<ICliCommand, ReadModelRebuilderCommand>();
 services.AddSingleton<ICliCommand, EventStoreStatsCommand>();
+services.AddSingleton<ICliCommand, HealthStatusCommand>();
 services.AddSingleton<DeadLetterReplayService>();
 services.AddSingleton<ICliCommand, DeadLetterReplayCommand>();
 services.AddSingleton<CliCommandRegistry>();

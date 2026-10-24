@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using DotNetCqrsEventSourcing.Infrastructure.Health;
 using Microsoft.Extensions.Options;
 
 namespace DotNetCqrsEventSourcing.ReadModels;
@@ -59,6 +60,10 @@ public static class ReadModelExtensions
         services.AddSingleton(Options.Create(options));
         services.AddSingleton<ReadModelProjectionEngine>();
         services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
+
+        // Health reporting: projection lag and failure streaks from the engine, unresolved dead letters from the store.
+        services.AddSingleton<IHealthContributor>(sp => sp.GetRequiredService<ReadModelProjectionEngine>());
+        services.AddSingleton<IHealthContributor, DeadLetterHealthContributor>();
 
         return services;
     }

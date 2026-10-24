@@ -6,6 +6,7 @@
 
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Domain.AggregateRoots;
+using DotNetCqrsEventSourcing.Infrastructure.Health;
 
 namespace DotNetCqrsEventSourcing.Infrastructure.Workers;
 
@@ -16,7 +17,7 @@ namespace DotNetCqrsEventSourcing.Infrastructure.Workers;
 /// With snapshots, only recent events need replay (e.g., last 100 events since snapshot).
 /// Runs on a schedule (default every 5 minutes) and only processes aggregates that exceed the event threshold.
 /// </summary>
-public interface ISnapshotWorker : IHostedService
+public interface ISnapshotWorker : IHostedService, IHealthContributor
 {
     /// <summary>
     /// Manually triggers snapshot creation for a specific aggregate.
@@ -34,6 +35,12 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
     private readonly ILogger<SnapshotWorker> _logger;
     private readonly TimeSpan _snapshotInterval;
     private readonly int _eventsThresholdForSnapshot;
+    private readonly object _healthLock = new();
+    private bool _isRunning;
+    private DateTime? _lastHeartbeatUtc;
+    private int _consecutiveErrors;
+
+    private const string HealthComponentName = "snapshot-worker";
 
     public SnapshotWorker(
         IEventStore eventStore,
@@ -59,30 +66,103 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Snapshot worker started with interval: {Interval}s", _snapshotInterval.TotalSeconds);
+        SetRunning(true);
 
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await ProcessSnapshotsAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in snapshot worker processing");
-            }
+                RecordHeartbeat();
 
-            // Wait for the next interval before processing again
-            try
-            {
-                await Task.Delay(_snapshotInterval, stoppingToken);
+                try
+                {
+                    await ProcessSnapshotsAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in snapshot worker processing");
+                    RecordFailedCycle();
+                }
+
+                // Wait for the next interval before processing again
+                try
+                {
+                    await Task.Delay(_snapshotInterval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+        }
+        finally
+        {
+            SetRunning(false);
         }
 
         _logger.LogInformation("Snapshot worker stopped");
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Reports one <c>snapshot-worker</c> component. The worker is unhealthy when its loop is not running
+    /// or has not heartbeated for three intervals, and degraded when the last cycle failed at the store level.
+    /// </remarks>
+    public Task<IReadOnlyList<ComponentHealth>> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        bool isRunning;
+        DateTime? lastHeartbeat;
+        int consecutiveErrors;
+
+        lock (_healthLock)
+        {
+            isRunning = _isRunning;
+            lastHeartbeat = _lastHeartbeatUtc;
+            consecutiveErrors = _consecutiveErrors;
+        }
+
+        var component = WorkerLiveness.Describe(
+            HealthComponentName,
+            isRunning,
+            isPaused: false,
+            lastHeartbeat,
+            _snapshotInterval * 3,
+            consecutiveErrors,
+            DateTime.UtcNow);
+
+        return Task.FromResult<IReadOnlyList<ComponentHealth>>([component]);
+    }
+
+    private void SetRunning(bool isRunning)
+    {
+        lock (_healthLock)
+        {
+            _isRunning = isRunning;
+        }
+    }
+
+    private void RecordHeartbeat()
+    {
+        lock (_healthLock)
+        {
+            _lastHeartbeatUtc = DateTime.UtcNow;
+        }
+    }
+
+    private void RecordSuccessfulCycle()
+    {
+        lock (_healthLock)
+        {
+            _consecutiveErrors = 0;
+        }
+    }
+
+    private void RecordFailedCycle()
+    {
+        lock (_healthLock)
+        {
+            _consecutiveErrors++;
+        }
     }
 
     public async Task CreateSnapshotAsync(string aggregateId, CancellationToken cancellationToken = default)
@@ -145,8 +225,11 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
             if (!result.IsSuccess || result.Data == null)
             {
                 _logger.LogWarning("Failed to retrieve aggregate IDs for snapshot processing: {Error}", result.Error);
+                RecordFailedCycle();
                 return;
             }
+
+            RecordSuccessfulCycle();
 
             // Get distinct aggregate IDs from events
             var aggregateIds = result.Data
@@ -243,6 +326,7 @@ public class SnapshotWorker : BackgroundService, ISnapshotWorker
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in ProcessSnapshotsAsync");
+            RecordFailedCycle();
         }
     }
 }

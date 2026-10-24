@@ -7,6 +7,7 @@
 using DotNetCqrsEventSourcing.Infrastructure.Caching;
 using DotNetCqrsEventSourcing.Infrastructure.Events;
 using DotNetCqrsEventSourcing.Infrastructure.Formatters;
+using DotNetCqrsEventSourcing.Infrastructure.Health;
 using DotNetCqrsEventSourcing.Infrastructure.Integration;
 using DotNetCqrsEventSourcing.Infrastructure.Observability;
 using DotNetCqrsEventSourcing.Infrastructure.Workers;
@@ -119,6 +120,13 @@ public static class InfrastructureConfiguration
         services.AddHostedService(sp => sp.GetRequiredService<ISnapshotWorker>());
         services.AddHostedService(sp => sp.GetRequiredService<IProjectionWorker>());
 
+        // Workers report their liveness through the same contributor interface as projections
+        services.AddSingleton<IHealthContributor>(sp => sp.GetRequiredService<ISnapshotWorker>());
+        services.AddSingleton<IHealthContributor>(sp => sp.GetRequiredService<IProjectionWorker>());
+
+        // Periodically logs the aggregated health snapshot as structured metrics
+        services.AddHostedService<HealthReportWorker>();
+
         return services;
     }
 
@@ -128,6 +136,7 @@ public static class InfrastructureConfiguration
     private static IServiceCollection AddObservability(this IServiceCollection services)
     {
         services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
+        services.AddSingleton<HealthAggregator>();
         services.AddHealthChecks()
             .AddCheck<PerformanceHealthCheck>("performance");
         return services;

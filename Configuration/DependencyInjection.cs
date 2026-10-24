@@ -11,8 +11,11 @@ using Application.Services;
 using Data.Repositories;
 using Domain.AggregateRoots;
 using Infrastructure.Events;
+using Infrastructure.Health;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ReadModels;
 
 /// <summary>
 /// Dependency injection configuration for the CQRS framework.
@@ -96,6 +99,12 @@ public static class DependencyInjection
 
         // Application services
         services.AddSingleton<IAccountService, AccountService>();
+
+        // Dead-letter store default; CLI commands such as dead-letter-replay resolve it even without read-model projections
+        services.TryAddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
+
+        // Health aggregation - resolves whichever IHealthContributor registrations the host has added
+        services.TryAddSingleton<HealthAggregator>();
 
         return services;
     }
