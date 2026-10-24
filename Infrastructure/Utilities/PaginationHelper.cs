@@ -53,13 +53,18 @@ public static class PaginationHelper
     internal const int MaxPageSize = 1000;
 
     /// <summary>
-    /// Paginates a collection with given page number and size.
+    /// Paginates an in-memory collection with given page number and size.
+    /// The input is fully materialized to compute <see cref="PagedResult{T}.TotalCount"/>;
+    /// for store-backed sources use <see cref="PaginateQuery{T}"/> so only the requested page is fetched.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="items"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageNumber"/> is less than 1 or <paramref name="pageSize"/> is outside 1..1000.</exception>
     public static PagedResult<T> Paginate<T>(
         IEnumerable<T> items,
         int pageNumber = DefaultPageNumber,
         int pageSize = DefaultPageSize)
     {
+        ArgumentNullException.ThrowIfNull(items);
         GuardClauses.InRange(pageNumber, MinPageNumber, int.MaxValue, nameof(pageNumber));
         GuardClauses.InRange(pageSize, MinPageSize, MaxPageSize, nameof(pageSize));
 
@@ -67,7 +72,7 @@ public static class PaginationHelper
         var totalCount = itemsList.Count;
 
         var pagedItems = itemsList
-            .Skip((pageNumber - 1) * pageSize)
+            .Skip(ToSkipCount(pageNumber, pageSize))
             .Take(pageSize)
             .ToList();
 
@@ -82,20 +87,25 @@ public static class PaginationHelper
 
     /// <summary>
     /// Paginates a queryable with given page number and size.
-    /// Executes the query only for the requested page (database-level pagination).
+    /// The provider translates <c>Count</c>, <c>Skip</c> and <c>Take</c> into the store query,
+    /// so only the requested page is materialized (database-level pagination).
+    /// The query should be ordered; paging an unordered query is not deterministic on most providers.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="query"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageNumber"/> is less than 1 or <paramref name="pageSize"/> is outside 1..1000.</exception>
     public static PagedResult<T> PaginateQuery<T>(
         IQueryable<T> query,
         int pageNumber = DefaultPageNumber,
         int pageSize = DefaultPageSize)
     {
+        ArgumentNullException.ThrowIfNull(query);
         GuardClauses.InRange(pageNumber, MinPageNumber, int.MaxValue, nameof(pageNumber));
         GuardClauses.InRange(pageSize, MinPageSize, MaxPageSize, nameof(pageSize));
 
         var totalCount = query.Count();
 
         var pagedItems = query
-            .Skip((pageNumber - 1) * pageSize)
+            .Skip(ToSkipCount(pageNumber, pageSize))
             .Take(pageSize)
             .ToList();
 
@@ -120,12 +130,27 @@ public static class PaginationHelper
     }
 
     /// <summary>
-    /// Gets start and end indices for a page.
-    /// Useful for offset-based APIs.
+    /// Gets the offset and limit for a page.
+    /// Useful for offset-based APIs. Offsets beyond <see cref="int.MaxValue"/> saturate to it,
+    /// which yields an empty page rather than wrapping around to an earlier one.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageNumber"/> is less than 1 or <paramref name="pageSize"/> is outside 1..1000.</exception>
     public static (int offset, int limit) GetOffsetAndLimit(int pageNumber, int pageSize)
     {
-        return ((pageNumber - 1) * pageSize, pageSize);
+        GuardClauses.InRange(pageNumber, MinPageNumber, int.MaxValue, nameof(pageNumber));
+        GuardClauses.InRange(pageSize, MinPageSize, MaxPageSize, nameof(pageSize));
+
+        return (ToSkipCount(pageNumber, pageSize), pageSize);
+    }
+
+    /// <summary>
+    /// Computes the number of items to skip for a page, computing in 64-bit so large page numbers
+    /// cannot overflow. Saturates at <see cref="int.MaxValue"/>, which is past the end of any collection.
+    /// </summary>
+    private static int ToSkipCount(int pageNumber, int pageSize)
+    {
+        var offset = (long)(pageNumber - 1) * pageSize;
+        return offset > int.MaxValue ? int.MaxValue : (int)offset;
     }
 }
 
@@ -146,8 +171,12 @@ public static class PaginationExtensions
     }
 
     /// <summary>
-    /// Paginates an IEnumerable directly.
+    /// Paginates an in-memory sequence directly. Materializes the whole sequence first;
+    /// when the source is a store-backed <see cref="IQueryable{T}"/> bound to a variable typed as
+    /// <see cref="IEnumerable{T}"/>, cast it back to <see cref="IQueryable{T}"/> so paging runs in the store.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="items"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageNumber"/> is less than 1 or <paramref name="pageSize"/> is outside 1..1000.</exception>
     public static PagedResult<T> ToPagedResult<T>(
         this IEnumerable<T> items,
         int pageNumber = PaginationHelper.DefaultPageNumber,
