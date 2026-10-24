@@ -44,7 +44,6 @@ public sealed class InMemoryDeadLetterStore : IDeadLetterStore
                 entry.AttemptCount, entry.ErrorMessage);
 
             _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
-            _logger.LogInformation("Finished writing dead-letter entry: id={EntryId}, projection={ProjectionName}", entry.Id, entry.ProjectionName);
         }
         catch (Exception ex)
         {
