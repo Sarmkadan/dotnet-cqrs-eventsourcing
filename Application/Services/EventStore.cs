@@ -6,6 +6,7 @@
 
 namespace DotNetCqrsEventSourcing.Application.Services;
 
+using System.Text;
 using Data.Repositories;
 using Domain.Events;
 using Infrastructure.Events;
@@ -19,10 +20,16 @@ using Shared.Results;
 /// </summary>
 public class EventStore : IEventStore
 {
+    /// <summary>
+    /// Default upper bound on a serialized event payload, in UTF-8 bytes (1 MiB).
+    /// </summary>
+    public const int DefaultMaxEventPayloadBytes = 1024 * 1024;
+
     private readonly IEventRepository _eventRepository;
     private readonly ILogger<EventStore> _logger;
     private readonly EventTypeRegistry? _eventTypeRegistry;
     private readonly EventUpcastingPipeline? _upcastingPipeline;
+    private readonly int _maxEventPayloadBytes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EventStore"/> class.
@@ -34,12 +41,25 @@ public class EventStore : IEventStore
     /// The pipeline that upgrades stored payloads to the current schema version before deserialization (optional).
     /// When <see langword="null"/>, payloads are deserialized exactly as stored.
     /// </param>
-    public EventStore(IEventRepository eventRepository, ILogger<EventStore> logger, EventTypeRegistry? eventTypeRegistry = null, EventUpcastingPipeline? upcastingPipeline = null)
+    /// <param name="maxEventPayloadBytes">
+    /// The maximum size of an event payload in UTF-8 bytes, enforced when events are appended and before
+    /// a stored payload is parsed or deserialized. Defaults to <see cref="DefaultMaxEventPayloadBytes"/>.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="eventRepository"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxEventPayloadBytes"/> is zero or negative.</exception>
+    public EventStore(
+        IEventRepository eventRepository,
+        ILogger<EventStore> logger,
+        EventTypeRegistry? eventTypeRegistry = null,
+        EventUpcastingPipeline? upcastingPipeline = null,
+        int maxEventPayloadBytes = DefaultMaxEventPayloadBytes)
     {
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEventPayloadBytes);
         _eventTypeRegistry = eventTypeRegistry;
         _upcastingPipeline = upcastingPipeline;
+        _maxEventPayloadBytes = maxEventPayloadBytes;
     }
 
     /// <summary>
@@ -83,7 +103,10 @@ public class EventStore : IEventStore
             var envelopes = events.Select(e =>
             {
                 e.PopulateMetadata();
-                return new EventEnvelope(e, SerializeEvent(e));
+                var envelope = new EventEnvelope(e, SerializeEvent(e));
+                // Reject here so an event that could never be read back within the limit is not persisted.
+                EnsurePayloadWithinLimit(envelope.EventType, envelope.EventData);
+                return envelope;
             }).ToList();
 
             var result = await _eventRepository.SaveEventsAsync(envelopes, cancellationToken);
@@ -372,6 +395,7 @@ public class EventStore : IEventStore
             }
 
             var resolvedType = _eventTypeRegistry.Resolve(envelope.EventType);
+            EnsurePayloadWithinLimit(envelope.EventType, envelope.EventData);
             var payload = _upcastingPipeline is null
                 ? envelope.EventData
                 : _upcastingPipeline.UpcastToCurrentVersion(envelope);
@@ -381,6 +405,11 @@ public class EventStore : IEventStore
         {
             _logger.LogError(ex, "Unknown event type '{EventType}' attempted for deserialization. This is a security violation.", envelope.EventType);
             return null;
+        }
+        catch (EventPayloadTooLargeException)
+        {
+            // Propagate instead of dropping the event: a silently skipped event would corrupt the replayed aggregate state.
+            throw;
         }
         catch (Exception ex)
         {
@@ -392,5 +421,23 @@ public class EventStore : IEventStore
     private string SerializeEvent(DomainEvent @event)
     {
         return System.Text.Json.JsonSerializer.Serialize(@event, @event.GetType());
+    }
+
+    /// <summary>
+    /// Ensures a serialized payload fits within the configured maximum size, measured in UTF-8 bytes.
+    /// </summary>
+    /// <param name="eventType">The event type name the payload belongs to; used in the exception message.</param>
+    /// <param name="payload">The serialized payload to check.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="payload"/> is <see langword="null"/>.</exception>
+    /// <exception cref="EventPayloadTooLargeException">Thrown when the payload exceeds the configured maximum size.</exception>
+    private void EnsurePayloadWithinLimit(string eventType, string payload)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        var payloadBytes = Encoding.UTF8.GetByteCount(payload);
+        if (payloadBytes > _maxEventPayloadBytes)
+        {
+            throw new EventPayloadTooLargeException(eventType, payloadBytes, _maxEventPayloadBytes);
+        }
     }
 }
