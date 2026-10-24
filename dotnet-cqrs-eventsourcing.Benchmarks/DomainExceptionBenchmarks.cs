@@ -1,5 +1,6 @@
 using System;
 using BenchmarkDotNet.Attributes;
+using DotNetCqrsEventSourcing.Infrastructure.Utilities;
 using DotNetCqrsEventSourcing.Shared.Exceptions;
 
 namespace DotNetCqrsEventSourcing.Benchmarks
@@ -11,6 +12,12 @@ namespace DotNetCqrsEventSourcing.Benchmarks
     public class DomainExceptionBenchmarks
     {
         /// <summary>
+        /// Serializable snapshot of a <see cref="DomainException"/>.
+        /// The exception itself has no parameterless constructor, so it cannot be deserialized directly.
+        /// </summary>
+        public sealed record DomainExceptionDto(string Message, string Code, Dictionary<string, object> Metadata);
+
+        /// <summary>
         /// Size of the exception message (in characters) used for the benchmarks.
         /// </summary>
         [Params(10, 100, 1000)]
@@ -21,7 +28,7 @@ namespace DotNetCqrsEventSourcing.Benchmarks
         private string _json = string.Empty;
 
         /// <summary>
-        /// Pre‑pares data used by the benchmark methods.
+        /// Prepares data used by the benchmark methods.
         /// </summary>
         [GlobalSetup]
         public void GlobalSetup()
@@ -33,7 +40,13 @@ namespace DotNetCqrsEventSourcing.Benchmarks
             _exception = new DomainException(_message);
 
             // Serialize once – used by the deserialization benchmark.
-            _json = _exception.ToJson();
+            _json = SerializeToJsonInternal(_exception);
+        }
+
+        private static string SerializeToJsonInternal(DomainException exception)
+        {
+            var dto = new DomainExceptionDto(exception.Message, exception.Code, exception.Metadata);
+            return SerializationUtilities.ToJson(dto);
         }
 
         /// <summary>
@@ -60,17 +73,17 @@ namespace DotNetCqrsEventSourcing.Benchmarks
         [Benchmark]
         public string SerializeToJson()
         {
-            return _exception.ToJson();
+            return SerializeToJsonInternal(_exception);
         }
 
         /// <summary>
-        /// Benchmarks JSON deserialization via the extension method.
+        /// Benchmarks JSON deserialization via <see cref="SerializationUtilities"/>.
         /// </summary>
         [Benchmark]
-        public DomainException DeserializeFromJson()
+        public DomainExceptionDto DeserializeFromJson()
         {
-            // The extension method returns a nullable, but we know the JSON is valid.
-            return DomainExceptionJsonExtensions.FromJson(_json)!;
+            // The helper returns a nullable, but we know the JSON is valid.
+            return SerializationUtilities.FromJson<DomainExceptionDto>(_json)!;
         }
     }
 }
