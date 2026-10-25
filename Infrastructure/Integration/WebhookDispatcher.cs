@@ -190,7 +190,10 @@ public class WebhookDispatcher : IWebhookDispatcher
     /// <summary>
     /// Dispatches an event to a single webhook with retry logic and signature.
     /// </summary>
-    private async Task DispatchToWebhookAsync(WebhookRegistration registration, DomainEvent @event, CancellationToken cancellationToken)
+    private async Task DispatchToWebhookAsync(
+        WebhookRegistration registration,
+        DomainEvent @event,
+        CancellationToken cancellationToken)
     {
         var payload = new
         {
