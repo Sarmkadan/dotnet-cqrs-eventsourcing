@@ -4,9 +4,9 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Microsoft.AspNetCore.Mvc;
 using DotNetCqrsEventSourcing.Application.Services;
 using DotNetCqrsEventSourcing.Infrastructure.Utilities;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetCqrsEventSourcing.Presentation.Controllers;
 
